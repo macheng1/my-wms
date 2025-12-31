@@ -9,7 +9,7 @@ const UserAPI = {
   /** 2. 获取用户信息 */
   getUserInfo: () => {
     // 对应路径: http://localhost:3001/api/users/getUserInfo
-    return request.get<any, UserInfoResponse>("/users/getUserInfo");
+    return request.get<UserInfoResponse>("/users/getUserInfo");
   },
 };
 

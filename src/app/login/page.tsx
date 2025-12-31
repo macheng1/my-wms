@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 // 💡 直接使用支持 React 19 的包，静态 Toast 即可生效
 import { Form, Button, Card, Typography, Toast } from '@douyinfe/semi-ui-19';
-import { IconUser, IconLock, IconArrowRight } from '@douyinfe/semi-icons';
+import { IconUser, IconLock, IconArrowRight,IconApartment } from '@douyinfe/semi-icons';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/useUserStore';
 import { AuthAPI, UserAPI } from '@/api';
@@ -66,6 +66,13 @@ export default function LoginPage() {
         </div>
 
         <Form onSubmit={handleSubmit} className="w-full">
+             <Form.Input
+            field="code"
+            label="企业编码"
+            placeholder="请输入企业编码"
+            prefix={<IconApartment style={{ color: 'var(--semi-color-text-2)' }} />}
+            size="large"
+          />
           <Form.Input
             field="username"
             label="账号"

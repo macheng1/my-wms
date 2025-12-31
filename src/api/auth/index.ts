@@ -15,7 +15,7 @@ const AuthAPI = {
 
   /** 申请开通/注册 */
   register: (data: RegisterParams) => {
-    return request.post<RegisterParams>("/auth/register", data);
+    return request.post<RegisterParams>("/tenants/onboard", data);
   },
 
   /** 退出登录 */
