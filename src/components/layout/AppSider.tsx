@@ -67,7 +67,7 @@ export const AppSider: React.FC<AppSiderProps> = ({
         logo: (
           <IconSemiLogo style={{ fontSize: 36, color: "var(--semi-blue-5)" }} />
         ),
-        text: "元思 WMS", // 这里可以改成你的系统名称
+        text: "WMS", // 这里可以改成你的系统名称
       }}
       // 默认展开包含当前路径的父级菜单
       defaultOpenKeys={["/" + pathname.split("/")[1]]}
