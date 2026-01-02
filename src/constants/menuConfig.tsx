@@ -30,6 +30,30 @@ export const MENU_CONFIG: MenuItem[] = [
     code: "wms:dashboard",
   },
   {
+    itemKey: "/product",
+    text: "产品管理",
+    icon: <IconKanban />,
+    code: "wms:product",
+    items: [
+      {
+        itemKey: "/product/attr",
+        text: "属性管理",
+        code: "wms:product:attr",
+      },
+      {
+        itemKey: "/product/spec",
+        text: "规格管理",
+        code: "wms:product:spec",
+      },
+
+      {
+        itemKey: "/product/list",
+        text: "产品管理",
+        code: "wms:product:list",
+      },
+    ],
+  },
+  {
     itemKey: "/warehouse",
     text: "仓库管理",
     icon: <IconHome />,
