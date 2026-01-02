@@ -33,22 +33,41 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
   }, []);
 
   // 2. 弹窗打开时，初始化表单和 Tree 的勾选状态（支持远程拉取详情）
+  // 权限勾选初始化，去掉 formApi 依赖，保证 checkedKeys 正确赋值
   useEffect(() => {
     if (visible) {
       if (data?.id) {
-        // 编辑时拉取详情
         RoleAPI.getRoleById(data.id).then((res: any) => {
           const detail = res.data || {};
-          formApi?.setValues(detail);
           setCheckedKeys(detail.permissionCodes || []);
         });
       } else if (data) {
-        // 新建时带初始值
-        formApi?.setValues(data);
-        setCheckedKeys(data.permissionCodes || []);
+        // 只有当权限码变化时才 setCheckedKeys，避免 effect 死循环和 eslint 报错
+        if (
+          Array.isArray(data.permissionCodes) &&
+          JSON.stringify(data.permissionCodes) !== JSON.stringify(checkedKeys)
+        ) {
+          setCheckedKeys(data.permissionCodes);
+        }
       } else {
-        formApi?.reset();
-        setCheckedKeys([]);
+        if (checkedKeys.length > 0) setCheckedKeys([]);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, data]);
+
+  // 表单初始化，单独处理 formApi 赋值，避免和 checkedKeys 冲突
+  useEffect(() => {
+    if (visible && formApi) {
+      if (data?.id) {
+        RoleAPI.getRoleById(data.id).then((res: any) => {
+          const detail = res.data || {};
+          formApi.setValues(detail);
+        });
+      } else if (data) {
+        formApi.setValues(data);
+      } else {
+        formApi.reset();
       }
     }
   }, [visible, data, formApi]);
@@ -118,10 +137,8 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
             >
               <Tree
                 treeData={treeData}
-                checkable
                 multiple
-                // 💡 核心：受控绑定
-                checkedKeys={checkedKeys}
+                value={checkedKeys}
                 onChange={(values) => {
                   // values 就是所有已选权限码的数组
                   setCheckedKeys(Array.isArray(values) ? values : []);

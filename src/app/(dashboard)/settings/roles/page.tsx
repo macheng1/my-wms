@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useMemo } from "react";
+import dayjs from "dayjs";
 import { Button, Space, Tag, Modal, Toast, Switch } from "@douyinfe/semi-ui-19";
 import {
   IconPlus,
@@ -23,6 +24,7 @@ interface Role {
   isActive: number; // 1=启用, 0=禁用
   remark?: string;
   permissionCodes: string[];
+  createdAt?: string;
 }
 
 export default function RoleListPage() {
@@ -43,11 +45,8 @@ export default function RoleListPage() {
         : "启用后，用户将恢复相关功能权限。",
       onOk: async () => {
         try {
-          // 调用更新接口，仅修改 isActive 字段
-          await RoleAPI.updateRole(record.id, {
-            ...record,
-            isActive: isActive ? 0 : 1,
-          });
+          // 调用新接口，仅修改 isActive 字段
+          await RoleAPI.updateRoleStatus(record.id, isActive ? 0 : 1);
           Toast.success(`${actionText}成功`);
           tableRef.current?.reload(); // 刷新列表
         } catch (error) {
@@ -92,6 +91,15 @@ export default function RoleListPage() {
       {
         title: "备注",
         dataIndex: "remark",
+        hideInSearch: true,
+      },
+      {
+        title: "创建时间",
+        dataIndex: "createdAt",
+        valueType: "text",
+        render: (text) =>
+          text ? dayjs(text).format("YYYY-MM-DD HH:mm:ss") : "-",
+        width: 180,
         hideInSearch: true,
       },
       {

@@ -5,6 +5,11 @@ import { CreateRole, QueryRolePage } from "./types";
  * 角色 API
  */
 const RoleAPI = {
+  /** 获取所有激活角色下拉列表 */
+  selectRoleList: () => request.post("/roles/selectRoleLists"),
+  /** 更新角色启用状态 */
+  updateRoleStatus: (id: string | number, isActive: number) =>
+    request.post(`/roles/${id}/status`, { isActive }),
   /** 创建角色 */
   createRole: (data: CreateRole) => request.post("/roles", data),
 
