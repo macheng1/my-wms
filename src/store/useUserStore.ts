@@ -7,6 +7,8 @@ interface UserInfo {
   id?: string;
   username: string;
   avatar?: string;
+  isPlatformAdmin?: boolean;
+  roleNames?: string[];
   role: "admin" | "staff";
 }
 

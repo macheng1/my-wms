@@ -148,8 +148,26 @@ export const AppHeader: React.FC = () => {
                     {userInfo?.username || "未登录"}
                   </Text>
                   <Text type="secondary" size="small">
-                    {/* 💡 这里根据你 WMS 的实际角色显示 */}
-                    {userInfo?.role === "admin" ? "超级管理员" : "仓库操作员"}
+                    {/* 优化角色显示逻辑 */}
+                    {(() => {
+                      if (
+                        userInfo?.isPlatformAdmin ||
+                        userInfo?.permissions?.includes("*")
+                      ) {
+                        return "超级管理员";
+                      }
+                      if (
+                        userInfo?.roleNames &&
+                        userInfo.roleNames.length > 0
+                      ) {
+                        return userInfo.roleNames.join(", ");
+                      }
+                      if (userInfo?.role) {
+                        // 兼容 role 字段
+                        return userInfo.role;
+                      }
+                      return "访客";
+                    })()}
                   </Text>
                 </div>
               </div>
