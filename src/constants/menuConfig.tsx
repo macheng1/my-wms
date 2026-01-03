@@ -30,6 +30,20 @@ export const MENU_CONFIG: MenuItem[] = [
     code: "wms:dashboard",
   },
   {
+    itemKey: "/category",
+    text: "类目管理",
+    icon: <IconList />,
+    code: "wms:category",
+    items: [
+      {
+        itemKey: "/category/list",
+        text: "类目列表",
+        code: "wms:category:list",
+      },
+      // 可扩展更多子菜单
+    ],
+  },
+  {
     itemKey: "/product",
     text: "产品管理",
     icon: <IconKanban />,
@@ -48,7 +62,7 @@ export const MENU_CONFIG: MenuItem[] = [
 
       {
         itemKey: "/product/list",
-        text: "产品管理",
+        text: "产品列表",
         code: "wms:product:list",
       },
     ],

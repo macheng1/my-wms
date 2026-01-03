@@ -29,8 +29,9 @@ const AttributePage = () => {
 
   // 表格列定义
   const columns: ProColumnType[] = [
-    { title: "属性名称", dataIndex: "name" },
     { title: "业务编码", dataIndex: "code" },
+    { title: "属性名称", dataIndex: "name" },
+
     {
       title: "输入类型",
       dataIndex: "type",

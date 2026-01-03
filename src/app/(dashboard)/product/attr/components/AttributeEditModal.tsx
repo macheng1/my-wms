@@ -97,17 +97,18 @@ export default function AttributeEditModal({
       >
         <Section text="基础信息">
           <Form.Input
+            field="code"
+            placeholder="自动生成"
+            label="业务编码"
+            disabled
+          />
+          <Form.Input
             field="name"
             label="属性名称"
             placeholder="请输入属性名称"
             rules={[{ required: true, message: "请输入属性名称" }]}
           />
-          <Form.Input
-            field="code"
-            placeholder="请输入业务编码"
-            label="业务编码"
-            rules={[{ required: true, message: "请输入业务编码" }]}
-          />
+
           <Form.Select
             field="type"
             label="输入类型"
