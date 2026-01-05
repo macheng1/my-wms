@@ -9,18 +9,28 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@douyinfe/semi-icons": "^2.90.1",
+    "@douyinfe/semi-illustrations": "^2.90.1",
+    "@douyinfe/semi-ui-19": "^2.90.1",
+    "axios": "^1.13.2",
+    "cross-env": "^10.1.0",
+    "dayjs": "^1.11.19",
+    "js-cookie": "^3.0.5",
     "next": "16.1.1",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "eslint-plugin-unused-imports": "^4.3.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

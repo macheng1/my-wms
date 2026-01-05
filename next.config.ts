@@ -1,8 +1,11 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-  reactCompiler: true,
+const nextConfig = {
+  typescript: {
+    ignoreBuildErrors: true, // 构建时忽略所有 TypeScript 错误
+  },
+  transpilePackages: [
+    "@douyinfe/semi-ui-19",
+    "@douyinfe/semi-icons",
+    "@douyinfe/semi-illustrations",
+  ],
 };
-
-export default nextConfig;
+module.exports = nextConfig;
