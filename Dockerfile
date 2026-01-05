@@ -31,10 +31,10 @@ COPY --from=builder /app/.next/static ./.next/static
 #   B. 将根目录的 public 和 static 拷贝/移动到该路径旁边（修复标题图标不生效）
 #   C. 进入该路径并启动 node
 CMD sh -c "\
-    SERVER_PATH=\$(find . -name 'server.js' -not -path '*/node_modules/*' | head -n 1); \
-    SERVER_DIR=\$(dirname \$SERVER_PATH); \
-    echo '🚀 检测到 server.js 运行目录: ' \$SERVER_DIR; \
-    mkdir -p \$SERVER_DIR/.next; \
-    cp -r public \$SERVER_DIR/ 2>/dev/null || true; \
-    cp -r .next/static \$SERVER_DIR/.next/static 2>/dev/null || true; \
-    cd \$SERVER_DIR && node server.js"
+    SERVER_PATH=\$(find /app/.next -name 'server.js' -not -path '*/node_modules/*' | head -n 1); \
+    if [ -z \"\$SERVER_PATH\" ]; then \
+    echo 'server.js 未找到'; \
+    exit 1; \
+    fi; \
+    echo '启动 server.js 目录: \$SERVER_PATH'; \
+    node \$SERVER_PATH"
