@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  IconAppCenter,
   IconHome,
   IconKanban,
   IconList,
@@ -24,8 +25,8 @@ export interface MenuItem {
 export const MENU_CONFIG: MenuItem[] = [
   {
     itemKey: "/",
-    text: "工作台",
-    icon: <IconList />,
+    text: "仪表盘",
+    icon: <IconAppCenter />,
     code: "wms:dashboard",
   },
   {
