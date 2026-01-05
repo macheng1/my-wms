@@ -1,37 +1,40 @@
+# --- 第一阶段：打包编译 (保持不变) ---
 FROM node:20.15.0-alpine AS builder
 WORKDIR /app
-
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
-    apk add --no-cache libc6-compat
-
-RUN npm config set registry https://registry.npmmirror.com && \
-    npm install -g pnpm && \
-    pnpm config set registry https://registry.npmmirror.com
-
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && apk add --no-cache libc6-compat
+RUN npm config set registry https://registry.npmmirror.com && npm install -g pnpm && pnpm config set registry https://registry.npmmirror.com
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_APP_ENV
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV
 ENV NEXT_TELEMETRY_DISABLED=1
-
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile
-
 COPY . .
-# 💡 关键：防止本地旧产物干扰
-RUN rm -rf .next
-RUN pnpm run build
+RUN rm -rf .next && pnpm run build
 
+# --- 第二阶段：极简运行 (自动定位版) ---
 FROM node:20.15.0-alpine AS runner
 WORKDIR /app
-
 ENV NODE_ENV=production
 ENV PORT=3010
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# 1. 拷贝所有原始产物
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-EXPOSE 3010
-CMD ["node", "server.js"]
+# 2. 💡 核心逻辑：自动寻找并对齐静态资源
+# 使用 sh -c 在启动时执行脚本：
+#   A. 寻找 server.js 所在的嵌套路径
+#   B. 将根目录的 public 和 static 拷贝/移动到该路径旁边（修复标题图标不生效）
+#   C. 进入该路径并启动 node
+CMD sh -c "\
+    SERVER_PATH=\$(find . -name 'server.js' -not -path '*/node_modules/*' | head -n 1); \
+    SERVER_DIR=\$(dirname \$SERVER_PATH); \
+    echo '🚀 检测到 server.js 运行目录: ' \$SERVER_DIR; \
+    mkdir -p \$SERVER_DIR/.next; \
+    cp -r public \$SERVER_DIR/ 2>/dev/null || true; \
+    cp -r .next/static \$SERVER_DIR/.next/static 2>/dev/null || true; \
+    cd \$SERVER_DIR && node server.js"
