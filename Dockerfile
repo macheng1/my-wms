@@ -1,39 +1,38 @@
-# --- 第一阶段：编译阶段 (Builder) ---
 FROM node:20.15.0-alpine AS builder
 WORKDIR /app
 
-# 1. 声明构建参数 (必须与云效变量组及流水线参数名完全一致)
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_APP_ENV  # 💡 这里改成了 APP_ENV，匹配你的截图
+# 1. 切换源并安装编译工具
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
+    apk add --no-cache libc6-compat
 
-# 将 ARG 转换为 ENV，供 npm run build 使用
+# 2. 💡 优化：使用 pnpm 提速依赖安装
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_APP_ENV
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV
-ENV NEXT_TELEMETRY_DISABLED=1
 
-# 安装依赖
-RUN apk add --no-cache libc6-compat
-COPY package*.json ./
-RUN npm config set registry https://registry.npmmirror.com && \
-    npm install
+# 3. 💡 利用 Docker 层缓存：先装依赖，再拷源码
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm config set registry https://registry.npmmirror.com && \
+    pnpm install --frozen-lockfile
 
-# 复制源码并执行打包
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
-# --- 第二阶段：运行阶段 (Runner) ---
+# --- 第二阶段：运行阶段 ---
 FROM node:20.15.0-alpine AS runner
 WORKDIR /app
-
 ENV NODE_ENV=production
-ENV PORT=3010
 
-# 复制打包产物
+# 4. 💡 优化：只拷贝 standalone 产物，不再拷贝巨大的整个 node_modules
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3010
+ENV PORT=3010
 
-CMD ["npx", "next", "start", "-p", "3010", "-H", "0.0.0.0"]
+# 5. 💡 standalone 模式下启动文件是 server.js
+CMD ["node", "server.js"]

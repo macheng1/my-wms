@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { Layout, Empty, Button, Spin } from "@douyinfe/semi-ui-19"; // 引入 Spin
+import { Layout, Empty, Button } from "@douyinfe/semi-ui-19"; // 引入 Spin
 import { usePathname, useRouter } from "next/navigation";
 import { AppSider } from "@/components/layout/AppSider";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -20,10 +20,12 @@ export default function DashboardLayout({
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-
+  const [mounted, setMounted] = useState(false);
   // 1. 直接从 Store 获取信息
   const { userInfo, logout } = useUserStore();
-
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   // 💡 派生状态：不再使用 useState + useEffect
   // 假设初始状态 userInfo 为 null，获取到数据后 userInfo.id 存在
   const isUserLoaded = !!userInfo?.id;
@@ -105,7 +107,7 @@ export default function DashboardLayout({
                 height: "100%",
               }}
             >
-              <Spin size="large" tip="正在初始化系统..." />
+              {/* <Spin size="large" /> */}
             </div>
           ) : hasPermission ? (
             /* 💡 优化 2：有权限，正常显示 */
