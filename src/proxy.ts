@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server";
 /**
  * 中间件逻辑：每次路由跳转都会触发
  */
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. 获取 Cookie 中的 Token
