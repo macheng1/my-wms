@@ -21,6 +21,9 @@ const CommonApi = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+  sendSMS: (params: { phone: string }) => {
+    return request.get("/send/sendSMS", { params });
+  },
 };
 
 export default CommonApi;

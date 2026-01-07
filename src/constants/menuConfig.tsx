@@ -30,6 +30,12 @@ export const MENU_CONFIG: MenuItem[] = [
     code: "wms:dashboard",
   },
   {
+    itemKey: "/base",
+    text: "基本信息",
+    icon: <IconAppCenter />,
+    code: "wms:base",
+  },
+  {
     itemKey: "/category",
     text: "类目管理",
     icon: <IconList />,

@@ -7,6 +7,7 @@ interface UserInfo {
   id?: string;
   username: string;
   avatar?: string;
+  tenantId?: string;
   isPlatformAdmin?: boolean;
   roleNames?: string[];
   role: "admin" | "staff";
