@@ -77,14 +77,20 @@ export default function FactoryDetailPage() {
   const openEditBase = () => {
     if (!factoryData) return;
     setEditSection("base");
-    // 下一帧 setValues 更稳（避免 Modal 尚未渲染时 api 还没拿到）
     setTimeout(() => {
       baseFormApiRef.current?.setValues({
         name: factoryData?.name ?? "",
         code: factoryData?.code ?? "",
         contactPerson: factoryData?.contactPerson ?? "",
         contactPhone: factoryData?.contactPhone ?? "",
-        industry: factoryData?.industry ?? "",
+        industryCode: factoryData?.industryCode ?? "",
+        factoryAddress: factoryData?.factoryAddress ?? "",
+        foundDate: factoryData?.foundDate ?? "",
+        staffCount: factoryData?.staffCount ?? "",
+        mainProducts: factoryData?.mainProducts ?? "",
+        annualCapacity: factoryData?.annualCapacity ?? "",
+        website: factoryData?.website ?? "",
+        remark: factoryData?.remark ?? "",
       });
     }, 0);
   };
@@ -97,6 +103,18 @@ export default function FactoryDetailPage() {
         taxNo: factoryData?.taxNo ?? "",
         bankName: factoryData?.bankName ?? "",
         bankAccount: factoryData?.bankAccount ?? "",
+        businessLicenseNo: factoryData?.businessLicenseNo ?? "",
+        businessLicenseExpire: factoryData?.businessLicenseExpire ?? "",
+        legalPerson: factoryData?.legalPerson ?? "",
+        registeredCapital: factoryData?.registeredCapital ?? "",
+        registerAddress: factoryData?.registerAddress ?? "",
+        taxpayerType: factoryData?.taxpayerType ?? "",
+        industryType: factoryData?.industryType ?? "",
+        creditCode: factoryData?.creditCode ?? "",
+        qualificationNo: factoryData?.qualificationNo ?? "",
+        qualificationExpire: factoryData?.qualificationExpire ?? "",
+        email: factoryData?.email ?? "",
+        fax: factoryData?.fax ?? "",
       });
     }, 0);
   };
@@ -198,7 +216,7 @@ export default function FactoryDetailPage() {
                   { key: "工厂编码", value: factoryData.code || "-" },
                   { key: "负责人", value: factoryData.contactPerson || "-" },
                   { key: "联系电话", value: factoryData.contactPhone || "-" },
-                  { key: "行业", value: factoryData.industry || "-" },
+                  { key: "行业", value: factoryData.industryName || "-" },
                   { key: "工厂地址", value: factoryData.factoryAddress || "-" },
                   { key: "成立日期", value: factoryData.foundDate || "-" },
                   { key: "员工人数", value: factoryData.staffCount || "-" },

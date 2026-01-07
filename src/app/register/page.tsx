@@ -171,7 +171,7 @@ export default function RegisterPage() {
               rules={[{ required: true, message: "企业名称不能为空" }]}
             />
             <Form.Select
-              field="industry"
+              field="industryCode"
               label="所属行业"
               placeholder="请选择"
               style={{ width: "100%" }}

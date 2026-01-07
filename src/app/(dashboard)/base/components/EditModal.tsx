@@ -1,5 +1,6 @@
 import React from "react";
 import { Modal, Form } from "@douyinfe/semi-ui-19";
+import { useDictOptions } from "@/hooks/useDictOptions";
 
 export type EditSection = "base" | "biz" | null;
 
@@ -26,6 +27,8 @@ const EditModal: React.FC<EditModalProps> = ({
   baseFormApiRef,
   bizFormApiRef,
 }) => {
+  const industryOptions = useDictOptions("INDUSTRY");
+
   return (
     <Modal
       visible={visible}
@@ -63,16 +66,32 @@ const EditModal: React.FC<EditModalProps> = ({
             label="联系电话"
             placeholder="请输入联系电话"
           />
-          <Form.Input field="industry" label="行业" placeholder="请输入行业" />
+          <Form.Select
+            field="industryCode"
+            label="行业"
+            placeholder="请选择行业"
+            style={{ width: "100%" }}
+          >
+            {industryOptions.map((opt) => (
+              <Form.Select.Option key={opt.value} value={opt.value}>
+                {opt.label}
+              </Form.Select.Option>
+            ))}
+          </Form.Select>
           <Form.Input
             field="factoryAddress"
             label="工厂地址"
             placeholder="请输入工厂地址"
           />
-          <Form.Input
+
+          <Form.DatePicker
             field="foundDate"
             label="成立日期"
-            placeholder="请输入成立日期"
+            placeholder="请选择成立日期"
+            style={{ width: "100%" }}
+            // 建议增加以下配置提升体验：
+            format="yyyy-MM-dd"
+            motion={false} // 减少弹层动画造成的“震动”感，更顺滑
           />
           <Form.Input
             field="staffCount"
@@ -115,10 +134,12 @@ const EditModal: React.FC<EditModalProps> = ({
             label="营业执照号"
             placeholder="请输入营业执照号"
           />
-          <Form.Input
+          <Form.DatePicker
             field="businessLicenseExpire"
             label="营业执照有效期"
-            placeholder="请输入营业执照有效期"
+            placeholder="请选择有效期"
+            style={{ width: "100%" }}
+            format="yyyy-MM-dd"
           />
           <Form.Input
             field="legalPerson"
@@ -140,11 +161,7 @@ const EditModal: React.FC<EditModalProps> = ({
             label="纳税人类型"
             placeholder="请输入纳税人类型"
           />
-          <Form.Input
-            field="industryType"
-            label="行业分类"
-            placeholder="请输入行业分类"
-          />
+
           <Form.Input
             field="creditCode"
             label="统一社会信用代码"
@@ -155,10 +172,12 @@ const EditModal: React.FC<EditModalProps> = ({
             label="资质证书编号"
             placeholder="请输入资质证书编号"
           />
-          <Form.Input
+          <Form.DatePicker
             field="qualificationExpire"
             label="资质证书有效期"
-            placeholder="请输入资质证书有效期"
+            placeholder="请选择有效期"
+            style={{ width: "100%" }}
+            format="yyyy-MM-dd"
           />
           <Form.Input
             field="email"

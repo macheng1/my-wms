@@ -51,7 +51,7 @@ export default function UserListPage() {
   // 表格列
   const columns: ProColumnType<any>[] = [
     { title: "用户名", dataIndex: "username", valueType: "text" },
-    { title: "姓名", dataIndex: "nickname", valueType: "text" },
+
     {
       title: "状态",
       dataIndex: "isActive",
@@ -59,6 +59,15 @@ export default function UserListPage() {
       valueEnum: {
         1: { text: "启用", color: "green" },
         0: { text: "禁用", color: "grey" },
+      },
+      render: (text, record) => {
+        const val =
+          typeof record.isActive === "boolean"
+            ? record.isActive
+              ? 1
+              : 0
+            : record.isActive;
+        return val === 1 ? "启用" : "禁用";
       },
     },
     {
