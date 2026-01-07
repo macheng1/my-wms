@@ -90,7 +90,7 @@ export default function RegisterPage() {
       // 1. 发起注册请求并接收返回数据
       const res: any = await AuthAPI.register({
         name: values.name,
-        industry: values.industry,
+        industryCode: values.industryCode,
         contactPerson: values.contactPerson,
         contactPhone: values.contactPhone,
 

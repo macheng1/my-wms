@@ -6,7 +6,7 @@ import ProDataTable, {
 import AttributeEditModal from "./components/AttributeEditModal";
 import { Switch, Button, Modal, Toast } from "@douyinfe/semi-ui-19";
 import AttributeAPI from "@/api/attributes";
-import { use, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 const typeMap = {
   select: "下拉选择",
@@ -30,12 +30,13 @@ const AttributePage = () => {
   // 表格列定义
   const columns: ProColumnType[] = [
     { title: "业务编码", dataIndex: "code" },
-    { title: "属性名称", dataIndex: "name" },
+    { title: "属性名称", dataIndex: "name", hideInSearch: true },
 
     {
       title: "输入类型",
       dataIndex: "type",
       render: (t: string) => typeMap[t] || t,
+      hideInSearch: true,
     },
     { title: "单位", dataIndex: "unit" },
     {
@@ -54,10 +55,12 @@ const AttributePage = () => {
       title: "创建时间",
       dataIndex: "createdAt",
       render: (t: string) => (t ? new Date(t).toLocaleString() : "-"),
+      hideInSearch: true,
     },
     {
       title: "操作",
       dataIndex: "action",
+      hideInSearch: true,
       render: (_: any, record: any) => (
         <>
           <Button theme="borderless" onClick={() => openEditModal(record.id)}>

@@ -140,9 +140,7 @@ export const AppHeader: React.FC = () => {
                   gap: "12px",
                 }}
               >
-                <Avatar color="blue" size="small">
-                  {userInfo?.username?.toUpperCase() || ""}
-                </Avatar>
+                <Avatar size="small" src={userInfo?.avatar}></Avatar>
                 <div>
                   <Text strong style={{ display: "block" }}>
                     {userInfo?.username || "未登录"}
@@ -193,9 +191,7 @@ export const AppHeader: React.FC = () => {
               display: "inline-block",
             }}
           >
-            <Avatar color="blue" size="small">
-              {userInfo ? userInfo.username : "..."}
-            </Avatar>
+            <Avatar size="small" src={userInfo?.avatar}></Avatar>
           </span>
         </Dropdown>
       </Space>

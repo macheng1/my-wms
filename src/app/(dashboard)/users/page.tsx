@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Button, Modal, Toast, Space } from "@douyinfe/semi-ui-19";
+import { Button, Modal, Toast, Space, Image } from "@douyinfe/semi-ui-19";
 import { IconPlus, IconEdit2, IconDelete } from "@douyinfe/semi-icons";
 import ProDataTable, {
   ProColumnType,
@@ -50,6 +50,23 @@ export default function UserListPage() {
 
   // 表格列
   const columns: ProColumnType<any>[] = [
+    {
+      title: "头像",
+      dataIndex: "avatar",
+      render: (text, record) => {
+        return (
+          <div style={{ width: "40px", height: "40px" }}>
+            <Image
+              src={record.avatar}
+              width="100%"
+              height="100%"
+              alt="avatar"
+            />
+          </div>
+        );
+      },
+    },
+
     { title: "用户名", dataIndex: "username", valueType: "text" },
 
     {

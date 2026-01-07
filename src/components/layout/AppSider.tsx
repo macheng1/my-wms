@@ -23,19 +23,34 @@ export const AppSider: React.FC<AppSiderProps> = ({
   // 从 Store 获取用户权限码列表 (例如: ['wms:dashboard', 'wms:warehouse:list'])
   const userInfo = useUserStore((state) => state.userInfo);
   const permissions = userInfo?.permissions || []; // 💡 从用户信息中提取
-  console.log("🚀 ~ AppSider ~ permissions:", permissions);
+  const isPlatformAdmin = !!userInfo?.isPlatformAdmin;
   /**
-   * 核心逻辑：根据权限 code 过滤菜单树
+   * 核心逻辑：根据权限 code 和 menuType 过滤菜单树
    */
   const authorizedMenu = useMemo(() => {
     // 如果权限为 ["*"], 显示全部菜单
     if (permissions.length === 1 && permissions[0] === "*") {
-      return MENU_CONFIG;
+      return MENU_CONFIG.filter((item) => {
+        if (!item.menuType || item.menuType === "all") return true;
+        if (isPlatformAdmin && item.menuType === "super_admin") return true;
+        if (!isPlatformAdmin && item.menuType === "tenant") return true;
+        return false;
+      });
     }
     const filterMenu = (items: MenuItem[]): MenuItem[] => {
       return (
         items
           .filter((item) => {
+            // menuType 过滤
+            if (!item.menuType || item.menuType === "all") {
+              // 继续判断权限
+            } else if (isPlatformAdmin && item.menuType === "super_admin") {
+              // 继续判断权限
+            } else if (!isPlatformAdmin && item.menuType === "tenant") {
+              // 继续判断权限
+            } else {
+              return false;
+            }
             // 1. 如果没有设置 code，说明是公共菜单，直接显示
             if (!item.code) return true;
             // 2. 检查用户权限列表中是否包含该 code
@@ -54,7 +69,7 @@ export const AppSider: React.FC<AppSiderProps> = ({
     };
 
     return filterMenu(MENU_CONFIG);
-  }, [permissions]);
+  }, [permissions, isPlatformAdmin]);
 
   return (
     <Nav

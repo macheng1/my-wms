@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Modal, Form, Toast, Typography, Spin } from "@douyinfe/semi-ui-19";
+import { Modal, Form, Toast, Spin } from "@douyinfe/semi-ui-19";
 import ProductApi from "@/api/product";
 import CategoryApi from "@/api/category";
-import { FileItem } from "@douyinfe/semi-ui-19/lib/es/upload";
 
 // 💡 引入 FormApi 类型
 import { FormApi } from "@douyinfe/semi-ui-19/lib/es/form";
@@ -19,7 +18,7 @@ export default function ProductEditModal({
   onSuccess,
 }: any) {
   const [loading, setLoading] = useState(false);
-  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState<any>([]);
   const [formApi, setFormApi] = useState<FormApi | null>(null);
   const [dynamicAttributes, setDynamicAttributes] = useState<any[]>([]);
   const [attrLoading, setAttrLoading] = useState(false);
@@ -104,7 +103,7 @@ export default function ProductEditModal({
         })
         .filter(Boolean); // 剔除上传失败或无效的项
 
-      const payload = {
+      const payload: any = {
         ...values,
         images: imageUrls, // 💡 此时发给后端的将是真正的远程 URL 列表
         specs: values.dynamicAttrs,

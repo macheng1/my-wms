@@ -14,6 +14,7 @@ const UploadImage = ({
   onChange,
   max = 1,
   prompt = "建议尺寸 800x800",
+  uploadText = "上传图片",
 }: any) => {
   const handleCustomRequest = async ({
     file,
@@ -24,7 +25,7 @@ const UploadImage = ({
     try {
       onProgress({ percent: 30 });
       const res = await CommonApi.uploadFiles(file.fileInstance as File);
-      console.log("🚀 ~ handleCustomRequest ~ res.data:", res.data);
+
       if (res.code === 200 && res.data?.length > 0) {
         onProgress({ percent: 100 });
         // 只保留后端返回的 url，移除本地 blob
@@ -41,40 +42,40 @@ const UploadImage = ({
   };
 
   return (
-    <Upload
-      customRequest={handleCustomRequest}
-      fileList={value}
-      listType="picture"
-      accept="image/*"
-      onChange={({ fileList }) => onChange?.(fileList)}
-      limit={max}
-      prompt={
-        <Text type="secondary" size="small">
-          {prompt}
-        </Text>
-      }
-    >
-      {value.length < max && (
-        <div
-          style={{
-            width: 100,
-            height: 100,
-            border: "1px dashed var(--semi-color-border)",
-            borderRadius: "8px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-          }}
-        >
-          <IconPlus size="extra-large" />
-          <Text size="small" type="secondary">
-            上传图片
-          </Text>
-        </div>
-      )}
-    </Upload>
+    <div>
+      <Upload
+        customRequest={handleCustomRequest}
+        fileList={value}
+        listType="picture"
+        accept="image/*"
+        onChange={({ fileList }) => onChange?.(fileList)}
+        limit={max}
+      >
+        {value.length < max && (
+          <div
+            style={{
+              width: 100,
+              height: 100,
+              border: "1px dashed var(--semi-color-border)",
+              borderRadius: "8px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <IconPlus size="extra-large" />
+            <Text size="small" type="secondary">
+              {uploadText}
+            </Text>
+          </div>
+        )}
+      </Upload>
+      <Text type="secondary" size="small">
+        {prompt}
+      </Text>
+    </div>
   );
 };
 

@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Modal, Form, Button } from "@douyinfe/semi-ui-19";
 import UserAPI from "@/api/users";
+import UploadImage from "@/components/UploadImage";
 
 interface UserEditModalProps {
   visible: boolean;
@@ -24,7 +25,10 @@ export default function UserEditModal({
       if (data?.id) {
         // 通过 getUserDetail 获取详情
         UserAPI.getUserDetail(data.id).then((res: any) => {
-          formApi?.setValues(res.data);
+          const detail = res.data;
+          // 头像字段转成数组格式
+          detail.avatar = detail.avatar ? [{ url: detail.avatar }] : [];
+          formApi?.setValues(detail);
         });
       } else {
         formApi?.reset();
@@ -33,6 +37,14 @@ export default function UserEditModal({
   }, [visible, data, formApi]);
 
   const handleSubmit = async (values: any) => {
+    let avatarUrl = "";
+    if (Array.isArray(values.avatar) && values.avatar.length > 0) {
+      const file = values.avatar[0];
+      avatarUrl =
+        file.url && !file.response ? file.url : file.response?.url || "";
+    }
+    values.avatar = avatarUrl;
+
     if (data?.id) {
       await UserAPI.updateUser({ ...values, id: data.id });
     } else {
@@ -56,6 +68,13 @@ export default function UserEditModal({
         labelPosition="left"
         labelWidth={100}
       >
+        <UploadImage
+          field="avatar"
+          label="头像"
+          max={1}
+          uploadText="上传头像"
+          prompt="建议尺寸 40x40"
+        />
         <Form.Input
           field="username"
           label="用户名"
@@ -75,7 +94,7 @@ export default function UserEditModal({
             ]}
           />
         )}
-        <Form.Input field="nickname" label="昵称" placeholder="请输入昵称" />
+        <Form.Input field="realName" label="昵称" placeholder="请输入昵称" />
         <Form.Select
           field="roleIds"
           label="角色"

@@ -21,7 +21,7 @@ export interface LoginData {
 export interface RegisterParams {
   code?: string; // 企业唯一编码
   name: string; // 企业全称
-  industry?: string; // 行业标识
+  industryCode?: string; // 行业标识
   contactPerson?: string; // 工厂联系人
   contactPhone?: string; // 联系电话
   adminUser: string; // 初始管理员账号

@@ -29,6 +29,14 @@ export default function DashboardLayout({
   const isUserLoaded = !!userInfo?.id;
   const permissions = useMemo(() => userInfo?.permissions || [], [userInfo]);
 
+  function filterMenuByRole(isPlatformAdmin: boolean) {
+    return MENU_CONFIG.filter((item) => {
+      if (!item.menuType || item.menuType === "all") return true;
+      if (isPlatformAdmin && item.menuType === "super_admin") return true;
+      if (!isPlatformAdmin && item.menuType === "tenant") return true;
+      return false;
+    });
+  }
   /**
    * 💡 2. 递归查找当前路径对应的权限码
    */
