@@ -153,6 +153,7 @@ export default function ProductEditModal({
           <Form.Select
             field="categoryId"
             label="所属类目"
+            style={{ width: "100%" }}
             placeholder="请选择类目"
             optionList={categoryOptions}
             rules={[{ required: true }]}
@@ -167,18 +168,23 @@ export default function ProductEditModal({
                 attr.type === "select" ? (
                   <Form.Select
                     key={attr.id}
+                    style={{ width: "100%" }}
+                    placeholder={`请选择${attr.name}`}
                     field={`dynamicAttrs.${attr.name}`}
                     label={attr.name}
                     optionList={attr.options?.map((o: any) => ({
-                      label: o,
-                      value: o,
+                      label: o.value || o.name || o,
+                      value: o.value || o.id || o,
                     }))}
                   />
                 ) : (
                   <Form.Input
+                    style={{ width: "100%" }}
                     key={attr.id}
+                    placeholder={`请输入${attr.name}`}
                     field={`dynamicAttrs.${attr.name}`}
                     label={attr.name}
+                    addonAfter={attr.unit || null}
                   />
                 )
               )}

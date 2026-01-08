@@ -113,10 +113,13 @@ const AttributePage = () => {
     console.log("🚀 ~ handleModalOk ~ values:", values);
     setModalLoading(true);
     try {
+      // 移除 id 字段，避免新增时出错
+      const { id, ...submitData } = values;
+
       if (editingId) {
-        await AttributeAPI.updateAttribute({ ...values, id: editingId });
+        await AttributeAPI.updateAttribute({ ...submitData, id: editingId });
       } else {
-        await AttributeAPI.saveAttribute(values);
+        await AttributeAPI.saveAttribute(submitData);
       }
       setModalVisible(false);
       Toast.success("保存成功");

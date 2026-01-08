@@ -23,7 +23,7 @@ export default function ProductListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>(null);
-  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState<any>([]);
 
   // 拉取类目下拉
   React.useEffect(() => {
