@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WMS 系统",
-  description: "WMS 系统后台管理",
+  title: "引智数链 PinLink",
+  description: "赋能制造律动,链接工业未来",
 };
 
 export default function RootLayout({
