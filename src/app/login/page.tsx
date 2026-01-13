@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { Form, Button, Typography, Toast } from "@douyinfe/semi-ui-19";
 import { IconUser, IconLock, IconApartment } from "@douyinfe/semi-icons";
 import { useRouter } from "next/navigation";
@@ -63,39 +64,17 @@ export default function LoginPage() {
 
         {/* 顶部 Logo */}
         <div className="relative z-20 flex items-center gap-3">
-          {/* 这里用一个简单的占位符代替你的复杂 Logo，实际请用 Image 组件 */}
-          <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-lg flex items-center justify-center border border-white/20">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 2L2 7L12 12L22 7L12 2Z"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 17L12 22L22 17"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 12L12 17L22 12"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-          <div>
+          {/* Logo 图片，点击跳转首页，使用 next/image */}
+
+          <Image
+            src="/linklogo.jpg"
+            alt="Logo"
+            width={160}
+            height={60}
+            priority
+          />
+
+          {/* <div>
             <Title
               heading={4}
               style={{ color: "white", fontWeight: 700, lineHeight: 1 }}
@@ -111,7 +90,7 @@ export default function LoginPage() {
             >
               PINLINK PLATFORM
             </Text>
-          </div>
+          </div> */}
         </div>
 
         {/* 中间 Slogan */}
@@ -137,7 +116,7 @@ export default function LoginPage() {
 
         {/* 底部版权 */}
         <div className="relative z-20 text-blue-200/60 text-sm">
-          © 2026 PinLink Industrial IoT. All rights reserved.
+          © 2026 无锡元思科技有限公司.
         </div>
       </div>
 
@@ -190,7 +169,7 @@ export default function LoginPage() {
               style={{ marginTop: 20, borderRadius: "8px" }}
             />
 
-            <div className="flex justify-between items-center mt-6 mb-8">
+            {/* <div className="flex justify-between items-center mt-6 mb-8">
               <Form.Checkbox field="remember" noLabel>
                 <Text type="secondary">记住我</Text>
               </Form.Checkbox>
@@ -200,7 +179,7 @@ export default function LoginPage() {
               >
                 忘记密码？
               </Text>
-            </div>
+            </div> */}
 
             <Button
               htmlType="submit"
@@ -224,7 +203,7 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center">
             <Text type="tertiary">
-              还没有加入引智数链？
+              还没有加入？
               <Text
                 link
                 onClick={() => router.push("/register")}
@@ -235,7 +214,7 @@ export default function LoginPage() {
                   color: "#2563eb",
                 }}
               >
-                立即注册新工厂
+                立即注册
               </Text>
             </Text>
           </div>

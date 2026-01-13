@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 
 import { useUserStore } from "@/store/useUserStore";
 import { MENU_CONFIG, MenuItem } from "@/constants/menuConfig";
-import { IconSemiLogo } from "@douyinfe/semi-icons";
+import Image from "next/image";
 
 interface AppSiderProps {
   collapsed?: boolean;
@@ -80,9 +80,9 @@ export const AppSider: React.FC<AppSiderProps> = ({
       selectedKeys={[pathname]}
       header={{
         logo: (
-          <IconSemiLogo style={{ fontSize: 36, color: "var(--semi-blue-5)" }} />
+          <Image src="/link.png" alt="Logo" width={160} height={60} priority />
         ),
-        text: "WMS", // 这里可以改成你的系统名称
+        text: "引智数链", // 这里可以改成你的系统名称
       }}
       // 默认展开包含当前路径的父级菜单
       defaultOpenKeys={["/" + pathname.split("/")[1]]}

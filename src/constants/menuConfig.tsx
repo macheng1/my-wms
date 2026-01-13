@@ -1,6 +1,7 @@
 import React from "react";
 import {
   IconAppCenter,
+  IconGlobeStroke,
   IconHome,
   IconKanban,
   IconList,
@@ -30,7 +31,7 @@ export const MENU_CONFIG: MenuItem[] = [
   {
     itemKey: "/",
     text: "仪表盘",
-    icon: <IconAppCenter />,
+    icon: <IconHome />,
     code: "wms:dashboard",
     menuType: "all",
   },
@@ -40,6 +41,21 @@ export const MENU_CONFIG: MenuItem[] = [
     icon: <IconAppCenter />,
     code: "wms:base",
     menuType: "tenant",
+  },
+  // 新增：网站管理菜单
+  {
+    itemKey: "/website",
+    text: "网站管理",
+    icon: <IconGlobeStroke />,
+    code: "wms:website",
+    menuType: "all",
+    items: [
+      {
+        itemKey: "/website/inquiry",
+        text: "询价管理",
+        code: "wms:website:inquiry",
+      },
+    ],
   },
   {
     itemKey: "/category",
