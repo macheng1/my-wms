@@ -24,6 +24,7 @@ export interface RegisterParams {
   industryCode?: string; // 行业标识
   contactPerson?: string; // 工厂联系人
   contactPhone?: string; // 联系电话
+  smsCode?: string; // 短信验证码
   adminUser: string; // 初始管理员账号
   adminPass: string; // 初始管理员密码
 }

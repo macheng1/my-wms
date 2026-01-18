@@ -11,13 +11,14 @@ import {
   Typography,
   Row,
   Col,
-  Space,
   Skeleton,
   Banner,
   Button,
   Toast,
+  Empty,
 } from "@douyinfe/semi-ui-19";
 import EditModal, { EditSection } from "./components/EditModal";
+import { QRCodeSVG } from "qrcode.react";
 
 const { Content } = Layout;
 const { Text, Title } = Typography;
@@ -71,7 +72,7 @@ export default function FactoryDetailPage() {
         运营中
       </Tag>
     ),
-    []
+    [],
   );
 
   const openEditBase = () => {
@@ -153,7 +154,7 @@ export default function FactoryDetailPage() {
 
   return (
     <Content style={{ padding: 24, background: "#F7F8FA", minHeight: "100vh" }}>
-      {/* 顶部 */}
+      {/* 顶部卡片优化 */}
       <Card
         headerLine={false}
         style={{
@@ -163,24 +164,63 @@ export default function FactoryDetailPage() {
         }}
         bodyStyle={{ padding: 20 }}
       >
-        <Row align="middle" justify="space-between" style={{ rowGap: 12 }}>
-          <Col>
-            <Space vertical spacing={6} align="start">
-              <Space spacing={12} align="center">
-                <Title heading={3} style={{ margin: 0 }}>
-                  {loading ? "加载中…" : factoryData?.name || "-"}
-                </Title>
-                {statusTag}
-              </Space>
-              <Space spacing={16}>
-                <Text type="secondary">
-                  工厂编码：{factoryData?.code || "-"}
-                </Text>
-                <Text type="secondary">租户ID：{tenantId}</Text>
-              </Space>
-            </Space>
-          </Col>
-        </Row>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          {/* 信息区 */}
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <Title heading={3} style={{ margin: 0, fontWeight: 600 }}>
+                {loading ? "加载中…" : factoryData?.name || "-"}
+              </Title>
+              <span style={{ marginLeft: 12 }}>{statusTag}</span>
+            </div>
+            <Descriptions
+              align="left"
+              column={1}
+              data={[
+                { key: "工厂编码", value: factoryData?.code || "-" },
+                { key: "租户ID", value: tenantId },
+              ]}
+              style={{ marginBottom: 0 }}
+              size="small"
+            />
+          </div>
+          {/* 二维码区 */}
+          <div style={{ textAlign: "center", minWidth: 120 }}>
+            {factoryData?.website ? (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <QRCodeSVG value={factoryData.website} size={100} level="M" />
+                <span style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
+                  扫码访问官网
+                </span>
+              </div>
+            ) : (
+              <Empty
+                title="暂无官网"
+                description="请在编辑中添加官网信息"
+                style={{ padding: 0 }}
+              />
+            )}
+          </div>
+        </div>
       </Card>
 
       {/* 左右卡片 */}
@@ -222,7 +262,21 @@ export default function FactoryDetailPage() {
                   { key: "员工人数", value: factoryData.staffCount || "-" },
                   { key: "主要产品", value: factoryData.mainProducts || "-" },
                   { key: "年产能", value: factoryData.annualCapacity || "-" },
-                  { key: "官网", value: factoryData.website || "-" },
+                  {
+                    key: "官网",
+                    value: factoryData.website ? (
+                      <a
+                        href={factoryData.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#1890ff", textDecoration: "none" }}
+                      >
+                        {factoryData.website}
+                      </a>
+                    ) : (
+                      "-"
+                    ),
+                  },
                   { key: "备注", value: factoryData.remark || "-" },
                 ]}
               />
@@ -277,8 +331,8 @@ export default function FactoryDetailPage() {
                     key: "公司注册地址",
                     value: factoryData.registerAddress || "-",
                   },
-                  { key: "纳税人类型", value: factoryData.taxpayerType || "-" },
-                  { key: "行业分类", value: factoryData.industryType || "-" },
+                  // { key: "纳税人类型", value: factoryData.taxpayerType || "-" },
+                  // { key: "行业分类", value: factoryData.industryType || "-" },
                   {
                     key: "统一社会信用代码",
                     value: factoryData.creditCode || "-",

@@ -93,7 +93,7 @@ export default function RegisterPage() {
         industryCode: values.industryCode,
         contactPerson: values.contactPerson,
         contactPhone: values.contactPhone,
-
+        smsCode: values.smsCode,
         adminUser: values.adminUser,
         adminPass: values.adminPass,
       });
