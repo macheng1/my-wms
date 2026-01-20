@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Modal, Form, Button, TextArea, Select } from "@douyinfe/semi-ui-19";
+import { Modal, Form, Button, TextArea } from "@douyinfe/semi-ui-19";
 import AttributeAPI from "@/api/attributes";
 
 const { Section } = Form;
@@ -21,7 +21,7 @@ export default function SpecBatchModal({
         (res.data?.list || []).map((item) => ({
           label: item.name,
           value: item.id,
-        }))
+        })),
       );
     });
   }, []);

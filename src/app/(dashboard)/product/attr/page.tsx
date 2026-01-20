@@ -4,6 +4,7 @@ import ProDataTable, {
   ProColumnType,
 } from "@/components/ProDataTable";
 import AttributeEditModal from "./components/AttributeEditModal";
+import ImportModal from "@/components/ImportModal";
 import { Switch, Button, Modal, Toast } from "@douyinfe/semi-ui-19";
 import AttributeAPI from "@/api/attributes";
 import { useRef, useState } from "react";
@@ -26,6 +27,8 @@ const AttributePage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editInitialValues, setEditInitialValues] = useState<any>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [importModalVisible, setImportModalVisible] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
 
   // 表格列定义
   const columns: ProColumnType[] = [
@@ -83,9 +86,17 @@ const AttributePage = () => {
 
   // 搜索栏工具栏
   const toolBarRender = () => (
-    <Button type="primary" onClick={openAddModal}>
-      新增属性
-    </Button>
+    <>
+      <Button
+        style={{ marginRight: 16 }}
+        onClick={() => setImportModalVisible(true)}
+      >
+        导入
+      </Button>
+      <Button type="primary" onClick={openAddModal}>
+        新增属性
+      </Button>
+    </>
   );
 
   // 新增
@@ -145,6 +156,13 @@ const AttributePage = () => {
     tableRef.current?.reload();
   }
 
+  // 下载导入模板
+  async function handleDownloadTemplate() {
+    await AttributeAPI.downloadTemplate();
+  }
+
+  // 导入数据逻辑已移入 ImportModal 组件内部
+
   return (
     <>
       <ProDataTable
@@ -170,6 +188,19 @@ const AttributePage = () => {
       >
         确认要删除该属性吗？
       </Modal>
+      <ImportModal
+        visible={importModalVisible}
+        loading={importLoading}
+        title="属性导入"
+        templateFileName="属性导入模板.xlsx"
+        onCancel={() => setImportModalVisible(false)}
+        onOk={() => {
+          setImportModalVisible(false);
+          tableRef.current?.reload();
+        }}
+        onDownloadTemplate={handleDownloadTemplate}
+        importApi={AttributeAPI.importAttributes}
+      />
     </>
   );
 };

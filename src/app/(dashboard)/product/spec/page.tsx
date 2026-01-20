@@ -8,7 +8,6 @@ import SpecEditModal from "./components/SpecEditModal";
 import SpecBatchModal from "./components/SpecBatchModal";
 import { Switch, Button, Modal, Toast } from "@douyinfe/semi-ui-19";
 import OptionApi from "@/api/spec";
-import AttributeAPI from "@/api/attributes";
 import { useRef, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 

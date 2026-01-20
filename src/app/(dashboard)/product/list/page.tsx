@@ -18,12 +18,15 @@ import ProDataTable, {
   ProDataTableRef,
 } from "@/components/ProDataTable";
 import ProductEditModal from "./components/ProductEditModal";
+import ImportModal from "@/components/ImportModal";
 
 export default function ProductListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>(null);
   const [categoryOptions, setCategoryOptions] = useState<any>([]);
+  const [importModalVisible, setImportModalVisible] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
 
   // 拉取类目下拉
   React.useEffect(() => {
@@ -32,7 +35,7 @@ export default function ProductListPage() {
         (res.data?.list || []).map((item) => ({
           label: item.name,
           value: item.id,
-        }))
+        })),
       );
     });
   }, []);
@@ -78,6 +81,17 @@ export default function ProductListPage() {
       .map(([k, v]) => `${k}: ${v}`)
       .join(" | ");
   };
+
+  // 下载模板
+  async function handleDownloadTemplate() {
+    await ProductApi.downloadTemplate();
+  }
+
+  // 导入成功后关闭弹窗并刷新
+  function handleImportSuccess() {
+    setImportModalVisible(false);
+    tableRef.current?.reload();
+  }
 
   // 列定义
   const columns: ProColumnType<any>[] = useMemo(
@@ -171,33 +185,8 @@ export default function ProductListPage() {
         ),
       },
     ],
-    [categoryOptions]
+    [categoryOptions],
   );
-
-  // 搜索栏配置
-  const searchFields = [
-    {
-      label: "关键字",
-      field: "keyword",
-      type: "input",
-      placeholder: "名称/编码模糊搜索",
-    },
-    {
-      label: "类目",
-      field: "categoryId",
-      type: "select",
-      options: categoryOptions,
-    },
-    {
-      label: "状态",
-      field: "isActive",
-      type: "select",
-      options: [
-        { label: "启用", value: 1 },
-        { label: "禁用", value: 0 },
-      ],
-    },
-  ];
 
   return (
     <div style={{ padding: "4px" }}>
@@ -207,26 +196,44 @@ export default function ProductListPage() {
         api={ProductApi.getProductPage}
         columns={columns}
         toolBarRender={() => (
-          <Button
-            icon={<IconPlus />}
-            theme="solid"
-            onClick={() => {
-              setCurrentProduct(null);
-              setIsModalVisible(true);
-            }}
-          >
-            新增产品
-          </Button>
+          <Space>
+            <Button
+              icon={<IconPlus />}
+              theme="solid"
+              onClick={() => {
+                setCurrentProduct(null);
+                setIsModalVisible(true);
+              }}
+            >
+              新增产品
+            </Button>
+            <Button theme="light" onClick={() => setImportModalVisible(true)}>
+              导入产品
+            </Button>
+          </Space>
         )}
       />
-      <ProductEditModal
-        visible={isModalVisible}
-        data={currentProduct}
-        onClose={() => setIsModalVisible(false)}
-        onSuccess={() => {
-          setIsModalVisible(false);
-          tableRef.current?.reload();
-        }}
+      {isModalVisible && (
+        <ProductEditModal
+          visible={isModalVisible}
+          data={currentProduct}
+          onClose={() => setIsModalVisible(false)}
+          onSuccess={() => {
+            setIsModalVisible(false);
+            tableRef.current?.reload();
+          }}
+        />
+      )}
+
+      <ImportModal
+        visible={importModalVisible}
+        loading={importLoading}
+        title="产品导入"
+        templateFileName="产品导入模板.xlsx"
+        onCancel={() => setImportModalVisible(false)}
+        onOk={handleImportSuccess}
+        onDownloadTemplate={handleDownloadTemplate}
+        importApi={ProductApi.importProducts}
       />
     </div>
   );

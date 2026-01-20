@@ -1,4 +1,4 @@
-import request from "@/utils/request";
+import request, { getDownload } from "@/utils/request";
 import { QueryAttribute, AttributeListItem, AttributeDetail } from "./types";
 
 /**
@@ -9,7 +9,7 @@ const AttributeAPI = {
   getAttributePage: (params: QueryAttribute) =>
     request.get<{ list: AttributeListItem[]; total: number }>(
       "attributes/page",
-      { params }
+      { params },
     ),
 
   /** 新增属性 */
@@ -31,6 +31,18 @@ const AttributeAPI = {
   /** 修改属性状态 */
   updateAttributeStatus: (id: string, isActive: number) =>
     request.post("attributes/status", { id, isActive }),
+
+  /** 下载属性导入模板 */
+  downloadTemplate: () => getDownload("attributes/template", undefined, "属性导入模板.xlsx"),
+
+  /** 导入属性数据 */
+  importAttributes: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request.post("attributes/import", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 export default AttributeAPI;

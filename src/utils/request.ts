@@ -5,6 +5,9 @@ import Cookies from "js-cookie";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 const APP_ENV = process.env.NEXT_PUBLIC_APP_ENV || "local";
 
+// 业务错误码白名单：这些 code 不会触发错误提示和 reject
+const BUSINESS_CODE_WHITELIST = new Set<number>([10001]);
+
 const request: AxiosInstance = axios.create({
   // 💡 注意：如果 .env 里配置的是 /api，这里就直接用 BASE_URL
   // 避免出现 /api/api 的情况
@@ -30,27 +33,34 @@ request.interceptors.request.use(
           method: config.method,
           data: config.data,
           params: config.params,
-        }
+        },
       );
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // 2. 响应拦截器
 request.interceptors.response.use(
   (response: AxiosResponse) => {
+    // 兼容下载文件（blob）时直接返回 response
+    if (response.config.responseType === "blob") {
+      return response;
+    }
     const res = response.data;
     console.log("🚀 ~ res:", res);
 
     // 业务层级的错误处理 (HTTP 状态码为 200，但 code 不对)
     if (res.code !== 200 && res.code !== 0) {
-      Toast.error({
-        content: res.message || "业务请求失败",
-        duration: 10,
-      });
-      return Promise.reject(new Error(res.message || "Business Error"));
+      // 检查是否在白名单中
+      if (!BUSINESS_CODE_WHITELIST.has(res.code)) {
+        Toast.error({
+          content: res.message || "业务请求失败",
+          duration: 10,
+        });
+        return Promise.reject(new Error(res.message || "Business Error"));
+      }
     }
     return res;
   },
@@ -105,7 +115,75 @@ request.interceptors.response.use(
     });
 
     return Promise.reject(error);
-  }
+  },
 );
+
+/**
+ * 下载文件
+ * @param url 请求地址
+ * @param params 查询参数
+ * @param fileName 文件名（可选，如果不传则尝试从响应头获取）
+ */
+export const getDownload = async (
+  url: string,
+  params?: any,
+  fileName?: string,
+): Promise<void> => {
+  try {
+    const response = await request.get(url, {
+      params,
+      responseType: "blob",
+    });
+
+    // 从响应头获取文件名，如果没有则使用传入的文件名
+    let downloadFileName = fileName;
+    if (!downloadFileName) {
+      const contentDisposition = response.headers?.["content-disposition"];
+      if (contentDisposition) {
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(
+          contentDisposition,
+        );
+        if (matches?.[1]) {
+          downloadFileName = matches[1].replace(/['"]/g, "");
+          // 处理 URL 编码的文件名
+          try {
+            downloadFileName = decodeURIComponent(downloadFileName);
+          } catch {
+            // 如果解码失败，使用原文件名
+          }
+        }
+      }
+    }
+
+    // 如果还是没有文件名，使用默认值
+    if (!downloadFileName) {
+      downloadFileName = "download.xlsx";
+    }
+
+    // 兼容 node Buffer 格式的响应
+    let blobData;
+    const raw = response.data;
+    if (raw instanceof Blob) {
+      blobData = raw;
+    } else if (raw && raw.type === "Buffer" && Array.isArray(raw.data)) {
+      blobData = new Uint8Array(raw.data);
+    } else {
+      blobData = raw;
+    }
+
+    const blob = new Blob([blobData]);
+    const url1 = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url1;
+    link.setAttribute("download", downloadFileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url1);
+  } catch (error) {
+    console.error("下载失败:", error);
+    throw error;
+  }
+};
 
 export default request;

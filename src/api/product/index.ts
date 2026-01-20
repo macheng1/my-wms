@@ -1,4 +1,4 @@
-import request from "@/utils/request";
+import request, { getDownload } from "@/utils/request";
 import { IProduct, ISaveProduct, IQueryProduct } from "./types";
 
 /**
@@ -51,6 +51,31 @@ const ProductApi = {
    * 后端执行 softRemove，保留业务轨迹
    */
   deleteProduct: (id: string) => request.post("products/delete", { id }),
+
+  /**
+   * 下载产品导入模板
+   */
+  downloadTemplate: (categoryCode?: string) =>
+    getDownload(
+      categoryCode
+        ? `products/template?categoryCode=${categoryCode}`
+        : "products/template",
+      undefined,
+      categoryCode
+        ? `product-template-${categoryCode}.xlsx`
+        : "product-import-template.xlsx",
+    ),
+
+  /**
+   * 导入产品数据
+   */
+  importProducts: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request.post("products/import", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 export default ProductApi;

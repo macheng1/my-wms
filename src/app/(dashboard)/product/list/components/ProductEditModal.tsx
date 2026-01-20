@@ -23,19 +23,16 @@ export default function ProductEditModal({
   const [dynamicAttributes, setDynamicAttributes] = useState<any[]>([]);
   const [attrLoading, setAttrLoading] = useState(false);
 
-  // 初始化加载类目
-  useEffect(() => {
-    if (visible) {
-      CategoryApi.getCategoryPage({ page: 1, pageSize: 100 }).then((res) => {
-        setCategoryOptions(
-          (res.data?.list || []).map((item: any) => ({
-            label: item.name,
-            value: String(item.id),
-          }))
-        );
-      });
-    }
-  }, [visible]);
+  // 加载类目列表
+  const loadCategories = useCallback(async () => {
+    const res = await CategoryApi.getCategoryPage({ page: 1, pageSize: 100 });
+    setCategoryOptions(
+      (res.data?.list || []).map((item: any) => ({
+        label: item.name,
+        value: String(item.id),
+      }))
+    );
+  }, []);
 
   // 类目联动逻辑
   const handleCategoryChange = useCallback(async (categoryId: string) => {
@@ -49,15 +46,34 @@ export default function ProductEditModal({
     }
   }, []);
 
+  // 关闭时清空数据
+  const handleClose = () => {
+    formApi?.reset();
+    setDynamicAttributes([]);
+    onClose();
+  };
+
   // 数据回显与初始化
   useEffect(() => {
     if (visible && formApi) {
-      if (data?.id) {
-        // 优化：先请求产品详情，保证数据完整
-        (async () => {
+      (async () => {
+        // 先清空旧数据，避免切换商品时残留
+        setDynamicAttributes([]);
+        formApi.reset();
+
+        // 加载类目列表
+        await loadCategories();
+
+        if (data?.id) {
+          // 编辑模式：先加载产品详情，再加载对应类目的属性
           const detail = await ProductApi.getProductDetail(data.id);
           const product = detail.data || data;
-          await handleCategoryChange(String(product.categoryId)); // 等待属性加载完成
+          const categoryId = String(product.categoryId);
+
+          // 等待类目属性加载完成
+          await handleCategoryChange(categoryId);
+
+          // 属性加载完成后再设置表单值
           const formattedImages = (product.images || []).map(
             (url: string, index: number) => ({
               uid: String(index),
@@ -67,18 +83,17 @@ export default function ProductEditModal({
           );
           formApi.setValues({
             ...product,
-            categoryId: String(product.categoryId),
+            categoryId,
             dynamicAttrs: product.specs,
             images: formattedImages,
           });
-        })();
-      } else {
-        formApi.reset();
-        setDynamicAttributes([]);
-        formApi.setValues({ isActive: true, images: [] });
-      }
+        } else {
+          // 新增模式：重置表单
+          formApi.setValues({ isActive: true, images: [] });
+        }
+      })();
     }
-  }, [visible, data, formApi, handleCategoryChange]);
+  }, [visible, data?.id, formApi, handleCategoryChange, loadCategories]);
 
   /**
    * 💡 核心优化：手动处理提交逻辑，绕过缺失的 submit() 方法
@@ -125,7 +140,7 @@ export default function ProductEditModal({
     <Modal
       title={data?.id ? "编辑产品" : "新增产品"}
       visible={visible}
-      onCancel={onClose}
+      onCancel={handleClose}
       onOk={handleOk} // ✅ 绑定新的 handleOk 函数
       confirmLoading={loading}
       width={700}
