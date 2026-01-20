@@ -7,6 +7,7 @@ import ProDataTable, {
 import SpecEditModal from "./components/SpecEditModal";
 import SpecBatchModal from "./components/SpecBatchModal";
 import { Switch, Button, Modal, Toast } from "@douyinfe/semi-ui-19";
+import { IconDelete } from "@douyinfe/semi-icons";
 import OptionApi from "@/api/spec";
 import { useRef, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ const SpecPage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editInitialValues, setEditInitialValues] = useState<any>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [batchDeleteIds, setBatchDeleteIds] = useState<string[]>([]);
   const [attributeId, setAttributeId] = useState<string | undefined>(undefined);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -112,8 +114,16 @@ const SpecPage = () => {
   };
 
   // 工具栏
-  const toolBarRender = () => (
+  const toolBarRender = (selectedRows: any[], selectedKeys: any[]) => (
     <>
+      <Button
+        icon={<IconDelete />}
+        type="danger"
+        disabled={selectedKeys.length === 0}
+        onClick={() => selectedKeys.length > 0 && setBatchDeleteIds(selectedKeys as string[])}
+      >
+        批量删除 {selectedKeys.length > 0 && `(${selectedKeys.length})`}
+      </Button>
       <Button style={{ marginRight: 16 }} onClick={openBatchModal}>
         批量新增
       </Button>
@@ -136,17 +146,10 @@ const SpecPage = () => {
   }
 
   // 编辑
-  async function openEditModal(id: string) {
+  function openEditModal(id: string) {
     setEditingId(id);
-    setModalLoading(true);
+    setEditInitialValues({});
     setModalVisible(true);
-    setBatchMode(false);
-    try {
-      const res = await OptionApi.getOptionDetail(id);
-      setEditInitialValues(res.data || {});
-    } finally {
-      setModalLoading(false);
-    }
   }
 
   // 保存
@@ -199,6 +202,15 @@ const SpecPage = () => {
     tableRef.current?.reload();
   }
 
+  // 批量删除
+  async function handleBatchDelete() {
+    if (batchDeleteIds.length === 0) return;
+    await OptionApi.batchDeleteOptions(batchDeleteIds);
+    setBatchDeleteIds([]);
+    Toast.success(`成功删除 ${batchDeleteIds.length} 条规格`);
+    tableRef.current?.reload();
+  }
+
   return (
     <>
       <ProDataTable
@@ -208,6 +220,7 @@ const SpecPage = () => {
         title="规格列表"
         toolBarRender={toolBarRender}
         initialValues={{}}
+        rowSelection
       />
       <SpecEditModal
         visible={modalVisible}
@@ -217,6 +230,7 @@ const SpecPage = () => {
         onCancel={() => setModalVisible(false)}
         onOk={handleModalOk}
         attributeId={attributeId}
+        optionId={editingId || undefined}
       />
       <SpecBatchModal
         visible={batchModalVisible}
@@ -232,6 +246,14 @@ const SpecPage = () => {
         onCancel={() => setDeleteId(null)}
       >
         删除规格将影响关联产品的显示，确认删除？
+      </Modal>
+      <Modal
+        visible={batchDeleteIds.length > 0}
+        title="确认批量删除"
+        onOk={handleBatchDelete}
+        onCancel={() => setBatchDeleteIds([])}
+      >
+        确认要删除选中的 {batchDeleteIds.length} 条规格吗？
       </Modal>
     </>
   );

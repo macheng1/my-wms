@@ -65,10 +65,11 @@ export interface ProDataTableProps<T = any>
   extends Omit<TableProps<any>, "columns"> {
   api: (params: any) => Promise<any>; // 数据请求 API
   columns: ProColumnType<T>[]; // Pro 列定义
-  toolBarRender?: () => React.ReactNode; // 工具栏渲染函数
+  toolBarRender?: (selectedRows: T[], selectedRowKeys: React.Key[]) => React.ReactNode; // 工具栏渲染函数，支持传入选中行
   search?: boolean; // 是否显示搜索栏，默认 true
   title?: string | React.ReactNode; // 表格标题
   initialValues?: any; // 搜索表单默认值
+  rowSelection?: boolean; // 是否启用行选择
 }
 
 // 暴露给父组件的方法
@@ -90,6 +91,7 @@ const ProDataTable = forwardRef(
       search = true,
       title,
       initialValues,
+      rowSelection = false,
       ...restProps
     } = props;
 
@@ -103,6 +105,8 @@ const ProDataTable = forwardRef(
     });
     // 表单实例引用
     const formRef = useRef<any>(null);
+    // 行选择状态
+    const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
     /**
      * 💡 3. 请求参数格式化
@@ -384,7 +388,12 @@ const ProDataTable = forwardRef(
             }}
           >
             <div>{title && <Text strong>{title}</Text>}</div>
-            <Space>{toolBarRender?.()}</Space>
+            <Space>
+              {toolBarRender?.(
+                dataSource.filter((row) => selectedRowKeys.includes(row.id)),
+                selectedRowKeys
+              )}
+            </Space>
           </div>
 
           <Table
@@ -392,6 +401,15 @@ const ProDataTable = forwardRef(
             columns={processedColumns}
             dataSource={dataSource}
             loading={loading}
+            rowKey="id"
+            rowSelection={
+              rowSelection
+                ? {
+                    selectedRowKeys,
+                    onChange: (keys) => setSelectedRowKeys(keys as React.Key[]),
+                  }
+                : undefined
+            }
             pagination={{
               currentPage: pagination.currentPage,
               pageSize: pagination.pageSize,

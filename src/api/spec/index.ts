@@ -48,6 +48,10 @@ const OptionApi = {
    */
   deleteOption: (id: string) => request.post("options/delete", { id }),
 
+  /** * 批量删除规格
+   */
+  batchDeleteOptions: (ids: string[]) => request.post("options/batchDelete", { ids }),
+
   /** * 修改规格状态 (1:启用, 0:禁用)
    * 切换 Switch 时调用
    */

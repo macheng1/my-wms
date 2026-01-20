@@ -6,6 +6,7 @@ import ProDataTable, {
 import AttributeEditModal from "./components/AttributeEditModal";
 import ImportModal from "@/components/ImportModal";
 import { Switch, Button, Modal, Toast } from "@douyinfe/semi-ui-19";
+import { IconDelete } from "@douyinfe/semi-icons";
 import AttributeAPI from "@/api/attributes";
 import { useRef, useState } from "react";
 
@@ -27,12 +28,13 @@ const AttributePage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editInitialValues, setEditInitialValues] = useState<any>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [batchDeleteIds, setBatchDeleteIds] = useState<string[]>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
 
   // 表格列定义
   const columns: ProColumnType[] = [
-    { title: "业务编码", dataIndex: "code" },
+    { title: "属性编码", dataIndex: "code" },
     { title: "属性名称", dataIndex: "name", hideInSearch: true },
 
     {
@@ -41,7 +43,7 @@ const AttributePage = () => {
       render: (t: string) => typeMap[t] || t,
       hideInSearch: true,
     },
-    { title: "单位", dataIndex: "unit" },
+    { title: "单位", dataIndex: "unit", hideInSearch: true },
     {
       title: "状态",
       dataIndex: "isActive",
@@ -85,8 +87,16 @@ const AttributePage = () => {
   const fetchList = (params: any) => AttributeAPI.getAttributePage(params);
 
   // 搜索栏工具栏
-  const toolBarRender = () => (
+  const toolBarRender = (selectedRows: any[], selectedKeys: any[]) => (
     <>
+      <Button
+        icon={<IconDelete />}
+        type="danger"
+        disabled={selectedKeys.length === 0}
+        onClick={() => selectedKeys.length > 0 && setBatchDeleteIds(selectedKeys as string[])}
+      >
+        批量删除 {selectedKeys.length > 0 && `(${selectedKeys.length})`}
+      </Button>
       <Button
         style={{ marginRight: 16 }}
         onClick={() => setImportModalVisible(true)}
@@ -156,6 +166,15 @@ const AttributePage = () => {
     tableRef.current?.reload();
   }
 
+  // 批量删除
+  async function handleBatchDelete() {
+    if (batchDeleteIds.length === 0) return;
+    await AttributeAPI.batchDeleteAttributes(batchDeleteIds);
+    setBatchDeleteIds([]);
+    Toast.success(`成功删除 ${batchDeleteIds.length} 条属性`);
+    tableRef.current?.reload();
+  }
+
   // 下载导入模板
   async function handleDownloadTemplate() {
     await AttributeAPI.downloadTemplate();
@@ -171,6 +190,7 @@ const AttributePage = () => {
         columns={columns}
         title="属性列表"
         toolBarRender={toolBarRender}
+        rowSelection
       />
       <AttributeEditModal
         visible={modalVisible}
@@ -187,6 +207,14 @@ const AttributePage = () => {
         onCancel={() => setDeleteId(null)}
       >
         确认要删除该属性吗？
+      </Modal>
+      <Modal
+        visible={batchDeleteIds.length > 0}
+        title="确认批量删除"
+        onOk={handleBatchDelete}
+        onCancel={() => setBatchDeleteIds([])}
+      >
+        确认要删除选中的 {batchDeleteIds.length} 条属性吗？
       </Modal>
       <ImportModal
         visible={importModalVisible}

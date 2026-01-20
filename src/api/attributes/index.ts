@@ -28,6 +28,9 @@ const AttributeAPI = {
   /** 删除属性 */
   deleteAttribute: (id: string) => request.post("attributes/delete", { id }),
 
+  /** 批量删除属性 */
+  batchDeleteAttributes: (ids: string[]) => request.post("attributes/batchDelete", { ids }),
+
   /** 修改属性状态 */
   updateAttributeStatus: (id: string, isActive: number) =>
     request.post("attributes/status", { id, isActive }),

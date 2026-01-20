@@ -15,14 +15,14 @@ export default function AttributeEditModal({
   onCancel,
   onOk,
   loading = false,
-  initialValues = {},
+  initialValues = {} as any,
   isEdit = false,
 }) {
   const [formApi, setFormApi] = useState<any>(null);
   const [type, setType] = useState<any>(initialValues.type || "input");
   const [options, setOptions] = useState<
     Array<{ value: string; sort: number }>
-  >(initialValues.options || []);
+  >([]);
   const [detailLoading, setDetailLoading] = useState(false);
 
   // 编辑时拉取详情
@@ -32,15 +32,37 @@ export default function AttributeEditModal({
       AttributeAPI.getAttributeDetail(initialValues.id)
         .then((res) => {
           const detail = res.data || {};
-          setType(detail.type || "input");
-          setOptions(Array.isArray(detail.options) ? detail.options : []);
+          const detailType = detail.type || "input";
+          const detailOptions = Array.isArray(detail.options)
+            ? detail.options.map((opt: any) => ({
+                value: opt.value || opt.name || "",
+                sort: opt.sort || 0,
+              }))
+            : [];
+          setType(detailType);
+          // 如果是 select 类型但没有 options，给一个默认空对象
+          setOptions(
+            detailType === "select" && detailOptions.length === 0
+              ? [{ value: "", sort: 1 }]
+              : detailOptions
+          );
           if (formApi) formApi.setValues(detail);
         })
         .finally(() => setDetailLoading(false));
     } else if (visible) {
-      setType(initialValues.type || "input");
+      const initType = initialValues.type || "input";
+      const initOptions = Array.isArray(initialValues.options)
+        ? initialValues.options.map((opt: any) => ({
+            value: opt.value || opt.name || "",
+            sort: opt.sort || 0,
+          }))
+        : [];
+      setType(initType);
+      // 如果是 select 类型但没有 options，给一个默认空对象
       setOptions(
-        Array.isArray(initialValues.options) ? initialValues.options : []
+        initType === "select" && initOptions.length === 0
+          ? [{ value: "", sort: 1 }]
+          : initOptions
       );
       if (formApi) formApi.setValues(initialValues);
     }
@@ -134,11 +156,10 @@ export default function AttributeEditModal({
                         style={{ width: 160 }}
                       />
                       <Input
-                        value={opt.sort}
+                        value={String(opt.sort)}
                         placeholder="排序"
                         type="number"
                         onChange={(v) => {
-                          console.log("🚀 ~ AttributeEditModal ~ v:", v);
                           return handleOptionChange(idx, "sort", Number(v));
                         }}
                         style={{ width: 100 }}
@@ -151,6 +172,7 @@ export default function AttributeEditModal({
                         type="danger"
                         theme="borderless"
                         onClick={() => handleRemoveOption(idx)}
+                        disabled={options.length <= 1}
                       >
                         删除
                       </Button>

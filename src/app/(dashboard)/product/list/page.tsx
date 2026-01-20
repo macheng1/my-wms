@@ -31,12 +31,14 @@ export default function ProductListPage() {
   // 拉取类目下拉
   React.useEffect(() => {
     CategoryApi.getCategoryPage({ page: 1, pageSize: 100 }).then((res) => {
-      setCategoryOptions(
-        (res.data?.list || []).map((item) => ({
-          label: item.name,
-          value: item.id,
-        })),
-      );
+      const options = (res.data?.list || []).map((item) => ({
+        label: item.name,
+        value: item.id,
+      }));
+      console.log("类目选项数据:", options);
+      setCategoryOptions(options);
+    }).catch((err) => {
+      console.error("加载类目失败:", err);
     });
   }, []);
 
@@ -114,20 +116,22 @@ export default function ProductListPage() {
           ),
       },
       {
-        title: "产品名称",
-        dataIndex: "name",
-        valueType: "text",
-      },
-      {
         title: "SKU编码",
         dataIndex: "code",
         valueType: "text",
       },
       {
+        title: "产品名称",
+        dataIndex: "name",
+        valueType: "text",
+      },
+      {
         title: "类目",
-        dataIndex: "categoryName",
+        dataIndex: "categoryId",
         valueType: "select",
-        options: categoryOptions,
+        fieldProps: {
+          optionList: categoryOptions,
+        },
         render: (_: any, record: any) => record.category?.name || "-",
       },
       {
