@@ -3,7 +3,7 @@ export interface UserInfoResponse {
   username: string;
   nickname: string;
   avatar: string;
-  isPlatformAdmin: boolean;
+  isPlatformAdmin: number; // 0 或 1
   tenantId: string | number;
   tenantName: string;
   permissions: string[];

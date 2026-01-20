@@ -144,7 +144,6 @@ export default function LoginPage() {
               placeholder="输入企业编码"
               prefix={<IconApartment className="text-slate-400" />}
               size="large"
-              rules={[{ required: true, message: "请输入企业编码" }]}
               style={{ borderRadius: "8px" }}
             />
 

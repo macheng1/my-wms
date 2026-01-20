@@ -16,12 +16,26 @@ const request: AxiosInstance = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+// 生成 trace ID
+const generateTraceId = (): string => {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // 降级方案：时间戳 + 随机数
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+};
+
 // 1. 请求拦截器
 request.interceptors.request.use(
   (config) => {
     const token = Cookies.get("wms_token");
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // 添加 x-trace-id 请求头
+    if (config.headers) {
+      config.headers["x-trace-id"] = generateTraceId();
     }
 
     if (APP_ENV === "local" || APP_ENV === "dev") {
@@ -80,9 +94,12 @@ request.interceptors.response.use(
           message = "登录状态已失效，请重新登录 (401)";
           // 清除 token 并跳转
           Cookies.remove("wms_token");
-          if (typeof window !== "undefined") {
-            window.location.href = "/login";
-          }
+          // 延迟到下一个事件循环，避免与 React 渲染冲突
+          setTimeout(() => {
+            if (typeof window !== "undefined") {
+              window.location.href = "/login";
+            }
+          }, 0);
           break;
         case 403:
           message = "您没有权限访问该资源 (403)";

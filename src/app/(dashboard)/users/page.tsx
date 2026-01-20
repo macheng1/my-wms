@@ -57,7 +57,7 @@ export default function UserListPage() {
         return (
           <div style={{ width: "40px", height: "40px" }}>
             <Image
-              src={record.avatar}
+              src={record.avatar || null}
               width="100%"
               height="100%"
               alt="avatar"
