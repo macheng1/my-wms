@@ -31,7 +31,7 @@ export interface IAdjustRequest {
   unitCode: string;
   reason: string; // 调整原因
   remark?: string; // 可选备注
-  location?: string; // 可选库位
+  locationId?: string; // 可选库位ID
 }
 
 /**

@@ -148,7 +148,7 @@ export default function TransactionsPage() {
     },
     {
       title: "库位",
-      dataIndex: "location",
+      dataIndex: "locationName",
       valueType: "text",
       hideInSearch: true,
     },

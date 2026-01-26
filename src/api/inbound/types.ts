@@ -16,7 +16,7 @@ export interface IInboundItem {
   sku: string;
   quantity: number;
   unitCode: string;
-  location?: string;
+  locationId?: string;
 }
 
 /**
@@ -27,7 +27,7 @@ export interface IInboundRequest {
   quantity: number;
   unitCode: string;
   orderNo?: string;
-  location?: string;
+  locationId?: string;
   type: InboundType;
   remark?: string;
   items?: IInboundItem[];
@@ -38,7 +38,7 @@ export interface IInboundRequest {
  */
 export interface IBatchInboundRequest {
   orderNo?: string;
-  location?: string;
+  locationId?: string;
   type: InboundType;
   remark?: string;
   items: IInboundItem[];

@@ -5,6 +5,7 @@ import { Modal, Form, Toast, Radio, Typography } from "@douyinfe/semi-ui-19";
 import { IconPlus, IconMinus } from "@douyinfe/semi-icons";
 import InventoryApi from "@/api/inventory";
 import UnitApi from "@/api/unit";
+import LocationApi from "@/api/location";
 
 const { Text } = Typography;
 
@@ -33,8 +34,9 @@ export default function AdjustModal({
 }: AdjustModalProps) {
   const [formApi, setFormApi] = useState<any>(null);
   const [unitOptions, setUnitOptions] = useState<any[]>([]);
+  const [locationOptions, setLocationOptions] = useState<any[]>([]);
 
-  // 加载单位选项
+  // 加载单位选项和库位选项
   useEffect(() => {
     UnitApi.getActiveUnits(data?.unit?.category).then((res) => {
       const options = (res.data || []).map((item: any) => ({
@@ -42,6 +44,10 @@ export default function AdjustModal({
         value: item.code,
       }));
       setUnitOptions(options);
+    });
+
+    LocationApi.getLocationSelect().then((res) => {
+      setLocationOptions(res.data || []);
     });
   }, [data?.unit?.category]);
 
@@ -71,7 +77,7 @@ export default function AdjustModal({
         unitCode: values.unitCode,
         reason: values.reason,
         remark: values.remark,
-        location: values.location,
+        locationId: values.locationId,
       });
 
       Toast.success("库存调整成功");
@@ -98,7 +104,7 @@ export default function AdjustModal({
           labelWidth={120}
           initValues={{
             unitCode: data.unit?.code,
-            location: data.location,
+            locationId: data.locationId,
           }}
         >
           {/* 当前库存展示 */}
@@ -174,10 +180,13 @@ export default function AdjustModal({
           />
 
           {/* 库位 */}
-          <Form.Input
-            field="location"
+          <Form.Select
+            field="locationId"
             label="库位"
-            placeholder="请输入库位（可选）"
+            placeholder="请选择库位（可选）"
+            optionList={locationOptions}
+            showClear
+            filter
           />
 
           {/* 备注 */}

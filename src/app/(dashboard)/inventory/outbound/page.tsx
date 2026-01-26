@@ -115,7 +115,7 @@ export default function OutboundPage() {
     },
     {
       title: "库位",
-      dataIndex: "location",
+      dataIndex: "locationName",
       valueType: "text",
       hideInSearch: true,
     },

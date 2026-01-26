@@ -19,7 +19,12 @@ export default function InventoryListPage() {
 
   // 格式化多单位库存展示
   const renderMultiUnitQty = (
-    multiUnitQty: Record<string, { quantity: number; name: string; symbol: string; display: string }> | undefined,
+    multiUnitQty:
+      | Record<
+          string,
+          { quantity: number; name: string; symbol: string; display: string }
+        >
+      | undefined,
   ) => {
     if (!multiUnitQty || Object.keys(multiUnitQty).length === 0) return "-";
     return (
@@ -44,7 +49,9 @@ export default function InventoryListPage() {
       green: "green",
     };
 
-    return <Tag color={colorMap[statusInfo.color] || "blue"}>{statusInfo.label}</Tag>;
+    return (
+      <Tag color={colorMap[statusInfo.color] || "blue"}>{statusInfo.label}</Tag>
+    );
   };
 
   // 列定义
@@ -63,7 +70,7 @@ export default function InventoryListPage() {
     },
     {
       title: "库位",
-      dataIndex: "location",
+      dataIndex: "locationName",
       valueType: "text",
       width: 120,
     },
@@ -75,7 +82,8 @@ export default function InventoryListPage() {
       width: 120,
       render: (text: number, record: any) => (
         <Text strong style={{ fontSize: 16 }}>
-          {record.quantityDisplay || `${text.toLocaleString()} ${record.unitSymbol || ""}`}
+          {record.quantityDisplay ||
+            `${text.toLocaleString()} ${record.unitSymbol || ""}`}
         </Text>
       ),
     },

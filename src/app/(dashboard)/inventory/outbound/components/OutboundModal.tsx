@@ -6,7 +6,6 @@ import {
   Form,
   Toast,
   Select,
-  Input,
   InputNumber,
   Table,
   Button,
@@ -19,6 +18,7 @@ import OutboundApi from "@/api/outbound";
 import { OutboundType, IOutboundItem } from "@/api/outbound/types";
 import InventoryApi from "@/api/inventory";
 import { IAvailableOutboundProduct } from "@/api/inventory/types";
+import LocationApi from "@/api/location";
 
 const { Text } = Typography;
 
@@ -54,17 +54,21 @@ export default function OutboundModal({
   const [loading, setLoading] = useState(false);
   const [formApi, setFormApi] = useState<FormApi | null>(null);
   const [availableProducts, setAvailableProducts] = useState<IAvailableOutboundProduct[]>([]);
+  const [locationOptions, setLocationOptions] = useState<any[]>([]);
   const [items, setItems] = useState<IOutboundItemWithInfo[]>([
-    { sku: "", quantity: 0, location: "" },
+    { sku: "", quantity: 0, locationId: "" },
   ]);
   // 单笔出库选中的产品
   const [selectedProduct, setSelectedProduct] = useState<IAvailableOutboundProduct | null>(null);
 
-  // 加载可出库产品列表
+  // 加载可出库产品列表和库位选项
   useEffect(() => {
     if (visible) {
       loadAvailableProducts();
     }
+    LocationApi.getLocationSelect().then((res) => {
+      setLocationOptions(res.data || []);
+    });
   }, [visible]);
 
   const loadAvailableProducts = async () => {
@@ -79,14 +83,14 @@ export default function OutboundModal({
   // 关闭时重置
   const handleClose = () => {
     formApi?.reset();
-    setItems([{ sku: "", quantity: 0, location: "" }]);
+    setItems([{ sku: "", quantity: 0, locationId: "" }]);
     setSelectedProduct(null);
     onClose();
   };
 
   // 添加产品行
   const handleAddItem = () => {
-    setItems([...items, { sku: "", quantity: 0, location: "" }]);
+    setItems([...items, { sku: "", quantity: 0, locationId: "" }]);
   };
 
   // 删除产品行
@@ -143,7 +147,7 @@ export default function OutboundModal({
           remark: values.remark,
           sku: values.sku,
           quantity: values.quantity,
-          location: values.location,
+          locationId: values.locationId,
         });
         Toast.success("出库成功");
       } else {
@@ -223,13 +227,17 @@ export default function OutboundModal({
     },
     {
       title: "库位",
-      dataIndex: "location",
-      width: 150,
+      dataIndex: "locationId",
+      width: 200,
       render: (text: string, _record: IOutboundItemWithInfo, index: number) => (
-        <Input
-          placeholder="库位（可选）"
+        <Select
+          placeholder="请选择库位（可选）"
           value={text}
-          onChange={(value) => handleUpdateItem(index, "location", value)}
+          optionList={locationOptions}
+          onChange={(value) => handleUpdateItem(index, "locationId", value || "")}
+          style={{ width: "100%" }}
+          showClear
+          filter
         />
       ),
     },
@@ -315,10 +323,13 @@ export default function OutboundModal({
                   <Text type="tertiary">可用库存: {selectedProduct.quantity} {selectedProduct.unitName}</Text>
                 </div>
               )}
-              <Form.Input
-                field="location"
+              <Form.Select
+                field="locationId"
                 label="库位"
-                placeholder="请输入库位（可选）"
+                placeholder="请选择库位（可选）"
+                optionList={locationOptions}
+                showClear
+                filter
               />
             </>
           ) : (

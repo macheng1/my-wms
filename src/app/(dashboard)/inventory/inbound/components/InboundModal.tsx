@@ -6,7 +6,6 @@ import {
   Form,
   Toast,
   Select,
-  Input,
   InputNumber,
   Table,
   Button,
@@ -18,6 +17,7 @@ import InboundApi from "@/api/inbound";
 import { InboundType, IInboundItem } from "@/api/inbound/types";
 import UnitApi from "@/api/unit";
 import ProductApi from "@/api/product";
+import LocationApi from "@/api/location";
 
 // 入库类型选项
 const INBOUND_TYPE_OPTIONS = [
@@ -45,11 +45,12 @@ export default function InboundModal({
   const [formApi, setFormApi] = useState<FormApi | null>(null);
   const [unitOptions, setUnitOptions] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
+  const [locationOptions, setLocationOptions] = useState<any[]>([]);
   const [items, setItems] = useState<IInboundItem[]>([
-    { sku: "", quantity: 0, unitCode: "", location: "" },
+    { sku: "", quantity: 0, unitCode: "", locationId: "" },
   ]);
 
-  // 加载单位选项和产品选项
+  // 加载单位选项、产品选项和库位选项
   useEffect(() => {
     UnitApi.getActiveUnits().then((res) => {
       const options = (res.data || []).map((item: any) => ({
@@ -62,18 +63,22 @@ export default function InboundModal({
     ProductApi.getProductSelect().then((res) => {
       setProductOptions(res.data || []);
     });
+
+    LocationApi.getLocationSelect().then((res) => {
+      setLocationOptions(res.data || []);
+    });
   }, []);
 
   // 关闭时重置
   const handleClose = () => {
     formApi?.reset();
-    setItems([{ sku: "", quantity: 0, unitCode: "", location: "" }]);
+    setItems([{ sku: "", quantity: 0, unitCode: "", locationId: "" }]);
     onClose();
   };
 
   // 添加产品行
   const handleAddItem = () => {
-    setItems([...items, { sku: "", quantity: 0, unitCode: "", location: "" }]);
+    setItems([...items, { sku: "", quantity: 0, unitCode: "", locationId: "" }]);
   };
 
   // 删除产品行
@@ -83,7 +88,11 @@ export default function InboundModal({
   };
 
   // 更新产品行
-  const handleUpdateItem = (index: number, field: keyof IInboundItem, value: any) => {
+  const handleUpdateItem = (
+    index: number,
+    field: keyof IInboundItem,
+    value: any,
+  ) => {
     const newItems = [...items];
     newItems[index][field] = value;
     setItems(newItems);
@@ -104,7 +113,7 @@ export default function InboundModal({
           sku: values.sku,
           quantity: values.quantity,
           unitCode: values.unitCode,
-          location: values.location,
+          locationId: values.locationId,
         });
         Toast.success("入库成功");
       } else {
@@ -174,13 +183,17 @@ export default function InboundModal({
     },
     {
       title: "库位",
-      dataIndex: "location",
-      width: 150,
+      dataIndex: "locationId",
+      width: 200,
       render: (text: string, _record: IInboundItem, index: number) => (
-        <Input
-          placeholder="库位（可选）"
+        <Select
+          placeholder="请选择库位（可选）"
           value={text}
-          onChange={(value) => handleUpdateItem(index, "location", value)}
+          optionList={locationOptions}
+          onChange={(value) => handleUpdateItem(index, "locationId", value)}
+          style={{ width: "100%" }}
+          showClear
+          filter
         />
       ),
     },
@@ -253,19 +266,22 @@ export default function InboundModal({
                 optionList={unitOptions}
                 rules={[{ required: true, message: "请选择单位" }]}
               />
-              <Form.Input
-                field="location"
+              <Form.Select
+                field="locationId"
                 label="库位"
-                placeholder="请输入库位（可选）"
+                placeholder="请选择库位（可选）"
+                optionList={locationOptions}
+                showClear
+                filter
               />
             </>
           ) : (
             <>
               <Table
                 columns={itemColumns}
-                dataSource={items}
+                dataSource={items.map((item, idx) => ({ ...item, _id: String(idx) }))}
                 pagination={false}
-                rowKey={(_record, index) => index!}
+                rowKey="_id"
                 style={{ marginBottom: 16 }}
               />
               <Button

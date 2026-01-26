@@ -106,7 +106,7 @@ export default function AlertsPage() {
     },
     {
       title: "库位",
-      dataIndex: "location",
+      dataIndex: "locationName",
       valueType: "text",
       hideInSearch: true,
     },
