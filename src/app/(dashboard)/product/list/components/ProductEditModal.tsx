@@ -212,6 +212,14 @@ export default function ProductEditModal({
         </Section>
 
         <Section text="其他配置">
+          <Form.InputNumber
+            field="safetyStock"
+            label="安全库存"
+            placeholder="请输入安全库存"
+            min={0}
+            precision={0}
+            style={{ width: "100%" }}
+          />
           <Form.TextArea field="description" label="产品描述" rows={2} />
           <Form.Switch field="isActive" label="启用状态" />
         </Section>

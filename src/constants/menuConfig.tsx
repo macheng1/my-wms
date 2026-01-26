@@ -124,6 +124,11 @@ export const MENU_CONFIG: MenuItem[] = [
     menuType: "all",
     items: [
       {
+        itemKey: "/inventory/unit",
+        text: "单位管理",
+        code: "wms:inventory:unit",
+      },
+      {
         itemKey: "/inventory/list",
         text: "库存查询",
         code: "wms:inventory:list",
@@ -137,6 +142,16 @@ export const MENU_CONFIG: MenuItem[] = [
         itemKey: "/inventory/outbound",
         text: "出库管理",
         code: "wms:inventory:outbound",
+      },
+      {
+        itemKey: "/inventory/transactions",
+        text: "库存流水",
+        code: "wms:inventory:transactions",
+      },
+      {
+        itemKey: "/inventory/alerts",
+        text: "库存预警",
+        code: "wms:inventory:alerts",
       },
     ],
   },

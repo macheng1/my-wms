@@ -60,3 +60,28 @@ export interface IQueryProduct {
   /** 状态过滤 */
   isActive?: 1 | 0;
 }
+
+/**
+ * 产品下拉选项
+ * 用于前端下拉选择组件
+ */
+export interface IProductSelectOption {
+  /** 显示文本，格式：产品名称 (SKU编码) */
+  label: string;
+  /** 产品编码（SKU），用于提交 */
+  value: string;
+  /** 产品ID（UUID） */
+  id: string;
+  /** 产品名称 */
+  name: string;
+  /** 产品编码/SKU */
+  code: string;
+}
+
+/**
+ * 产品下拉查询参数
+ */
+export interface IQueryProductSelect {
+  /** 搜索关键词（产品名称或编码） */
+  keyword?: string;
+}

@@ -210,6 +210,13 @@ const ProDataTable = forwardRef(
 
       switch (col.valueType) {
         case "select":
+          // 支持通过 fieldProps.optionList 传入动态选项
+          if (fieldProps?.optionList) {
+            return (
+              <Form.Select {...commonProps} optionList={fieldProps.optionList} />
+            );
+          }
+          // 兼容 valueEnum 静态选项
           return (
             <Form.Select {...commonProps} placeholder={`请选择${col.title}`}>
               {col.valueEnum &&

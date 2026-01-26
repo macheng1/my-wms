@@ -1,5 +1,11 @@
 import request, { getDownload } from "@/utils/request";
-import { IProduct, ISaveProduct, IQueryProduct } from "./types";
+import {
+  IProduct,
+  ISaveProduct,
+  IQueryProduct,
+  IProductSelectOption,
+  IQueryProductSelect,
+} from "./types";
 
 /**
  * 产品管理 (Product) API 服务
@@ -17,6 +23,13 @@ const ProductApi = {
       page: number;
       pageSize: number;
     }>("products/page", { params }),
+
+  /**
+   * 获取产品下拉列表
+   * 用于前端下拉选择组件，返回启用的产品列表
+   */
+  getProductSelect: (params?: IQueryProductSelect) =>
+    request.get<IProductSelectOption[]>("products/select", { params }),
 
   /**
    * 获取产品详情
