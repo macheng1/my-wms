@@ -4,10 +4,16 @@ import type {
   TenantListData,
   TenantDetailParams,
   TenantDetailData,
+  TenantDetailRaw,
   UpdateTenantParams,
   RegisterParams,
 } from "./types";
 import { Result, PageResult } from "../base";
+import { transformTenantDetail, flattenTenantDetail } from "./types";
+
+// 重新导出类型
+export type { TenantDetailData };
+export type { TenantBasicInfo, TenantIndustryInfo, TenantContactInfo, TenantAddressInfo, TenantFinanceInfo, TenantQualificationInfo, TenantBusinessInfo } from "./types";
 
 /**
  * 租户管理 API
@@ -22,13 +28,15 @@ const TenantsAPI = {
   },
 
   /** 获取租户详情 */
-  getTenantDetail: (data: TenantDetailParams) => {
-    return request.post<Result<TenantDetailData>>("/tenants/detail", data);
+  getTenantDetail: async (data: TenantDetailParams): Promise<TenantDetailData> => {
+    const result = await request.post<any>("/tenants/detail", data);
+    return transformTenantDetail(result.data as TenantDetailRaw);
   },
 
   /** 更新租户信息 */
-  updateTenant: (id: string, data: UpdateTenantParams) => {
-    return request.patch<Result<TenantDetailData>>(`/tenants/${id}`, data);
+  updateTenant: async (id: string, data: UpdateTenantParams): Promise<void> => {
+    const flattened = flattenTenantDetail(data as Partial<TenantDetailData>);
+    await request.patch(`/tenants/${id}`, flattened);
   },
 
   /** 删除租户 */

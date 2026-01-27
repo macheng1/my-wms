@@ -74,17 +74,88 @@ export interface TenantItem {
   updatedAt: string;
 }
 
+// ==================== 租户详情分组类型 ====================
+
 /**
- * 租户详情参数
+ * 基本信息
  */
-export interface TenantDetailParams {
+export interface TenantBasicInfo {
   id: string;
+  code: string;
+  name: string;
+  isActive: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
- * 租户详情返回数据
+ * 行业信息
  */
-export interface TenantDetailData {
+export interface TenantIndustryInfo {
+  industryCode?: string;
+  industryName?: string;
+  industryType?: string;
+}
+
+/**
+ * 联系信息
+ */
+export interface TenantContactInfo {
+  contactPerson?: string;
+  contactPhone?: string;
+  email?: string;
+  fax?: string;
+}
+
+/**
+ * 地址信息
+ */
+export interface TenantAddressInfo {
+  address?: string;
+  factoryAddress?: string;
+  registerAddress?: string;
+  website?: string;
+}
+
+/**
+ * 财务信息
+ */
+export interface TenantFinanceInfo {
+  taxNo?: string;
+  taxpayerType?: string;
+  creditCode?: string;
+  bankName?: string;
+  bankAccount?: string;
+  registeredCapital?: string;
+}
+
+/**
+ * 资质信息
+ */
+export interface TenantQualificationInfo {
+  legalPerson?: string;
+  businessLicenseNo?: string;
+  businessLicenseExpire?: string;
+  qualificationNo?: string;
+  qualificationExpire?: string;
+}
+
+/**
+ * 经营信息
+ */
+export interface TenantBusinessInfo {
+  foundDate?: string;
+  staffCount?: number;
+  mainProducts?: string;
+  annualCapacity?: string;
+  remark?: string;
+}
+
+/**
+ * 租户详情 - API 原始返回结构（扁平）
+ * @internal 后端返回的原始格式
+ */
+export interface TenantDetailRaw {
   id: string;
   code: string;
   name: string;
@@ -121,6 +192,129 @@ export interface TenantDetailData {
 }
 
 /**
- * 更新租户参数
+ * 租户详情参数
  */
-export type UpdateTenantParams = Partial<Omit<TenantDetailData, "id" | "code" | "createdAt" | "updatedAt">>;
+export interface TenantDetailParams {
+  id: string;
+}
+
+/**
+ * 租户详情返回数据（分组结构）
+ */
+export interface TenantDetailData {
+  /** 基本信息 */
+  basic: TenantBasicInfo;
+  /** 行业信息 */
+  industry: TenantIndustryInfo;
+  /** 联系信息 */
+  contact: TenantContactInfo;
+  /** 地址信息 */
+  address: TenantAddressInfo;
+  /** 财务信息 */
+  finance: TenantFinanceInfo;
+  /** 资质信息 */
+  qualification: TenantQualificationInfo;
+  /** 经营信息 */
+  business: TenantBusinessInfo;
+}
+
+/**
+ * 将 API 返回的扁平结构转换为分组结构
+ */
+export function transformTenantDetail(raw: TenantDetailRaw): TenantDetailData {
+  return {
+    basic: {
+      id: raw.id,
+      code: raw.code,
+      name: raw.name,
+      isActive: raw.isActive,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+    },
+    industry: {
+      industryCode: raw.industryCode,
+      industryName: raw.industryName,
+      industryType: raw.industryType,
+    },
+    contact: {
+      contactPerson: raw.contactPerson,
+      contactPhone: raw.contactPhone,
+      email: raw.email,
+      fax: raw.fax,
+    },
+    address: {
+      address: raw.address,
+      factoryAddress: raw.factoryAddress,
+      registerAddress: raw.registerAddress,
+      website: raw.website,
+    },
+    finance: {
+      taxNo: raw.taxNo,
+      taxpayerType: raw.taxpayerType,
+      creditCode: raw.creditCode,
+      bankName: raw.bankName,
+      bankAccount: raw.bankAccount,
+      registeredCapital: raw.registeredCapital,
+    },
+    qualification: {
+      legalPerson: raw.legalPerson,
+      businessLicenseNo: raw.businessLicenseNo,
+      businessLicenseExpire: raw.businessLicenseExpire,
+      qualificationNo: raw.qualificationNo,
+      qualificationExpire: raw.qualificationExpire,
+    },
+    business: {
+      foundDate: raw.foundDate,
+      staffCount: raw.staffCount,
+      mainProducts: raw.mainProducts,
+      annualCapacity: raw.annualCapacity,
+      remark: raw.remark,
+    },
+  };
+}
+
+/**
+ * 将分组结构转换为扁平结构（用于提交更新）
+ */
+export function flattenTenantDetail(data: Partial<TenantDetailData>): Partial<TenantDetailRaw> {
+  const result: Partial<TenantDetailRaw> = {};
+
+  if (data.basic) {
+    Object.assign(result, data.basic);
+  }
+  if (data.industry) {
+    Object.assign(result, data.industry);
+  }
+  if (data.contact) {
+    Object.assign(result, data.contact);
+  }
+  if (data.address) {
+    Object.assign(result, data.address);
+  }
+  if (data.finance) {
+    Object.assign(result, data.finance);
+  }
+  if (data.qualification) {
+    Object.assign(result, data.qualification);
+  }
+  if (data.business) {
+    Object.assign(result, data.business);
+  }
+
+  return result;
+}
+
+/**
+ * 更新租户参数（支持分组结构）
+ */
+export type UpdateTenantParams =
+  | Partial<TenantDetailData>
+  | {
+      basic?: Partial<TenantBasicInfo>;
+      industry?: Partial<TenantIndustryInfo>;
+      contact?: Partial<TenantContactInfo>;
+      address?: Partial<TenantAddressInfo>;
+      finance?: Partial<TenantFinanceInfo>;
+      qualification?: Partial<TenantQualificationInfo>;
+      business?: Partial<TenantBusinessInfo>;
+    };

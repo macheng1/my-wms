@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useUserStore } from "@/store/useUserStore";
-import TenantsAPI from "@/api/tenants";
+import TenantsAPI, { type TenantDetailData } from "@/api/tenants";
 import {
   Layout,
   Card,
@@ -30,7 +30,7 @@ export default function FactoryDetailPage() {
   const tenantId = userInfo?.tenantId;
 
   const [loading, setLoading] = useState(true);
-  const [factoryData, setFactoryData] = useState<any>(null);
+  const [factoryData, setFactoryData] = useState<TenantDetailData | null>(null);
 
   // 弹窗状态
   const [editSection, setEditSection] = useState<EditSection>(null);
@@ -80,18 +80,18 @@ export default function FactoryDetailPage() {
     setEditSection("base");
     setTimeout(() => {
       baseFormApiRef.current?.setValues({
-        name: factoryData?.name ?? "",
-        code: factoryData?.code ?? "",
-        contactPerson: factoryData?.contactPerson ?? "",
-        contactPhone: factoryData?.contactPhone ?? "",
-        industryCode: factoryData?.industryCode ?? "",
-        factoryAddress: factoryData?.factoryAddress ?? "",
-        foundDate: factoryData?.foundDate ?? "",
-        staffCount: factoryData?.staffCount ?? "",
-        mainProducts: factoryData?.mainProducts ?? "",
-        annualCapacity: factoryData?.annualCapacity ?? "",
-        website: factoryData?.website ?? "",
-        remark: factoryData?.remark ?? "",
+        name: factoryData?.basic?.name ?? "",
+        code: factoryData?.basic?.code ?? "",
+        contactPerson: factoryData?.contact?.contactPerson ?? "",
+        contactPhone: factoryData?.contact?.contactPhone ?? "",
+        industryCode: factoryData?.industry?.industryCode ?? "",
+        factoryAddress: factoryData?.address?.factoryAddress ?? "",
+        foundDate: factoryData?.business?.foundDate ?? "",
+        staffCount: factoryData?.business?.staffCount ?? "",
+        mainProducts: factoryData?.business?.mainProducts ?? "",
+        annualCapacity: factoryData?.business?.annualCapacity ?? "",
+        website: factoryData?.address?.website ?? "",
+        remark: factoryData?.business?.remark ?? "",
       });
     }, 0);
   };
@@ -101,21 +101,21 @@ export default function FactoryDetailPage() {
     setEditSection("biz");
     setTimeout(() => {
       bizFormApiRef.current?.setValues({
-        taxNo: factoryData?.taxNo ?? "",
-        bankName: factoryData?.bankName ?? "",
-        bankAccount: factoryData?.bankAccount ?? "",
-        businessLicenseNo: factoryData?.businessLicenseNo ?? "",
-        businessLicenseExpire: factoryData?.businessLicenseExpire ?? "",
-        legalPerson: factoryData?.legalPerson ?? "",
-        registeredCapital: factoryData?.registeredCapital ?? "",
-        registerAddress: factoryData?.registerAddress ?? "",
-        taxpayerType: factoryData?.taxpayerType ?? "",
-        industryType: factoryData?.industryType ?? "",
-        creditCode: factoryData?.creditCode ?? "",
-        qualificationNo: factoryData?.qualificationNo ?? "",
-        qualificationExpire: factoryData?.qualificationExpire ?? "",
-        email: factoryData?.email ?? "",
-        fax: factoryData?.fax ?? "",
+        taxNo: factoryData?.finance?.taxNo ?? "",
+        bankName: factoryData?.finance?.bankName ?? "",
+        bankAccount: factoryData?.finance?.bankAccount ?? "",
+        businessLicenseNo: factoryData?.qualification?.businessLicenseNo ?? "",
+        businessLicenseExpire: factoryData?.qualification?.businessLicenseExpire ?? "",
+        legalPerson: factoryData?.qualification?.legalPerson ?? "",
+        registeredCapital: factoryData?.finance?.registeredCapital ?? "",
+        registerAddress: factoryData?.address?.registerAddress ?? "",
+        taxpayerType: factoryData?.finance?.taxpayerType ?? "",
+        industryType: factoryData?.industry?.industryType ?? "",
+        creditCode: factoryData?.finance?.creditCode ?? "",
+        qualificationNo: factoryData?.qualification?.qualificationNo ?? "",
+        qualificationExpire: factoryData?.qualification?.qualificationExpire ?? "",
+        email: factoryData?.contact?.email ?? "",
+        fax: factoryData?.contact?.fax ?? "",
       });
     }, 0);
   };
@@ -130,14 +130,67 @@ export default function FactoryDetailPage() {
 
       let values: any = {};
       if (editSection === "base") {
-        values = await baseFormApiRef.current?.validate();
+        const rawValues = await baseFormApiRef.current?.validate();
+        // 组织为分组结构
+        values = {
+          basic: {
+            name: rawValues.name,
+            code: rawValues.code,
+          },
+          contact: {
+            contactPerson: rawValues.contactPerson,
+            contactPhone: rawValues.contactPhone,
+          },
+          industry: {
+            industryCode: rawValues.industryCode,
+          },
+          address: {
+            factoryAddress: rawValues.factoryAddress,
+            website: rawValues.website,
+          },
+          business: {
+            foundDate: rawValues.foundDate,
+            staffCount: rawValues.staffCount,
+            mainProducts: rawValues.mainProducts,
+            annualCapacity: rawValues.annualCapacity,
+            remark: rawValues.remark,
+          },
+        };
       } else if (editSection === "biz") {
-        values = await bizFormApiRef.current?.validate();
+        const rawValues = await bizFormApiRef.current?.validate();
+        // 组织为分组结构
+        values = {
+          finance: {
+            taxNo: rawValues.taxNo,
+            bankName: rawValues.bankName,
+            bankAccount: rawValues.bankAccount,
+            registeredCapital: rawValues.registeredCapital,
+            taxpayerType: rawValues.taxpayerType,
+            creditCode: rawValues.creditCode,
+          },
+          qualification: {
+            businessLicenseNo: rawValues.businessLicenseNo,
+            businessLicenseExpire: rawValues.businessLicenseExpire,
+            legalPerson: rawValues.legalPerson,
+            qualificationNo: rawValues.qualificationNo,
+            qualificationExpire: rawValues.qualificationExpire,
+          },
+          address: {
+            registerAddress: rawValues.registerAddress,
+          },
+          industry: {
+            industryType: rawValues.industryType,
+          },
+          contact: {
+            email: rawValues.email,
+            fax: rawValues.fax,
+          },
+        };
       } else {
         return;
       }
 
-      await TenantsAPI.updateTenant(tenantId, { ...values });
+      await TenantsAPI.updateTenant(tenantId, values);
 
       Toast.success("保存成功");
       closeModal();
@@ -182,7 +235,7 @@ export default function FactoryDetailPage() {
               }}
             >
               <Title heading={3} style={{ margin: 0, fontWeight: 600 }}>
-                {loading ? "加载中…" : factoryData?.name || "-"}
+                {loading ? "加载中…" : factoryData?.basic?.name || "-"}
               </Title>
               <span style={{ marginLeft: 12 }}>{statusTag}</span>
             </div>
@@ -190,7 +243,7 @@ export default function FactoryDetailPage() {
               align="left"
               column={1}
               data={[
-                { key: "工厂编码", value: factoryData?.code || "-" },
+                { key: "工厂编码", value: factoryData?.basic?.code || "-" },
                 { key: "租户ID", value: tenantId },
               ]}
               style={{ marginBottom: 0 }}
@@ -199,7 +252,7 @@ export default function FactoryDetailPage() {
           </div>
           {/* 二维码区 */}
           <div style={{ textAlign: "center", minWidth: 120 }}>
-            {factoryData?.website ? (
+            {factoryData?.address?.website ? (
               <div
                 style={{
                   display: "flex",
@@ -207,7 +260,7 @@ export default function FactoryDetailPage() {
                   alignItems: "center",
                 }}
               >
-                <QRCodeSVG value={factoryData.website} size={100} level="M" />
+                <QRCodeSVG value={factoryData.address.website} size={100} level="M" />
                 <span style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
                   扫码访问官网
                 </span>
@@ -252,32 +305,32 @@ export default function FactoryDetailPage() {
                 align="left"
                 column={1}
                 data={[
-                  { key: "企业名称", value: factoryData.name || "-" },
-                  { key: "工厂编码", value: factoryData.code || "-" },
-                  { key: "负责人", value: factoryData.contactPerson || "-" },
-                  { key: "联系电话", value: factoryData.contactPhone || "-" },
-                  { key: "行业", value: factoryData.industryName || "-" },
-                  { key: "工厂地址", value: factoryData.factoryAddress || "-" },
-                  { key: "成立日期", value: factoryData.foundDate || "-" },
-                  { key: "员工人数", value: factoryData.staffCount || "-" },
-                  { key: "主要产品", value: factoryData.mainProducts || "-" },
-                  { key: "年产能", value: factoryData.annualCapacity || "-" },
+                  { key: "企业名称", value: factoryData.basic.name || "-" },
+                  { key: "工厂编码", value: factoryData.basic.code || "-" },
+                  { key: "负责人", value: factoryData.contact.contactPerson || "-" },
+                  { key: "联系电话", value: factoryData.contact.contactPhone || "-" },
+                  { key: "行业", value: factoryData.industry.industryName || "-" },
+                  { key: "工厂地址", value: factoryData.address.factoryAddress || "-" },
+                  { key: "成立日期", value: factoryData.business.foundDate || "-" },
+                  { key: "员工人数", value: factoryData.business.staffCount || "-" },
+                  { key: "主要产品", value: factoryData.business.mainProducts || "-" },
+                  { key: "年产能", value: factoryData.business.annualCapacity || "-" },
                   {
                     key: "官网",
-                    value: factoryData.website ? (
+                    value: factoryData.address.website ? (
                       <a
-                        href={factoryData.website}
+                        href={factoryData.address.website}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ color: "#1890ff", textDecoration: "none" }}
                       >
-                        {factoryData.website}
+                        {factoryData.address.website}
                       </a>
                     ) : (
                       "-"
                     ),
                   },
-                  { key: "备注", value: factoryData.remark || "-" },
+                  { key: "备注", value: factoryData.business.remark || "-" },
                 ]}
               />
             )}
@@ -311,42 +364,42 @@ export default function FactoryDetailPage() {
                 align="left"
                 column={1}
                 data={[
-                  { key: "税号", value: factoryData.taxNo || "-" },
-                  { key: "开户行", value: factoryData.bankName || "-" },
-                  { key: "银行账号", value: factoryData.bankAccount || "-" },
+                  { key: "税号", value: factoryData.finance.taxNo || "-" },
+                  { key: "开户行", value: factoryData.finance.bankName || "-" },
+                  { key: "银行账号", value: factoryData.finance.bankAccount || "-" },
                   {
                     key: "营业执照号",
-                    value: factoryData.businessLicenseNo || "-",
+                    value: factoryData.qualification.businessLicenseNo || "-",
                   },
                   {
                     key: "营业执照有效期",
-                    value: factoryData.businessLicenseExpire || "-",
+                    value: factoryData.qualification.businessLicenseExpire || "-",
                   },
-                  { key: "法人代表", value: factoryData.legalPerson || "-" },
+                  { key: "法人代表", value: factoryData.qualification.legalPerson || "-" },
                   {
                     key: "注册资本",
-                    value: factoryData.registeredCapital || "-",
+                    value: factoryData.finance.registeredCapital || "-",
                   },
                   {
                     key: "公司注册地址",
-                    value: factoryData.registerAddress || "-",
+                    value: factoryData.address.registerAddress || "-",
                   },
-                  // { key: "纳税人类型", value: factoryData.taxpayerType || "-" },
-                  // { key: "行业分类", value: factoryData.industryType || "-" },
+                  // { key: "纳税人类型", value: factoryData.finance.taxpayerType || "-" },
+                  // { key: "行业分类", value: factoryData.industry.industryType || "-" },
                   {
                     key: "统一社会信用代码",
-                    value: factoryData.creditCode || "-",
+                    value: factoryData.finance.creditCode || "-",
                   },
                   {
                     key: "资质证书编号",
-                    value: factoryData.qualificationNo || "-",
+                    value: factoryData.qualification.qualificationNo || "-",
                   },
                   {
                     key: "资质证书有效期",
-                    value: factoryData.qualificationExpire || "-",
+                    value: factoryData.qualification.qualificationExpire || "-",
                   },
-                  { key: "联系邮箱", value: factoryData.email || "-" },
-                  { key: "传真", value: factoryData.fax || "-" },
+                  { key: "联系邮箱", value: factoryData.contact.email || "-" },
+                  { key: "传真", value: factoryData.contact.fax || "-" },
                 ]}
               />
             )}
