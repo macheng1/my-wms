@@ -25,6 +25,50 @@ export interface MenuItem {
 }
 
 /**
+ * 菜单过滤工具函数
+ * 根据用户类型和权限过滤菜单
+ */
+export const filterMenuByUser = (
+  items: MenuItem[],
+  isPlatformAdmin: boolean,
+  permissions: string[]
+): MenuItem[] => {
+  return items
+    .filter((item) => {
+      // 1. menuType 过滤
+      if (item.menuType) {
+        if (item.menuType === "all") {
+          // 所有人可见，继续检查权限
+        } else if (item.menuType === "super_admin" && !isPlatformAdmin) {
+          return false; // 仅平台管理员可见
+        } else if (item.menuType === "tenant" && isPlatformAdmin) {
+          return false; // 仅租户管理员可见
+        }
+      }
+
+      // 2. 权限码过滤（如果没有 code 则视为公共菜单）
+      if (!item.code) return true;
+      if (permissions.length === 1 && permissions[0] === "*") return true;
+      return permissions.includes(item.code);
+    })
+    .map((item) => {
+      // 3. 递归处理子菜单
+      if (item.items && item.items.length > 0) {
+        return { ...item, items: filterMenuByUser(item.items, isPlatformAdmin, permissions) };
+      }
+      return item;
+    })
+    .filter((item) => {
+      // 4. 过滤掉没有可见子菜单的父级菜单
+      if (item.items && item.items.length === 0) {
+        // 如果父级菜单本身没有 code（分组标题），则隐藏
+        return !item.code;
+      }
+      return true;
+    });
+};
+
+/**
  * WMS 系统菜单配置
  */
 export const MENU_CONFIG: MenuItem[] = [
@@ -42,7 +86,7 @@ export const MENU_CONFIG: MenuItem[] = [
     code: "wms:base",
     menuType: "tenant",
   },
-  // 新增：网站管理菜单
+  // 网站管理菜单
   {
     itemKey: "/website",
     text: "网站管理",
@@ -57,6 +101,7 @@ export const MENU_CONFIG: MenuItem[] = [
       },
     ],
   },
+  // 类目管理
   {
     itemKey: "/category",
     text: "类目管理",
@@ -69,10 +114,9 @@ export const MENU_CONFIG: MenuItem[] = [
         text: "类目列表",
         code: "wms:category:list",
       },
-      // 可扩展更多子菜单
     ],
   },
-
+  // 产品管理
   {
     itemKey: "/product",
     text: "产品管理",
@@ -97,6 +141,7 @@ export const MENU_CONFIG: MenuItem[] = [
       },
     ],
   },
+  // 仓库管理
   {
     itemKey: "/warehouse",
     text: "仓库管理",
@@ -116,6 +161,7 @@ export const MENU_CONFIG: MenuItem[] = [
       },
     ],
   },
+  // 库存管理
   {
     itemKey: "/inventory",
     text: "库存管理",
@@ -155,6 +201,7 @@ export const MENU_CONFIG: MenuItem[] = [
       },
     ],
   },
+  // 员工管理
   {
     itemKey: "/users",
     text: "员工管理",
@@ -162,6 +209,7 @@ export const MENU_CONFIG: MenuItem[] = [
     code: "wms:users",
     menuType: "all",
   },
+  // 租户管理（仅平台管理员）
   {
     itemKey: "/tenants",
     text: "租户管理",
@@ -169,6 +217,7 @@ export const MENU_CONFIG: MenuItem[] = [
     code: "wms:tenants",
     menuType: "super_admin",
   },
+  // 系统设置
   {
     itemKey: "/settings",
     text: "系统设置",
@@ -185,6 +234,12 @@ export const MENU_CONFIG: MenuItem[] = [
         itemKey: "/settings/permissions",
         text: "权限管理",
         code: "wms:settings:permissions",
+      },
+      {
+        itemKey: "/settings/dict",
+        text: "字典管理",
+        code: "wms:settings:dict",
+        menuType: "super_admin",
       },
     ],
   },
