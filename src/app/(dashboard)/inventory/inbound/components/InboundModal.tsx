@@ -18,6 +18,7 @@ import { InboundType, IInboundItem } from "@/api/inbound/types";
 import UnitApi from "@/api/unit";
 import ProductApi from "@/api/product";
 import LocationApi from "@/api/location";
+import { useUserStore } from "@/store/useUserStore";
 
 // 入库类型选项
 const INBOUND_TYPE_OPTIONS = [
@@ -49,6 +50,9 @@ export default function InboundModal({
   const [items, setItems] = useState<IInboundItem[]>([
     { sku: "", quantity: 0, unitCode: "", locationId: "" },
   ]);
+
+  // 获取当前用户信息
+  const userInfo = useUserStore((state) => state.userInfo);
 
   // 加载单位选项、产品选项和库位选项
   useEffect(() => {
@@ -105,6 +109,9 @@ export default function InboundModal({
       const values = await formApi.validate();
       setLoading(true);
 
+      // 获取当前用户 ID，用于通知
+      const notifyUserIds = userInfo?.id ? [userInfo.id] : [];
+
       if (type === "single") {
         await InboundApi.inbound({
           type: values.type,
@@ -114,6 +121,7 @@ export default function InboundModal({
           quantity: values.quantity,
           unitCode: values.unitCode,
           locationId: values.locationId,
+          notifyUserIds, // 通知当前用户
         });
         Toast.success("入库成功");
       } else {
@@ -122,6 +130,7 @@ export default function InboundModal({
           orderNo: values.orderNo,
           remark: values.remark,
           items,
+          notifyUserIds, // 通知当前用户
         });
         Toast.success("批量入库成功");
       }

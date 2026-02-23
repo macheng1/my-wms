@@ -19,6 +19,7 @@ import { OutboundType, IOutboundItem } from "@/api/outbound/types";
 import InventoryApi from "@/api/inventory";
 import { IAvailableOutboundProduct } from "@/api/inventory/types";
 import LocationApi from "@/api/location";
+import { useUserStore } from "@/store/useUserStore";
 
 const { Text } = Typography;
 
@@ -60,6 +61,9 @@ export default function OutboundModal({
   ]);
   // 单笔出库选中的产品
   const [selectedProduct, setSelectedProduct] = useState<IAvailableOutboundProduct | null>(null);
+
+  // 获取当前用户信息
+  const userInfo = useUserStore((state) => state.userInfo);
 
   // 加载可出库产品列表和库位选项
   useEffect(() => {
@@ -126,6 +130,9 @@ export default function OutboundModal({
       const values = await formApi.validate();
       setLoading(true);
 
+      // 获取当前用户 ID，用于通知
+      const notifyUserIds = userInfo?.id ? [userInfo.id] : [];
+
       // 验证是否选择了产品
       if (type === "single") {
         if (!values.sku) {
@@ -148,6 +155,7 @@ export default function OutboundModal({
           sku: values.sku,
           quantity: values.quantity,
           locationId: values.locationId,
+          notifyUserIds, // 通知当前用户
         });
         Toast.success("出库成功");
       } else {
@@ -156,6 +164,7 @@ export default function OutboundModal({
           orderNo: values.orderNo,
           remark: values.remark,
           items: items as IOutboundItem[],
+          notifyUserIds, // 通知当前用户
         });
         Toast.success("批量出库成功");
       }

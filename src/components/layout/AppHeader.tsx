@@ -11,7 +11,6 @@ import {
   Typography,
 } from "@douyinfe/semi-ui-19";
 import {
-  IconBell,
   IconHelpCircle,
   IconUser,
   IconSetting,
@@ -19,6 +18,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useUserStore } from "@/store/useUserStore";
 import { MENU_CONFIG, MenuItem } from "@/constants/menuConfig";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -117,11 +117,7 @@ export const AppHeader: React.FC = () => {
       </div>
 
       <Space spacing="medium">
-        <Button
-          theme="borderless"
-          icon={<IconBell size="large" />}
-          style={{ color: "var(--semi-color-text-2)" }}
-        />
+        <NotificationBell />
         <Button
           theme="borderless"
           icon={<IconHelpCircle size="large" />}

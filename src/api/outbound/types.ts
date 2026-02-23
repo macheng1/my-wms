@@ -31,6 +31,8 @@ export interface IOutboundRequest {
   type: OutboundType;
   remark?: string;
   items?: IOutboundItem[];
+  /** 通知的用户 ID 列表（用于发送库存变更通知） */
+  notifyUserIds?: string[];
 }
 
 /**
@@ -42,6 +44,8 @@ export interface IBatchOutboundRequest {
   type: OutboundType;
   remark?: string;
   items: IOutboundItem[];
+  /** 通知的用户 ID 列表（用于发送库存变更通知） */
+  notifyUserIds?: string[];
 }
 
 /**
