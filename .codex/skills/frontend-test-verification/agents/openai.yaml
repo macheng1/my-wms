@@ -1,0 +1,7 @@
+interface:
+  display_name: "前端测试验证"
+  short_description: "验证管理端页面和联调"
+  default_prompt: "使用 $frontend-test-verification 验证这个管理端前端改动。"
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "管理页设计"
+  short_description: "设计后台页面和交互"
+  default_prompt: "使用 $admin-page-design 设计这个管理端页面。"
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "前端 PRD 分析"
+  short_description: "把需求拆成管理端任务"
+  default_prompt: "使用 $frontend-prd-analysis 从管理端前端视角分析这个需求。"
+
+policy:
+  allow_implicit_invocation: true

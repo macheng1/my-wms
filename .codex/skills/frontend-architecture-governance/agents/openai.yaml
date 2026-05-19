@@ -1,0 +1,7 @@
+interface:
+  display_name: "前端架构治理"
+  short_description: "统一管理端前端架构"
+  default_prompt: "使用 $frontend-architecture-governance 统一或调整这个管理端前端架构。"
+
+policy:
+  allow_implicit_invocation: true

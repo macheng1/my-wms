@@ -1,0 +1,7 @@
+interface:
+  display_name: "API 对接设计"
+  short_description: "统一前端接口和类型"
+  default_prompt: "使用 $api-integration-design 设计这个前端 API 对接。"
+
+policy:
+  allow_implicit_invocation: true
