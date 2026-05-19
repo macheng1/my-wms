@@ -20,19 +20,24 @@ const UnitApi = {
    * 获取所有单位列表（不分页，用于下拉选择）
    */
   getUnitList: (params?: { category?: string; isActive?: 1 | 0 }) =>
-    request.get<IUnit[]>("units/list", { params }),
+    request.get<IUnit[]>("units", { params }),
 
   /**
    * 获取启用的单位列表
    */
-  getActiveUnits: (category?: string) =>
-    request.get<IUnit[]>("units/active", { params: { category } }),
+  getActiveUnits: async (category?: string) => {
+    const res = await request.get<IUnit[]>("units/active");
+    if (category) {
+      res.data = (res.data || []).filter((item) => item.category === category);
+    }
+    return res;
+  },
 
   /**
    * 按分类获取单位
    */
   getUnitsByCategory: (category: string) =>
-    request.get<IUnit[]>(`units/category/${category}`),
+    request.get<IUnit[]>("units", { params: { category } }),
 
   /**
    * 获取单位详情 (POST)
@@ -53,7 +58,7 @@ const UnitApi = {
    * 修改单位启用状态
    */
   updateUnitStatus: (id: string, isActive: 1 | 0) =>
-    request.post("units/status", { id, isActive }),
+    request.post("units/update", { id, isActive }),
 
   /**
    * 删除单位

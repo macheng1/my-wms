@@ -8,21 +8,32 @@ import {
   Space,
   Tag,
 } from "@douyinfe/semi-ui-19";
-import { IconEdit2, IconDelete } from "@douyinfe/semi-icons";
+import { IconTickCircle, IconClose, IconEdit2, IconDelete, IconSetting } from "@douyinfe/semi-icons";
 import ProDataTable, {
   ProColumnType,
   ProDataTableRef,
 } from "@/components/ProDataTable";
 import TenantsAPI from "@/api/tenants";
+import AdminPlatformAPI from "@/api/adminPlatform";
 import TenantEditModal from "./components/TenantEditModal";
 import TenantDetailModal from "./components/TenantDetailModal";
+import TenantMenuModal from "./components/TenantMenuModal";
 import { getIndustryName } from "@/constants/industryCodes";
 
 export default function TenantListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [menuModalVisible, setMenuModalVisible] = useState(false);
   const [currentTenant, setCurrentTenant] = useState<any>(null);
+
+  const lifecycleMap: Record<string, { text: string; color: "green" | "orange" | "red" | "grey" | "blue" }> = {
+    pending: { text: "待审核", color: "orange" },
+    active: { text: "运营中", color: "green" },
+    rejected: { text: "已驳回", color: "red" },
+    disabled: { text: "已禁用", color: "grey" },
+    expired: { text: "已到期", color: "blue" },
+  };
 
   // 表格列定义
   const columns: ProColumnType<any>[] = [
@@ -70,7 +81,24 @@ export default function TenantListPage() {
       width: 140,
     },
     {
-      title: "状态",
+      title: "生命周期",
+      dataIndex: "lifecycleStatus",
+      valueType: "select",
+      width: 100,
+      valueEnum: {
+        pending: { text: "待审核", color: "orange" },
+        active: { text: "运营中", color: "green" },
+        rejected: { text: "已驳回", color: "red" },
+        disabled: { text: "已禁用", color: "grey" },
+        expired: { text: "已到期", color: "blue" },
+      },
+      render: (_, record) => {
+        const config = lifecycleMap[record.lifecycleStatus || (record.isApproved === 1 ? "active" : "pending")];
+        return <Tag color={config.color}>{config.text}</Tag>;
+      },
+    },
+    {
+      title: "启用状态",
       dataIndex: "isActive",
       valueType: "select",
       width: 100,
@@ -116,7 +144,7 @@ export default function TenantListPage() {
       title: "操作",
       dataIndex: "option",
       hideInSearch: true,
-      width: 200,
+      width: 380,
       fixed: "right",
       render: (_, record) => (
         <Space>
@@ -130,6 +158,41 @@ export default function TenantListPage() {
             onClick={() => handleEdit(record)}
           >
             编辑
+          </Button>
+          <Button
+            icon={<IconSetting />}
+            theme="light"
+            size="small"
+            onClick={() => handleMenu(record)}
+          >
+            管理菜单
+          </Button>
+          <Button
+            theme="light"
+            size="small"
+            onClick={() => handleLifecycle(record)}
+          >
+            生命周期
+          </Button>
+          {record.isApproved !== 1 ? (
+            <Button
+              icon={<IconTickCircle />}
+              theme="light"
+              type="primary"
+              size="small"
+              onClick={() => handleApprove(record)}
+            >
+              通过
+            </Button>
+          ) : null}
+          <Button
+            icon={<IconClose />}
+            theme="light"
+            type="warning"
+            size="small"
+            onClick={() => handleReject(record)}
+          >
+            驳回
           </Button>
           <Button
             icon={<IconDelete />}
@@ -157,6 +220,40 @@ export default function TenantListPage() {
     setEditModalVisible(true);
   };
 
+  const handleMenu = (record: any) => {
+    setCurrentTenant(record);
+    setMenuModalVisible(true);
+  };
+
+  const handleLifecycle = (record: any) => {
+    Modal.confirm({
+      title: `调整租户「${record.name}」生命周期`,
+      content: (
+        <div style={{ paddingTop: 8 }}>
+          <div style={{ marginBottom: 8 }}>选择后会直接影响租户登录状态。</div>
+          <select
+            id="tenant-lifecycle-select"
+            defaultValue={record.lifecycleStatus || (record.isApproved === 1 ? "active" : "pending")}
+            style={{ width: "100%", height: 32 }}
+          >
+            <option value="pending">待审核</option>
+            <option value="active">运营中</option>
+            <option value="rejected">已驳回</option>
+            <option value="disabled">已禁用</option>
+            <option value="expired">已到期</option>
+          </select>
+        </div>
+      ),
+      onOk: async () => {
+        const select = document.getElementById("tenant-lifecycle-select") as HTMLSelectElement | null;
+        const lifecycleStatus = select?.value as any;
+        await AdminPlatformAPI.updateTenantLifecycle(record.id, { lifecycleStatus });
+        Toast.success("生命周期已更新");
+        tableRef.current?.reload();
+      },
+    });
+  };
+
   // 删除
   const handleDelete = async (record: any) => {
     Modal.confirm({
@@ -169,6 +266,38 @@ export default function TenantListPage() {
           tableRef.current?.reload();
         } catch (error: any) {
           Toast.error(error.message || "删除失败");
+        }
+      },
+    });
+  };
+
+  const handleApprove = async (record: any) => {
+    Modal.confirm({
+      title: "确认审核通过",
+      content: `审核通过后，租户【${record.name}】的管理员账号可以登录系统。`,
+      onOk: async () => {
+        try {
+          await TenantsAPI.approveTenant(record.id);
+          Toast.success("审核通过");
+          tableRef.current?.reload();
+        } catch (error: any) {
+          Toast.error(error.message || "审核失败");
+        }
+      },
+    });
+  };
+
+  const handleReject = async (record: any) => {
+    Modal.confirm({
+      title: "确认驳回并禁用",
+      content: `驳回后，租户【${record.name}】将被禁用，租户管理员无法登录。`,
+      onOk: async () => {
+        try {
+          await TenantsAPI.rejectTenant(record.id);
+          Toast.success("已驳回");
+          tableRef.current?.reload();
+        } catch (error: any) {
+          Toast.error(error.message || "驳回失败");
         }
       },
     });
@@ -210,6 +339,15 @@ export default function TenantListPage() {
           setCurrentTenant(null);
         }}
         onSuccess={handleEditSuccess}
+      />
+
+      <TenantMenuModal
+        visible={menuModalVisible}
+        tenant={currentTenant}
+        onClose={() => {
+          setMenuModalVisible(false);
+          setCurrentTenant(null);
+        }}
       />
     </div>
   );

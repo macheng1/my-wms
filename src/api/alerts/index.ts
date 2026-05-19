@@ -16,15 +16,6 @@ const AlertApi = {
       pageSize: number;
     }>("inventory/alerts", { params }),
 
-  /**
-   * 标记预警为已解决
-   */
-  resolveAlert: (id: string) => request.post("inventory/alerts/resolve", { id }),
-
-  /**
-   * 批量标记预警为已解决
-   */
-  batchResolveAlerts: (ids: string[]) => request.post("inventory/alerts/resolve-batch", { ids }),
 };
 
 export default AlertApi;

@@ -26,14 +26,25 @@ const InventoryApi = {
   /**
    * 获取库存详情
    */
-  getInventoryDetail: (sku: string) =>
-    request.get<IInventory>("inventory/detail", { params: { sku } }),
+  getInventoryDetail: (id: string) =>
+    request.get<IInventory>(`inventory/${id}`),
 
   /**
    * 按SKU获取库存
    */
-  getInventoryBySku: (sku: string) =>
-    request.get<IInventory>(`inventory/sku/${sku}`),
+  getInventoryBySku: async (sku: string) => {
+    const res = await request.get<{
+      list: IInventory[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>("inventory/page", { params: { sku, page: 1, pageSize: 1 } });
+
+    return {
+      ...res,
+      data: res.data?.list?.[0],
+    };
+  },
 
   /**
    * 库存调整

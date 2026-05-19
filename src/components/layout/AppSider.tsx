@@ -22,16 +22,16 @@ export const AppSider: React.FC<AppSiderProps> = ({
 
   // 从 Store 获取用户权限码列表
   const userInfo = useUserStore((state) => state.userInfo);
-  const permissions = userInfo?.permissions || [];
-  const isPlatformAdmin = !!userInfo?.isPlatformAdmin;
+  const permissions = useMemo(() => userInfo?.permissions || [], [userInfo?.permissions]);
+  const isPlatformUser = userInfo?.userType === "platform";
 
   /**
    * 核心逻辑：根据权限 code 和 menuType 过滤菜单树
    * 使用统一的 filterMenuByUser 函数处理
    */
   const authorizedMenu = useMemo(() => {
-    return filterMenuByUser(MENU_CONFIG, isPlatformAdmin, permissions);
-  }, [permissions, isPlatformAdmin]);
+    return filterMenuByUser(MENU_CONFIG, isPlatformUser, permissions);
+  }, [permissions, isPlatformUser]);
 
   return (
     <Nav

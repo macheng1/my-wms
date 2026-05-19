@@ -1,4 +1,4 @@
-import request, { getDownload } from "@/utils/request";
+import request from "@/utils/request";
 import { IInventoryTransaction, IQueryTransaction } from "./types";
 
 /**
@@ -20,22 +20,8 @@ const TransactionApi = {
    * 按SKU查询库存流水
    */
   getTransactionsBySku: (sku: string, params?: { page?: number; pageSize?: number }) =>
-    request.get<{
-      list: IInventoryTransaction[];
-      total: number;
-      page: number;
-      pageSize: number;
-    }>(`inventory/transactions/${sku}`, { params }),
+    request.get<IInventoryTransaction[]>(`inventory/${sku}/transactions`, { params }),
 
-  /**
-   * 导出库存流水为 Excel
-   */
-  exportTransactions: (params: IQueryTransaction) =>
-    getDownload(
-      "inventory/transactions/export",
-      { params },
-      `inventory-transactions-${Date.now()}.xlsx`,
-    ),
 };
 
 export default TransactionApi;

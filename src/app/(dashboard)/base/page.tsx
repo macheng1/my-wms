@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useUserStore } from "@/store/useUserStore";
 import TenantsAPI, { type TenantDetailData } from "@/api/tenants";
+import { transformTenantDetail } from "@/api/tenants/types";
 import {
   Layout,
   Card,
@@ -44,8 +45,8 @@ export default function FactoryDetailPage() {
     if (!tenantId) return;
     setLoading(true);
     try {
-      const data = await TenantsAPI.getTenantDetail({ id: tenantId });
-      setFactoryData(data);
+      const res = await TenantsAPI.getCurrentTenantProfile();
+      setFactoryData(transformTenantDetail(res.data));
     } finally {
       setLoading(false);
     }
@@ -190,7 +191,7 @@ export default function FactoryDetailPage() {
         return;
       }
 
-      await TenantsAPI.updateTenant(tenantId, values);
+      await TenantsAPI.updateCurrentTenantProfile(values);
 
       Toast.success("保存成功");
       closeModal();

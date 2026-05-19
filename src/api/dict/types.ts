@@ -13,11 +13,16 @@ export interface DictOption {
 export interface DictItem {
   id: string;
   tenantId: string | null;
+  scope: "platform" | "tenant";
   type: string;
   label: string;
   value: string;
   sort: number;
   isActive: number;
+  isSystem?: number;
+  allowTenantExtend?: number;
+  allowTenantOverride?: number;
+  parentId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,10 +39,16 @@ export interface GetDictOptionsParams {
  */
 export interface SaveDictParams {
   id?: string;
+  scope?: "platform" | "tenant";
   type: string;
   label: string;
   value: string;
   sort?: number;
+  isActive?: number;
+  isSystem?: number;
+  allowTenantExtend?: number;
+  allowTenantOverride?: number;
+  parentId?: string | null;
 }
 
 /**
@@ -45,11 +56,16 @@ export interface SaveDictParams {
  */
 export interface UpdateDictParams {
   id: string;
+  scope?: "platform" | "tenant";
   type?: string;
   label?: string;
   value?: string;
   sort?: number;
   isActive?: number;
+  isSystem?: number;
+  allowTenantExtend?: number;
+  allowTenantOverride?: number;
+  parentId?: string | null;
 }
 
 /**
@@ -73,6 +89,7 @@ export interface DictTypeItem {
  */
 export interface DictListParams {
   type?: string;
+  scope?: "platform" | "tenant";
   page?: number;
   pageSize?: number;
 }

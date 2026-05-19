@@ -5,6 +5,7 @@ import DictAPI from "@/api/dict";
 interface DictEditModalProps {
   visible: boolean;
   data: any;
+  scope: "platform" | "tenant";
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -19,6 +20,7 @@ const DICT_TYPE_OPTIONS = [
 export default function DictEditModal({
   visible,
   data,
+  scope,
   onClose,
   onSuccess,
 }: DictEditModalProps) {
@@ -28,7 +30,7 @@ export default function DictEditModal({
 
   useEffect(() => {
     if (visible && data) {
-      formApi?.setValues(data);
+      formApi?.setValues({ ...data, scope: data.scope || scope });
     } else if (visible) {
       formApi?.reset();
     }
@@ -40,10 +42,10 @@ export default function DictEditModal({
       setLoading(true);
 
       if (isEdit) {
-        await DictAPI.updateDict({ ...values, id: data.id });
+        await DictAPI.updateDict({ ...values, id: data.id, scope });
         Toast.success("更新成功");
       } else {
-        await DictAPI.saveDict(values);
+        await DictAPI.saveDict({ ...values, scope });
         Toast.success("保存成功");
       }
       onSuccess();
@@ -72,6 +74,16 @@ export default function DictEditModal({
         labelWidth={100}
         style={{ marginTop: 16 }}
       >
+        <Form.Select
+          field="scope"
+          label="归属范围"
+          optionList={[
+            { label: "平台标准字典", value: "platform" },
+            { label: "租户自定义字典", value: "tenant" },
+          ]}
+          style={{ marginBottom: 12, width: "100%" }}
+          disabled
+        />
         <Form.Select
           field="type"
           label="字典类型"
@@ -104,6 +116,40 @@ export default function DictEditModal({
           initValue={0}
           rules={[{ required: true, message: "请输入排序值" }]}
         />
+        {scope === "platform" && (
+          <>
+            <Form.Select
+              field="isSystem"
+              label="系统内置"
+              initValue={0}
+              optionList={[
+                { label: "否", value: 0 },
+                { label: "是", value: 1 },
+              ]}
+              style={{ marginBottom: 12, width: "100%" }}
+            />
+            <Form.Select
+              field="allowTenantExtend"
+              label="允许租户扩展"
+              initValue={0}
+              optionList={[
+                { label: "否", value: 0 },
+                { label: "是", value: 1 },
+              ]}
+              style={{ marginBottom: 12, width: "100%" }}
+            />
+            <Form.Select
+              field="allowTenantOverride"
+              label="允许租户覆盖"
+              initValue={0}
+              optionList={[
+                { label: "否", value: 0 },
+                { label: "是", value: 1 },
+              ]}
+              style={{ marginBottom: 12, width: "100%" }}
+            />
+          </>
+        )}
         {isEdit && (
           <Form.Select
             field="isActive"

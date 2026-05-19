@@ -1,5 +1,6 @@
 import request from "@/utils/request";
 import { CreateRole, QueryRolePage } from "./types";
+import { TenantMenuGrant } from "@/api/tenants/types";
 
 /**
  * 角色 API
@@ -25,6 +26,9 @@ const RoleAPI = {
   /** 更新角色 */
   updateRole: (id: string | number, data: CreateRole) =>
     request.post(`/roles/${id}/update`, data),
+
+  /** 当前租户可分配菜单 */
+  getTenantMenus: () => request.get<TenantMenuGrant>("/admin/tenant/menus"),
 };
 
 export default RoleAPI;

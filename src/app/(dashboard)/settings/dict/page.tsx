@@ -19,6 +19,7 @@ import ProDataTable, {
 } from "@/components/ProDataTable";
 import DictAPI from "@/api/dict";
 import DictEditModal from "./components/DictEditModal";
+import { useUserStore } from "@/store/useUserStore";
 
 const { Text } = Typography;
 
@@ -30,6 +31,8 @@ const DICT_TYPES = [
 ];
 
 export default function DictManagePage() {
+  const userInfo = useUserStore((state) => state.userInfo);
+  const scope = userInfo?.userType === "platform" ? "platform" : "tenant";
   const tableRef = useRef<ProDataTableRef>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [currentDict, setCurrentDict] = useState<any>(null);
@@ -52,11 +55,38 @@ export default function DictManagePage() {
       width: 200,
     },
     {
+      title: "归属",
+      dataIndex: "scope",
+      valueType: "select",
+      hideInSearch: true,
+      width: 100,
+      render: (_, record) => (
+        <Tag color={record.scope === "platform" ? "blue" : "green"}>
+          {record.scope === "platform" ? "平台" : "租户"}
+        </Tag>
+      ),
+    },
+    {
       title: "排序",
       dataIndex: "sort",
       valueType: "text",
       hideInSearch: true,
       width: 100,
+    },
+    {
+      title: "租户扩展",
+      dataIndex: "allowTenantExtend",
+      valueType: "select",
+      hideInSearch: true,
+      width: 100,
+      render: (_, record) =>
+        record.scope === "platform" ? (
+          <Tag color={record.allowTenantExtend === 1 ? "green" : "grey"}>
+            {record.allowTenantExtend === 1 ? "允许" : "不允许"}
+          </Tag>
+        ) : (
+          "-"
+        ),
     },
     {
       title: "状态",
@@ -113,7 +143,7 @@ export default function DictManagePage() {
 
   // 新增
   const handleAdd = () => {
-    setCurrentDict({ type: selectedType });
+    setCurrentDict({ type: selectedType, scope, isActive: 1 });
     setEditModalVisible(true);
   };
 
@@ -206,8 +236,8 @@ export default function DictManagePage() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <ProDataTable
           ref={tableRef}
-          title={`${dictTypes.find((t) => t.type === selectedType)?.name || "字典数据"}`}
-          api={(params) => DictAPI.getDictList({ ...params, type: selectedType })}
+          title={`${scope === "platform" ? "平台" : "租户"}${dictTypes.find((t) => t.type === selectedType)?.name || "字典数据"}`}
+          api={(params) => DictAPI.getDictList({ ...params, type: selectedType, scope })}
           columns={columns}
           search={true}
           rowKey="id"
@@ -220,7 +250,7 @@ export default function DictManagePage() {
               新增字典项
             </Button>
           )}
-          params={{ type: selectedType }}
+          params={{ type: selectedType, scope }}
         />
       </div>
 
@@ -228,6 +258,7 @@ export default function DictManagePage() {
       <DictEditModal
         visible={editModalVisible}
         data={currentDict}
+        scope={scope}
         onClose={() => {
           setEditModalVisible(false);
           setCurrentDict(null);

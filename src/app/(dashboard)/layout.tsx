@@ -22,21 +22,13 @@ export default function DashboardLayout({
   const router = useRouter();
 
   // 1. 直接从 Store 获取信息
-  const { userInfo, logout } = useUserStore();
+  const { userInfo } = useUserStore();
 
   // 💡 派生状态：不再使用 useState + useEffect
   // 假设初始状态 userInfo 为 null，获取到数据后 userInfo.id 存在
   const isUserLoaded = !!userInfo?.id;
   const permissions = useMemo(() => userInfo?.permissions || [], [userInfo]);
 
-  function filterMenuByRole(isPlatformAdmin: boolean) {
-    return MENU_CONFIG.filter((item) => {
-      if (!item.menuType || item.menuType === "all") return true;
-      if (isPlatformAdmin && item.menuType === "super_admin") return true;
-      if (!isPlatformAdmin && item.menuType === "tenant") return true;
-      return false;
-    });
-  }
   /**
    * 💡 2. 递归查找当前路径对应的权限码
    */

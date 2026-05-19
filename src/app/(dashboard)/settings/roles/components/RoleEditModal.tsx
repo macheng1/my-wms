@@ -2,9 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal, Form, Tree, Button } from "@douyinfe/semi-ui-19";
-import { MENU_CONFIG } from "@/constants/menuConfig";
 import RoleAPI from "@/api/role";
-import { useUserStore } from "@/store/useUserStore";
+import { TenantMenuPermission } from "@/api/tenants/types";
 
 const { Section } = Form;
 
@@ -12,10 +11,7 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
   const [formApi, setFormApi] = useState<any>(null);
   // 💡 增加一个本地状态同步 Tree 的勾选，确保视图实时更新
   const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
-
-  // 💡 从 useUserStore 中获取当前用户的超级管理员状态
-  const userInfo = useUserStore((state) => state.userInfo);
-  const isPlatformAdmin = userInfo?.isPlatformAdmin || false;
+  const [menus, setMenus] = useState<TenantMenuPermission[]>([]);
 
   // 1. 转换菜单配置为 Tree 格式
   interface TreeNode {
@@ -24,23 +20,20 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
     children?: TreeNode[];
   }
   const treeData = useMemo(() => {
-    const mapMenu = (items: any[]): TreeNode[] =>
-      items
-        .filter((item) => {
-          // 非超级管理员时，过滤掉 super_admin 菜单
-          if (!isPlatformAdmin && item.menuType === "super_admin") return false;
-          return true;
-        })
-        .map(
-          (item): TreeNode => ({
-            label: item.text,
-            key: item.code,
-            children: item.items ? mapMenu(item.items) : undefined,
-          })
-        )
-        .filter((item) => item.key);
-    return mapMenu(MENU_CONFIG);
-  }, [isPlatformAdmin]);
+    return menus.map(
+      (item): TreeNode => ({
+        label: `${item.name}（${item.code}）`,
+        key: item.code,
+      })
+    );
+  }, [menus]);
+
+  useEffect(() => {
+    if (!visible) return;
+    RoleAPI.getTenantMenus().then((res: any) => {
+      setMenus(res.data?.menus || []);
+    });
+  }, [visible]);
 
   // 2. 弹窗打开时，初始化表单和 Tree 的勾选状态（支持远程拉取详情）
   // 权限勾选初始化，去掉 formApi 依赖，保证 checkedKeys 正确赋值

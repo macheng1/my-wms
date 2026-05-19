@@ -13,6 +13,8 @@ export interface LoginParams {
  */
 export interface LoginData {
   access_token: string;
+  userType: "platform" | "tenant";
+  tenantId?: string | number | null;
 }
 
 /**

@@ -31,6 +31,7 @@ const DictAPI = {
     return request.get<Result<PageResult<DictListData["data"]>>>("/dicts/list", {
       params: {
         type: params.type,
+        scope: params.scope,
         page: params.page || 1,
         pageSize: params.pageSize || 20,
       },

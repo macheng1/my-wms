@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Typography, Row, Col, Card, Tag, Tabs } from "@douyinfe/semi-ui-19";
 import {
   IconGift,
@@ -9,8 +9,24 @@ import {
   IconChevronRight,
 } from "@douyinfe/semi-icons";
 import { VChart } from "@visactor/react-vchart";
+import AdminPlatformAPI from "@/api/adminPlatform";
+import { useUserStore } from "@/store/useUserStore";
 
 export default function DashboardPage() {
+  const userInfo = useUserStore((state) => state.userInfo);
+  const isPlatform = userInfo?.userType === "platform";
+  const [summary, setSummary] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const api = isPlatform
+      ? AdminPlatformAPI.getPlatformDashboard()
+      : AdminPlatformAPI.getTenantDashboard();
+
+    api.then((res: any) => setSummary(res.data || {})).catch(() => {
+      setSummary({});
+    });
+  }, [isPlatform]);
+
   // 多组图表数据
   const chartDataMap = {
     today: [
@@ -81,7 +97,7 @@ export default function DashboardPage() {
   return (
     <div style={{ padding: "0 4px" }}>
       <Typography.Title heading={2} style={{ marginBottom: 16 }}>
-        仪表盘
+        {isPlatform ? "平台数据看板" : "租户工作台"}
       </Typography.Title>
 
       <Row gutter={16}>
@@ -109,7 +125,9 @@ export default function DashboardPage() {
               }}
             >
               <div>
-                <Typography.Title heading={1}>12,480</Typography.Title>
+                <Typography.Title heading={1}>
+                  {isPlatform ? summary.tenantTotal || 0 : summary.users || 0}
+                </Typography.Title>
                 <div style={{ marginTop: 8 }}>
                   <Typography.Text type="success" size="small">
                     <IconArrowUp /> +2.4%
@@ -119,7 +137,7 @@ export default function DashboardPage() {
                     size="small"
                     style={{ marginLeft: 8 }}
                   >
-                    较昨日
+                    {isPlatform ? "租户总数" : "员工总数"}
                   </Typography.Text>
                 </div>
               </div>
@@ -130,7 +148,11 @@ export default function DashboardPage() {
         {/* 2. 订单趋势 */}
         <Col span={6}>
           <Card
-            title={<Typography.Text type="secondary">订单趋势</Typography.Text>}
+            title={
+              <Typography.Text type="secondary">
+                {isPlatform ? "待审核租户" : "角色数量"}
+              </Typography.Text>
+            }
             headerExtraContent={
               <Tag color="blue" shape="circle">
                 进行中
@@ -150,7 +172,9 @@ export default function DashboardPage() {
                 alignItems: "center",
               }}
             >
-              <Typography.Title heading={1}>156</Typography.Title>
+              <Typography.Title heading={1}>
+                {isPlatform ? summary.pendingTenants || 0 : summary.roles || 0}
+              </Typography.Title>
               <div style={{ width: "32px", height: "32px" }}>
                 <IconGift style={{ color: "#0064FF", fontSize: 32 }} />
               </div>
@@ -160,7 +184,7 @@ export default function DashboardPage() {
               size="small"
               style={{ marginTop: 8, display: "block" }}
             >
-              今日已完成: 142
+              {isPlatform ? "需要平台处理" : "当前租户角色"}
             </Typography.Text>
           </Card>
         </Col>
@@ -169,7 +193,9 @@ export default function DashboardPage() {
         <Col span={6}>
           <Card
             title={
-              <Typography.Text type="secondary">库存总价值</Typography.Text>
+              <Typography.Text type="secondary">
+                {isPlatform ? "已启用租户" : "已授权菜单"}
+              </Typography.Text>
             }
             style={{
               cursor: "pointer",
@@ -182,14 +208,16 @@ export default function DashboardPage() {
               <Typography.Text style={{ fontSize: 16, marginRight: 4 }}>
                 ¥
               </Typography.Text>
-              <Typography.Title heading={1}>852,000</Typography.Title>
+              <Typography.Title heading={1}>
+                {isPlatform ? summary.activeTenants || 0 : summary.menus || 0}
+              </Typography.Title>
             </div>
             <Typography.Text
               type="tertiary"
               size="small"
               style={{ marginTop: 8, display: "block" }}
             >
-              实时估值资产
+              {isPlatform ? "可登录租户数量" : "平台开放给本租户"}
             </Typography.Text>
           </Card>
         </Col>
@@ -203,7 +231,11 @@ export default function DashboardPage() {
               border:
                 selectedCard === "warning" ? "2px solid #0064FF" : undefined,
             }}
-            title={<Typography.Text type="secondary">库存预警</Typography.Text>}
+            title={
+              <Typography.Text type="secondary">
+                {isPlatform ? "平台用户" : "操作日志"}
+              </Typography.Text>
+            }
             onClick={() => setSelectedCard("warning")}
           >
             <div
@@ -217,7 +249,7 @@ export default function DashboardPage() {
                 heading={1}
                 style={{ color: "var(--semi-color-danger)" }}
               >
-                12
+                {isPlatform ? summary.platformUsers || 0 : summary.operationLogs || 0}
               </Typography.Title>
               <IconAlertTriangle
                 style={{ color: "var(--semi-color-danger)", fontSize: 32 }}
@@ -228,7 +260,7 @@ export default function DashboardPage() {
               size="small"
               style={{ marginTop: 8, display: "block", fontWeight: "bold" }}
             >
-              需要紧急补货
+              {isPlatform ? `平台角色 ${summary.platformRoles || 0} 个` : "租户侧操作记录"}
             </Typography.Text>
           </Card>
         </Col>

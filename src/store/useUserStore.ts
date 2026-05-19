@@ -8,7 +8,7 @@ interface UserInfo {
   username: string;
   avatar?: string;
   tenantId?: string;
-  isPlatformAdmin?: number; // 0 或 1
+  userType?: "platform" | "tenant";
   roleNames?: string[];
   role: "admin" | "staff";
 }

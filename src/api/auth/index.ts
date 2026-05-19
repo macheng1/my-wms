@@ -8,7 +8,7 @@ const AuthAPI = {
   /** 登录 */
   login: async (data: LoginParams) => {
     // 直接返回后端数据部分，避免外部还要 .data
-    const res = await request.post<LoginData>("/auth/login", data);
+    const res = await request.post<LoginData>("/user/login", data);
     return res.data;
   },
 
@@ -19,7 +19,7 @@ const AuthAPI = {
 
   /** 退出登录 */
   logout: () => {
-    return request.post("/auth/logout");
+    return Promise.resolve();
   },
 };
 

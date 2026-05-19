@@ -30,42 +30,40 @@ export interface MenuItem {
  */
 export const filterMenuByUser = (
   items: MenuItem[],
-  isPlatformAdmin: boolean,
+  isPlatformUser: boolean,
   permissions: string[]
 ): MenuItem[] => {
   return items
-    .filter((item) => {
-      // 1. menuType 过滤
+    .map((item) => {
       if (item.menuType) {
         if (item.menuType === "all") {
           // 所有人可见，继续检查权限
-        } else if (item.menuType === "super_admin" && !isPlatformAdmin) {
-          return false; // 仅平台管理员可见
-        } else if (item.menuType === "tenant" && isPlatformAdmin) {
-          return false; // 仅租户管理员可见
+        } else if (item.menuType === "super_admin" && !isPlatformUser) {
+          return null;
+        } else if (item.menuType === "tenant" && isPlatformUser) {
+          return null;
         }
       }
 
-      // 2. 权限码过滤（如果没有 code 则视为公共菜单）
-      if (!item.code) return true;
-      if (permissions.length === 1 && permissions[0] === "*") return true;
-      return permissions.includes(item.code);
-    })
-    .map((item) => {
-      // 3. 递归处理子菜单
-      if (item.items && item.items.length > 0) {
-        return { ...item, items: filterMenuByUser(item.items, isPlatformAdmin, permissions) };
+      const children = item.items
+        ? filterMenuByUser(item.items, isPlatformUser, permissions)
+        : undefined;
+      const hasPermission =
+        !item.code ||
+        permissions.length === 1 && permissions[0] === "*" ||
+        permissions.includes(item.code);
+
+      if (!hasPermission && (!children || children.length === 0)) {
+        return null;
       }
+
+      if (children) {
+        return { ...item, items: children };
+      }
+
       return item;
     })
-    .filter((item) => {
-      // 4. 过滤掉没有可见子菜单的父级菜单
-      if (item.items && item.items.length === 0) {
-        // 如果父级菜单本身没有 code（分组标题），则隐藏
-        return !item.code;
-      }
-      return true;
-    });
+    .filter((item): item is MenuItem => Boolean(item));
 };
 
 /**
@@ -76,14 +74,13 @@ export const MENU_CONFIG: MenuItem[] = [
     itemKey: "/",
     text: "仪表盘",
     icon: <IconHome />,
-    code: "wms:dashboard",
     menuType: "all",
   },
   {
     itemKey: "/base",
     text: "基本信息",
     icon: <IconAppCenter />,
-    code: "wms:base",
+    code: "tenant:base",
     menuType: "tenant",
   },
   // 网站管理菜单
@@ -91,13 +88,13 @@ export const MENU_CONFIG: MenuItem[] = [
     itemKey: "/website",
     text: "网站管理",
     icon: <IconGlobeStroke />,
-    code: "wms:website",
-    menuType: "all",
+    code: "tenant:portal",
+    menuType: "tenant",
     items: [
       {
         itemKey: "/website/inquiry",
         text: "询价管理",
-        code: "wms:website:inquiry",
+        code: "tenant:portal:inquiry:list",
       },
     ],
   },
@@ -106,13 +103,13 @@ export const MENU_CONFIG: MenuItem[] = [
     itemKey: "/category",
     text: "类目管理",
     icon: <IconList />,
-    code: "wms:category",
-    menuType: "all",
+    code: "tenant:category:list",
+    menuType: "tenant",
     items: [
       {
         itemKey: "/category/list",
         text: "类目列表",
-        code: "wms:category:list",
+        code: "tenant:category:list",
       },
     ],
   },
@@ -121,23 +118,23 @@ export const MENU_CONFIG: MenuItem[] = [
     itemKey: "/product",
     text: "产品管理",
     icon: <IconKanban />,
-    code: "wms:product",
-    menuType: "all",
+    code: "tenant:product",
+    menuType: "tenant",
     items: [
       {
         itemKey: "/product/attr",
         text: "属性管理",
-        code: "wms:product:attr",
+        code: "tenant:attribute:list",
       },
       {
         itemKey: "/product/spec",
         text: "规格管理",
-        code: "wms:product:spec",
+        code: "tenant:spec:list",
       },
       {
         itemKey: "/product/list",
         text: "产品列表",
-        code: "wms:product:list",
+        code: "tenant:product:list",
       },
     ],
   },
@@ -146,18 +143,13 @@ export const MENU_CONFIG: MenuItem[] = [
     itemKey: "/warehouse",
     text: "仓库管理",
     icon: <IconHome />,
-    code: "wms:warehouse",
-    menuType: "all",
+    code: "tenant:warehouse",
+    menuType: "tenant",
     items: [
       {
         itemKey: "/warehouse/list",
         text: "仓库列表",
-        code: "wms:warehouse:list",
-      },
-      {
-        itemKey: "/warehouse/area",
-        text: "库区管理",
-        code: "wms:warehouse:area",
+        code: "tenant:location:list",
       },
     ],
   },
@@ -166,38 +158,38 @@ export const MENU_CONFIG: MenuItem[] = [
     itemKey: "/inventory",
     text: "库存管理",
     icon: <IconKanban />,
-    code: "wms:inventory",
-    menuType: "all",
+    code: "tenant:inventory",
+    menuType: "tenant",
     items: [
       {
         itemKey: "/inventory/unit",
         text: "单位管理",
-        code: "wms:inventory:unit",
+        code: "tenant:unit:list",
       },
       {
         itemKey: "/inventory/list",
         text: "库存查询",
-        code: "wms:inventory:list",
+        code: "tenant:inventory:list",
       },
       {
         itemKey: "/inventory/inbound",
         text: "入库管理",
-        code: "wms:inventory:inbound",
+        code: "tenant:inventory:inbound",
       },
       {
         itemKey: "/inventory/outbound",
         text: "出库管理",
-        code: "wms:inventory:outbound",
+        code: "tenant:inventory:outbound",
       },
       {
         itemKey: "/inventory/transactions",
         text: "库存流水",
-        code: "wms:inventory:transactions",
+        code: "tenant:inventory:transaction:list",
       },
       {
         itemKey: "/inventory/alerts",
         text: "库存预警",
-        code: "wms:inventory:alerts",
+        code: "tenant:inventory:alert:list",
       },
     ],
   },
@@ -206,15 +198,15 @@ export const MENU_CONFIG: MenuItem[] = [
     itemKey: "/users",
     text: "员工管理",
     icon: <IconUserGroup />,
-    code: "wms:users",
-    menuType: "all",
+    code: "tenant:user:list",
+    menuType: "tenant",
   },
   // 租户管理（仅平台管理员）
   {
     itemKey: "/tenants",
     text: "租户管理",
     icon: <IconUserGroup />,
-    code: "wms:tenants",
+    code: "platform:tenant:list",
     menuType: "super_admin",
   },
   // 系统设置
@@ -222,24 +214,61 @@ export const MENU_CONFIG: MenuItem[] = [
     itemKey: "/settings",
     text: "系统设置",
     icon: <IconSetting />,
-    code: "wms:settings",
     menuType: "all",
     items: [
       {
-        itemKey: "/settings/roles",
-        text: "角色管理",
-        code: "wms:settings:roles",
+        itemKey: "/settings/platform-users",
+        text: "平台用户",
+        code: "platform:user",
+        menuType: "super_admin",
       },
       {
-        itemKey: "/settings/permissions",
-        text: "权限管理",
-        code: "wms:settings:permissions",
+        itemKey: "/settings/platform-roles",
+        text: "平台角色",
+        code: "platform:role",
+        menuType: "super_admin",
+      },
+      {
+        itemKey: "/settings/platform-menus",
+        text: "平台菜单",
+        code: "platform:menu",
+        menuType: "super_admin",
+      },
+      {
+        itemKey: "/settings/platform-permissions",
+        text: "平台权限",
+        code: "platform:permission",
+        menuType: "super_admin",
       },
       {
         itemKey: "/settings/dict",
-        text: "字典管理",
-        code: "wms:settings:dict",
+        text: "平台字典",
+        code: "platform:config",
         menuType: "super_admin",
+      },
+      {
+        itemKey: "/settings/platform-audit-logs",
+        text: "平台审计",
+        code: "platform:audit-log",
+        menuType: "super_admin",
+      },
+      {
+        itemKey: "/settings/roles",
+        text: "租户角色",
+        code: "tenant:role:list",
+        menuType: "tenant",
+      },
+      {
+        itemKey: "/settings/dict",
+        text: "租户字典",
+        code: "tenant:dict",
+        menuType: "tenant",
+      },
+      {
+        itemKey: "/settings/operation-logs",
+        text: "操作日志",
+        code: "tenant:audit-log",
+        menuType: "tenant",
       },
     ],
   },

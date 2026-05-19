@@ -70,8 +70,32 @@ export interface TenantItem {
   address?: string;
   website?: string;
   isActive: number;
+  isApproved?: number;
+  lifecycleStatus?: "pending" | "active" | "rejected" | "disabled" | "expired";
+  expiresAt?: string | null;
+  approvedAt?: string | null;
+  auditRemark?: string | null;
+  disabledReason?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TenantMenuPermission {
+  id: string | number;
+  code: string;
+  name: string;
+  description?: string | null;
+  type?: string;
+  scope?: "tenant";
+  routePath?: string | null;
+  parentId?: number;
+}
+
+export interface TenantMenuGrant {
+  tenantId: string;
+  tenantName: string;
+  menus: TenantMenuPermission[];
+  selectedCodes: string[];
 }
 
 // ==================== 租户详情分组类型 ====================
@@ -84,6 +108,12 @@ export interface TenantBasicInfo {
   code: string;
   name: string;
   isActive: number;
+  isApproved?: number;
+  lifecycleStatus?: "pending" | "active" | "rejected" | "disabled" | "expired";
+  expiresAt?: string | null;
+  approvedAt?: string | null;
+  auditRemark?: string | null;
+  disabledReason?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -187,6 +217,12 @@ export interface TenantDetailRaw {
   mainProducts?: string;
   annualCapacity?: string;
   isActive: number;
+  isApproved?: number;
+  lifecycleStatus?: "pending" | "active" | "rejected" | "disabled" | "expired";
+  expiresAt?: string | null;
+  approvedAt?: string | null;
+  auditRemark?: string | null;
+  disabledReason?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -228,6 +264,12 @@ export function transformTenantDetail(raw: TenantDetailRaw): TenantDetailData {
       code: raw.code,
       name: raw.name,
       isActive: raw.isActive,
+      isApproved: raw.isApproved,
+      lifecycleStatus: raw.lifecycleStatus,
+      expiresAt: raw.expiresAt,
+      approvedAt: raw.approvedAt,
+      auditRemark: raw.auditRemark,
+      disabledReason: raw.disabledReason,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     },
@@ -278,6 +320,19 @@ export function transformTenantDetail(raw: TenantDetailRaw): TenantDetailData {
  */
 export function flattenTenantDetail(data: Partial<TenantDetailData>): Partial<TenantDetailRaw> {
   const result: Partial<TenantDetailRaw> = {};
+  const rawData = data as Partial<TenantDetailRaw>;
+
+  if (
+    !data.basic &&
+    !data.industry &&
+    !data.contact &&
+    !data.address &&
+    !data.finance &&
+    !data.qualification &&
+    !data.business
+  ) {
+    return rawData;
+  }
 
   if (data.basic) {
     Object.assign(result, data.basic);

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Tag, Typography, Toast, Modal } from "@douyinfe/semi-ui-19";
+import { Tag, Typography } from "@douyinfe/semi-ui-19";
 import dayjs from "dayjs";
 import ProDataTable, {
   ProColumnType,
@@ -121,23 +121,6 @@ export default function AlertsPage() {
         text ? dayjs(text).format("YYYY-MM-DD HH:mm:ss") : "-",
     },
   ];
-
-  // 标记解决
-  const handleResolve = (record: any) => {
-    Modal.confirm({
-      title: "确定标记为已解决吗？",
-      content: `确认解决「${record.productName || record.sku}」的库存预警？`,
-      onOk: async () => {
-        try {
-          await AlertApi.resolveAlert(record.id);
-          Toast.success("标记成功");
-          tableRef.current?.reload();
-        } catch (error) {
-          Toast.error("操作失败");
-        }
-      },
-    });
-  };
 
   return (
     <div style={{ padding: "4px" }}>

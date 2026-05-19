@@ -144,10 +144,7 @@ export const AppHeader: React.FC = () => {
                   <Text type="secondary" size="small">
                     {/* 优化角色显示逻辑 */}
                     {(() => {
-                      if (
-                        userInfo?.isPlatformAdmin ||
-                        userInfo?.permissions?.includes("*")
-                      ) {
+                      if (userInfo?.userType === "platform") {
                         return "超级管理员";
                       }
                       if (

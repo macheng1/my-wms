@@ -3,7 +3,7 @@ export interface UserInfoResponse {
   username: string;
   nickname: string;
   avatar: string;
-  isPlatformAdmin: number; // 0 或 1
+  userType: "platform" | "tenant";
   tenantId: string | number;
   tenantName: string;
   permissions: string[];
