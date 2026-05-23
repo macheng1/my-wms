@@ -41,7 +41,7 @@ export default function PlatformRolesPage() {
     try {
       const [roleRes, permissionRes, deptRes] = await Promise.all([
         AdminPlatformAPI.getRoles(),
-        AdminPlatformAPI.getPermissions(),
+        AdminPlatformAPI.getMenuTree(),
         DeptAPI.getOptions(),
       ]);
       setRoles(roleRes.data || []);
@@ -79,14 +79,15 @@ export default function PlatformRolesPage() {
     }
   }, [visible, currentRole, formApi]);
 
-  const permissionTree = useMemo(
-    () =>
-      permissions.map((item) => ({
+  const permissionTree = useMemo(() => {
+    const walk = (list: PlatformPermission[] = []): any[] =>
+      list.map((item) => ({
         label: `${item.name}（${item.code}）`,
         key: item.code,
-      })),
-    [permissions],
-  );
+        children: item.children?.length ? walk(item.children as PlatformPermission[]) : undefined,
+      }));
+    return walk(permissions);
+  }, [permissions]);
 
   const deptTree = useMemo(() => {
     const walk = (list: any[] = []): any[] =>
@@ -261,7 +262,7 @@ export default function PlatformRolesPage() {
               </Form.Slot>
             )}
 
-            <Form.Slot label="平台权限">
+            <Form.Slot label="功能权限">
               <div
                 style={{
                   border: "1px solid var(--semi-color-border)",

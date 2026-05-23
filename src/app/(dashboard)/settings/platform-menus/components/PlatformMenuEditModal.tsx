@@ -54,7 +54,7 @@ export default function PlatformMenuEditModal({
 
   return (
     <Modal
-      title={currentMenu ? "编辑平台权限项" : "新增平台权限项"}
+      title={currentMenu ? "编辑平台菜单项" : "新增平台菜单项"}
       visible={visible}
       onCancel={onCancel}
       okText="保存"

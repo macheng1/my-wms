@@ -240,12 +240,6 @@ export const MENU_CONFIG: MenuItem[] = [
         menuType: "super_admin",
       },
       {
-        itemKey: "/settings/platform-permissions",
-        text: "平台权限",
-        code: "platform:permission",
-        menuType: "super_admin",
-      },
-      {
         itemKey: "/settings/dict",
         text: "平台字典",
         code: "platform:config",
