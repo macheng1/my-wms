@@ -47,6 +47,8 @@ const DEFAULT_QUERY: PlatformMenuQuery = {
 type PlatformMenuRow = PlatformMenu & { depth?: number };
 
 type PlatformMenuLayoutProps = {
+  title?: string;
+  readonly?: boolean;
   loading: boolean;
   topMenus: PlatformMenu[];
   selectedTop: PlatformMenu | null;
@@ -54,13 +56,15 @@ type PlatformMenuLayoutProps = {
   dataSource: PlatformMenuRow[];
   onSelectTop: (id: number | null) => void;
   onRefresh: () => void;
-  onCreateTop: () => void;
-  onCreateChild: (parentId: number) => void;
-  onEdit: (record: PlatformMenu) => void;
-  onDelete: (record: PlatformMenu) => void;
+  onCreateTop?: () => void;
+  onCreateChild?: (parentId: number) => void;
+  onEdit?: (record: PlatformMenu) => void;
+  onDelete?: (record: PlatformMenu) => void;
 };
 
 export default function PlatformMenuLayout({
+  title = "平台菜单",
+  readonly = false,
   loading,
   topMenus,
   selectedTop,
@@ -200,45 +204,49 @@ export default function PlatformMenuLayout({
         hideInSearch: true,
         render: (text) => text || "-",
       },
-      {
-        title: "操作",
-        dataIndex: "option",
-        hideInSearch: true,
-        render: (_, record) => (
-          <Space>
-            <Button
-              icon={<IconPlus />}
-              theme="light"
-              disabled={record.type === "BUTTON"}
-              onClick={() => onCreateChild(Number(record.id))}
-            >
-              下级
-            </Button>
-            <Button
-              icon={<IconEdit2 />}
-              theme="light"
-              onClick={() => onEdit(record)}
-            >
-              编辑
-            </Button>
-            <Button
-              icon={<IconDelete />}
-              theme="light"
-              type="danger"
-              onClick={() => onDelete(record)}
-            >
-              删除
-            </Button>
-          </Space>
-        ),
-      },
+      ...(!readonly
+        ? [
+            {
+              title: "操作",
+              dataIndex: "option",
+              hideInSearch: true,
+              render: (_: unknown, record: PlatformMenuRow) => (
+                <Space>
+                  <Button
+                    icon={<IconPlus />}
+                    theme="light"
+                    disabled={record.type === "BUTTON"}
+                    onClick={() => onCreateChild?.(Number(record.id))}
+                  >
+                    下级
+                  </Button>
+                  <Button
+                    icon={<IconEdit2 />}
+                    theme="light"
+                    onClick={() => onEdit?.(record)}
+                  >
+                    编辑
+                  </Button>
+                  <Button
+                    icon={<IconDelete />}
+                    theme="light"
+                    type="danger"
+                    onClick={() => onDelete?.(record)}
+                  >
+                    删除
+                  </Button>
+                </Space>
+              ),
+            } as ProColumnType<PlatformMenuRow>,
+          ]
+        : []),
     ],
-    [onCreateChild, onDelete, onEdit],
+    [onCreateChild, onDelete, onEdit, readonly],
   );
 
   return (
     <SplitManagementLayout
-      title="平台菜单"
+      title={title}
       sidebar={
         <MenuSidebar
           menus={topMenus}
@@ -246,6 +254,7 @@ export default function PlatformMenuLayout({
           onSelect={onSelectTop}
           onRefresh={onRefresh}
           onCreateTop={onCreateTop}
+          allowCreate={!readonly}
         />
       }
     >
@@ -261,17 +270,19 @@ export default function PlatformMenuLayout({
               <Text strong>{selectedTop?.name || "请选择顶级菜单"}</Text>
               {!selectedTop && (
                 <div style={{ color: "var(--semi-color-text-2)", marginTop: 4 }}>
-                  左侧选择一个顶级菜单后，右侧维护它下面的目录、菜单和按钮。
+                  左侧选择一个顶级菜单后，右侧查看它下面的目录、菜单和按钮。
                 </div>
               )}
             </div>
-            <Button
-              icon={<IconPlus />}
-              disabled={!selectedTopId}
-              onClick={() => selectedTopId && onCreateChild(selectedTopId)}
-            >
-              新增下级
-            </Button>
+            {!readonly ? (
+              <Button
+                icon={<IconPlus />}
+                disabled={!selectedTopId}
+                onClick={() => selectedTopId && onCreateChild?.(selectedTopId)}
+              >
+                新增下级
+              </Button>
+            ) : null}
           </div>
 
           <ProDataTable

@@ -28,6 +28,7 @@ export const AppHeader: React.FC = () => {
   const router = useRouter();
 
   const { userInfo, logout } = useUserStore();
+  const isPlatformUser = userInfo?.userType === "platform";
   const menuCodes = useMemo(
     () => collectUserMenuCodes(userInfo?.menus || []),
     [userInfo?.menus]
@@ -41,6 +42,8 @@ export const AppHeader: React.FC = () => {
     targetKey: string
   ): MenuItem | null => {
     for (const item of items) {
+      if (item.menuType === "super_admin" && !isPlatformUser) continue;
+      if (item.menuType === "tenant" && isPlatformUser) continue;
       if (item.itemKey === targetKey) return item;
       if (item.items) {
         const result = findItemByPath(item.items, targetKey);

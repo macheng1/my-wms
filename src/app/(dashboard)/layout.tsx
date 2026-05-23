@@ -27,6 +27,7 @@ export default function DashboardLayout({
   // 💡 派生状态：不再使用 useState + useEffect
   // 假设初始状态 userInfo 为 null，获取到数据后 userInfo.id 存在
   const isUserLoaded = !!userInfo?.id;
+  const isPlatformUser = userInfo?.userType === "platform";
   const menuCodes = useMemo(
     () => collectUserMenuCodes(userInfo?.menus || []),
     [userInfo?.menus]
@@ -38,6 +39,8 @@ export default function DashboardLayout({
   const currentPageCode = useMemo(() => {
     const findCode = (items: MenuItem[]): string | undefined => {
       for (const item of items) {
+        if (item.menuType === "super_admin" && !isPlatformUser) continue;
+        if (item.menuType === "tenant" && isPlatformUser) continue;
         if (item.itemKey === pathname) return item.code;
         if (item.items) {
           const code = findCode(item.items);
@@ -47,7 +50,7 @@ export default function DashboardLayout({
       return undefined;
     };
     return findCode(MENU_CONFIG);
-  }, [pathname]);
+  }, [isPlatformUser, pathname]);
 
   /**
    * 💡 3. 核心权限校验逻辑

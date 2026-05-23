@@ -35,6 +35,14 @@ export default function TenantDetailModal({
       {tenantData?.isActive === 1 ? "启用" : "禁用"}
     </Tag>
   );
+  const lifecycleMap: Record<string, { text: string; color: "green" | "orange" | "red" | "grey" | "blue" }> = {
+    pending: { text: "待审核", color: "orange" },
+    active: { text: "运营中", color: "green" },
+    rejected: { text: "已驳回", color: "red" },
+    disabled: { text: "已禁用", color: "grey" },
+    expired: { text: "已到期", color: "blue" },
+  };
+  const lifecycle = lifecycleMap[tenantData?.lifecycleStatus || "pending"];
 
   return (
     <Modal
@@ -54,6 +62,10 @@ export default function TenantDetailModal({
             data={[
               { key: "企业编码", value: tenantData?.code || "-" },
               { key: "企业名称", value: tenantData?.name || "-" },
+              {
+                key: "生命周期",
+                value: lifecycle ? <Tag color={lifecycle.color}>{lifecycle.text}</Tag> : "-",
+              },
               { key: "状态", value: statusTag },
             ]}
             style={{ marginBottom: 16 }}
@@ -153,6 +165,9 @@ export default function TenantDetailModal({
             data={[
               { key: "创建时间", value: tenantData?.createdAt ? new Date(tenantData.createdAt).toLocaleString("zh-CN") : "-" },
               { key: "更新时间", value: tenantData?.updatedAt ? new Date(tenantData.updatedAt).toLocaleString("zh-CN") : "-" },
+              { key: "审核时间", value: tenantData?.approvedAt ? new Date(tenantData.approvedAt).toLocaleString("zh-CN") : "-" },
+              { key: "审核备注", value: tenantData?.auditRemark || "-" },
+              { key: "禁用原因", value: tenantData?.disabledReason || "-" },
             ]}
             style={{ marginTop: 16 }}
           />

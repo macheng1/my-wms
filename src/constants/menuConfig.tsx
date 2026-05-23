@@ -124,7 +124,7 @@ export const MENU_CONFIG: MenuItem[] = [
   },
   {
     itemKey: "/base",
-    text: "基本信息",
+    text: "基础资料",
     icon: <IconAppCenter />,
     code: "tenant:base",
     menuType: "tenant",
@@ -178,6 +178,11 @@ export const MENU_CONFIG: MenuItem[] = [
         code: "tenant:spec:list",
       },
       {
+        itemKey: "/inventory/unit",
+        text: "单位管理",
+        code: "tenant:unit:list",
+      },
+      {
         itemKey: "/product/list",
         text: "产品列表",
         code: "tenant:product:list",
@@ -208,11 +213,6 @@ export const MENU_CONFIG: MenuItem[] = [
     menuType: "tenant",
     items: [
       {
-        itemKey: "/inventory/unit",
-        text: "单位管理",
-        code: "tenant:unit:list",
-      },
-      {
         itemKey: "/inventory/list",
         text: "库存查询",
         code: "tenant:inventory:list",
@@ -239,14 +239,6 @@ export const MENU_CONFIG: MenuItem[] = [
       },
     ],
   },
-  // 员工管理
-  {
-    itemKey: "/users",
-    text: "员工管理",
-    icon: <IconUserGroup />,
-    code: "tenant:user:list",
-    menuType: "tenant",
-  },
   // 租户管理（仅平台管理员）
   {
     itemKey: "/tenants",
@@ -260,6 +252,7 @@ export const MENU_CONFIG: MenuItem[] = [
     itemKey: "/settings",
     text: "系统设置",
     icon: <IconSetting />,
+    code: "tenant:settings",
     menuType: "all",
     items: [
       {
@@ -305,15 +298,21 @@ export const MENU_CONFIG: MenuItem[] = [
         menuType: "super_admin",
       },
       {
-        itemKey: "/settings/roles",
-        text: "租户角色",
-        code: "tenant:role:list",
+        itemKey: "/settings/permissions",
+        text: "菜单管理",
+        code: "tenant:menu:list",
         menuType: "tenant",
       },
       {
-        itemKey: "/settings/dict",
-        text: "租户字典",
-        code: "tenant:dict",
+        itemKey: "/users",
+        text: "员工管理",
+        code: "tenant:user:list",
+        menuType: "tenant",
+      },
+      {
+        itemKey: "/settings/roles",
+        text: "角色管理",
+        code: "tenant:role:list",
         menuType: "tenant",
       },
       {
@@ -326,6 +325,12 @@ export const MENU_CONFIG: MenuItem[] = [
         itemKey: "/settings/post",
         text: "岗位管理",
         code: "tenant:post",
+        menuType: "tenant",
+      },
+      {
+        itemKey: "/settings/dict",
+        text: "租户字典",
+        code: "tenant:dict",
         menuType: "tenant",
       },
       {

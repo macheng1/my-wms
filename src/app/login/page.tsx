@@ -26,6 +26,9 @@ export default function LoginPage() {
         password: values.password,
         remember: values.remember,
       });
+      if (!res?.access_token) {
+        throw new Error("登录失败，未获取到访问凭证");
+      }
 
       // 保存 token
       setToken(res.access_token);

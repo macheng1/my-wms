@@ -1,14 +1,22 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import {
   Button,
+  Dropdown,
   Modal,
   Toast,
   Space,
   Tag,
 } from "@douyinfe/semi-ui-19";
-import { IconTickCircle, IconClose, IconEdit2, IconDelete, IconSetting } from "@douyinfe/semi-icons";
+import {
+  IconTickCircle,
+  IconClose,
+  IconEdit2,
+  IconDelete,
+  IconSetting,
+  IconMore,
+} from "@douyinfe/semi-icons";
 import ProDataTable, {
   ProColumnType,
   ProDataTableRef,
@@ -19,10 +27,19 @@ import TenantEditModal from "./components/TenantEditModal";
 import TenantDetailModal from "./components/TenantDetailModal";
 import TenantMenuModal from "./components/TenantMenuModal";
 import { getIndustryName } from "@/constants/industryCodes";
-import BtnAuth from "@/components/BtnAuth";
+import { useBtnAuth } from "@/hooks/useBtnAuth";
+
+type TenantAction = {
+  key: string;
+  label: string;
+  icon?: ReactNode;
+  type?: "primary" | "warning" | "danger";
+  onClick: () => void;
+};
 
 export default function TenantListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
+  const { hasBtnAuth } = useBtnAuth();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [menuModalVisible, setMenuModalVisible] = useState(false);
@@ -34,6 +51,122 @@ export default function TenantListPage() {
     rejected: { text: "已驳回", color: "red" },
     disabled: { text: "已禁用", color: "grey" },
     expired: { text: "已到期", color: "blue" },
+  };
+
+  const getTenantActions = (record: any): TenantAction[] => {
+    const actions: TenantAction[] = [
+      {
+        key: "detail",
+        label: "详情",
+        onClick: () => handleView(record),
+      },
+    ];
+
+    if (hasBtnAuth("platform:tenant:update")) {
+      actions.push(
+        {
+          key: "edit",
+          label: "编辑",
+          icon: <IconEdit2 />,
+          onClick: () => handleEdit(record),
+        },
+        {
+          key: "menu",
+          label: "管理菜单",
+          icon: <IconSetting />,
+          onClick: () => handleMenu(record),
+        }
+      );
+    }
+
+    if (hasBtnAuth("platform:tenant:status")) {
+      actions.push({
+        key: "lifecycle",
+        label: "生命周期",
+        onClick: () => handleLifecycle(record),
+      });
+    }
+
+    if (hasBtnAuth("platform:tenant:approve")) {
+      if (record.isApproved !== 1) {
+        actions.push({
+          key: "approve",
+          label: "通过",
+          icon: <IconTickCircle />,
+          type: "primary",
+          onClick: () => handleApprove(record),
+        });
+      }
+
+      actions.push({
+        key: "reject",
+        label: "驳回",
+        icon: <IconClose />,
+        type: "warning",
+        onClick: () => handleReject(record),
+      });
+    }
+
+    if (hasBtnAuth("platform:tenant:delete")) {
+      actions.push({
+        key: "delete",
+        label: "删除",
+        icon: <IconDelete />,
+        type: "danger",
+        onClick: () => handleDelete(record),
+      });
+    }
+
+    return actions;
+  };
+
+  const renderActionButton = (action: TenantAction) => (
+    <Button
+      key={action.key}
+      icon={action.icon}
+      theme="light"
+      type={action.type}
+      size="small"
+      onClick={action.onClick}
+    >
+      {action.label}
+    </Button>
+  );
+
+  const renderTenantActions = (record: any) => {
+    const actions = getTenantActions(record);
+    const visibleActions = actions.slice(0, 3);
+    const dropdownActions = actions.slice(3);
+
+    return (
+      <Space>
+        {visibleActions.map(renderActionButton)}
+        {dropdownActions.length > 0 ? (
+          <Dropdown
+            trigger="click"
+            position="bottomRight"
+            render={
+              <Dropdown.Menu>
+                {dropdownActions.map((action) => (
+                  <Dropdown.Item
+                    key={action.key}
+                    icon={action.icon}
+                    type={action.type === "danger" ? "danger" : undefined}
+                    onClick={action.onClick}
+                  >
+                    {action.label}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            }
+          >
+            <span style={{ display: "inline-flex" }}>
+              <Button icon={<IconMore />} theme="light" size="small" />
+            </span>
+          </Dropdown>
+        ) : null}
+      </Space>
+    );
   };
 
   // 表格列定义
@@ -80,6 +213,14 @@ export default function TenantListPage() {
       valueType: "text",
       hideInSearch: true,
       width: 140,
+    },
+    {
+      title: "联系邮箱",
+      dataIndex: "email",
+      valueType: "text",
+      hideInSearch: true,
+      width: 200,
+      render: (text) => text || "-",
     },
     {
       title: "生命周期",
@@ -145,77 +286,9 @@ export default function TenantListPage() {
       title: "操作",
       dataIndex: "option",
       hideInSearch: true,
-      width: 380,
+      width: 260,
       fixed: "right",
-      render: (_, record) => (
-        <Space>
-          <Button theme="light" size="small" onClick={() => handleView(record)}>
-            详情
-          </Button>
-          <BtnAuth code="platform:tenant:update">
-            <Button
-              icon={<IconEdit2 />}
-              theme="light"
-              size="small"
-              onClick={() => handleEdit(record)}
-            >
-              编辑
-            </Button>
-          </BtnAuth>
-          <BtnAuth code="platform:tenant:update">
-            <Button
-              icon={<IconSetting />}
-              theme="light"
-              size="small"
-              onClick={() => handleMenu(record)}
-            >
-              管理菜单
-            </Button>
-          </BtnAuth>
-          <BtnAuth code="platform:tenant:status">
-            <Button
-              theme="light"
-              size="small"
-              onClick={() => handleLifecycle(record)}
-            >
-              生命周期
-            </Button>
-          </BtnAuth>
-          <BtnAuth code="platform:tenant:approve">
-            {record.isApproved !== 1 ? (
-              <Button
-                icon={<IconTickCircle />}
-                theme="light"
-                type="primary"
-                size="small"
-                onClick={() => handleApprove(record)}
-              >
-                通过
-              </Button>
-            ) : null}
-            <Button
-              icon={<IconClose />}
-              theme="light"
-              type="warning"
-              size="small"
-              onClick={() => handleReject(record)}
-            >
-              驳回
-            </Button>
-          </BtnAuth>
-          <BtnAuth code="platform:tenant:delete">
-            <Button
-              icon={<IconDelete />}
-              theme="light"
-              type="danger"
-              size="small"
-              onClick={() => handleDelete(record)}
-            >
-              删除
-            </Button>
-          </BtnAuth>
-        </Space>
-      ),
+      render: (_, record) => renderTenantActions(record),
     },
   ];
 
@@ -285,10 +358,20 @@ export default function TenantListPage() {
   const handleApprove = async (record: any) => {
     Modal.confirm({
       title: "确认审核通过",
-      content: `审核通过后，租户【${record.name}】的管理员账号可以登录系统。`,
+      content: (
+        <div>
+          <div>审核通过后，租户【{record.name}】的管理员账号可以登录系统。</div>
+          <div style={{ marginTop: 8, color: "var(--semi-color-text-2)" }}>
+            {record.email ? `系统会发送审核通过邮件至：${record.email}` : "该租户未填写邮箱，不会发送邮件通知。"}
+          </div>
+        </div>
+      ),
       onOk: async () => {
         try {
-          await TenantsAPI.approveTenant(record.id);
+          await AdminPlatformAPI.updateTenantLifecycle(record.id, {
+            lifecycleStatus: "active",
+            auditRemark: "审核通过",
+          });
           Toast.success("审核通过");
           tableRef.current?.reload();
         } catch (error: any) {
@@ -301,10 +384,36 @@ export default function TenantListPage() {
   const handleReject = async (record: any) => {
     Modal.confirm({
       title: "确认驳回并禁用",
-      content: `驳回后，租户【${record.name}】将被禁用，租户管理员无法登录。`,
+      content: (
+        <div style={{ paddingTop: 8 }}>
+          <div style={{ marginBottom: 8 }}>
+            驳回后，租户【{record.name}】将被禁用，租户管理员无法登录。
+          </div>
+          <textarea
+            id="tenant-reject-remark"
+            placeholder="请输入驳回原因，会随邮件发送给租户"
+            style={{
+              width: "100%",
+              minHeight: 86,
+              padding: 8,
+              resize: "vertical",
+              border: "1px solid var(--semi-color-border)",
+              borderRadius: 4,
+            }}
+          />
+          <div style={{ marginTop: 8, color: "var(--semi-color-text-2)" }}>
+            {record.email ? `系统会发送审核驳回邮件至：${record.email}` : "该租户未填写邮箱，不会发送邮件通知。"}
+          </div>
+        </div>
+      ),
       onOk: async () => {
         try {
-          await TenantsAPI.rejectTenant(record.id);
+          const textarea = document.getElementById("tenant-reject-remark") as HTMLTextAreaElement | null;
+          const auditRemark = textarea?.value?.trim() || "入驻申请未通过审核";
+          await AdminPlatformAPI.updateTenantLifecycle(record.id, {
+            lifecycleStatus: "rejected",
+            auditRemark,
+          });
           Toast.success("已驳回");
           tableRef.current?.reload();
         } catch (error: any) {

@@ -5,8 +5,9 @@ import Cookies from "js-cookie";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 const APP_ENV = process.env.NEXT_PUBLIC_APP_ENV || "local";
 
-// 业务错误码白名单：这些 code 不会触发错误提示和 reject
-const BUSINESS_CODE_WHITELIST = new Set<number>([10001]);
+// 业务错误码白名单：这些 code 不会触发错误提示和 reject。
+// 默认业务异常需要 reject，否则调用方会把错误响应当成功数据继续执行。
+const BUSINESS_CODE_WHITELIST = new Set<number>();
 
 const request: AxiosInstance = axios.create({
   // 💡 注意：如果 .env 里配置的是 /api，这里就直接用 BASE_URL

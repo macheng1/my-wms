@@ -88,11 +88,12 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       // 1. 发起注册请求并接收返回数据
-      const res: any = await AuthAPI.register({
+      const res = await AuthAPI.register({
         name: values.name,
         industryCode: values.industryCode,
         contactPerson: values.contactPerson,
         contactPhone: values.contactPhone,
+        email: values.email,
         smsCode: values.smsCode,
         adminUser: values.adminUser,
         adminPass: values.adminPass,
@@ -190,6 +191,15 @@ export default function RegisterPage() {
               field="contactPerson"
               label="工厂联系人"
               placeholder="如：张经理"
+            />
+            <Form.Input
+              field="email"
+              label="联系邮箱"
+              placeholder="用于接收入驻审核通知"
+              rules={[
+                { required: true, message: "请输入联系邮箱" },
+                { type: "email", message: "邮箱格式不正确" },
+              ]}
             />
             <Form.Input
               field="contactPhone"

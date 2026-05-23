@@ -12,7 +12,8 @@ interface MenuSidebarProps {
   selectedId: number | null;
   onSelect: (id: number) => void;
   onRefresh: () => void;
-  onCreateTop: () => void;
+  onCreateTop?: () => void;
+  allowCreate?: boolean;
 }
 
 export default function MenuSidebar({
@@ -21,6 +22,7 @@ export default function MenuSidebar({
   onSelect,
   onRefresh,
   onCreateTop,
+  allowCreate = true,
 }: MenuSidebarProps) {
   return (
     <div style={{ borderRight: "1px solid var(--semi-color-border)", paddingRight: 12 }}>
@@ -28,7 +30,9 @@ export default function MenuSidebar({
         <Text strong>顶级菜单</Text>
         <Space>
           <Button size="small" icon={<IconRefresh />} onClick={onRefresh} />
-          <Button size="small" icon={<IconPlus />} theme="solid" onClick={onCreateTop} />
+          {allowCreate ? (
+            <Button size="small" icon={<IconPlus />} theme="solid" onClick={onCreateTop} />
+          ) : null}
         </Space>
       </div>
 

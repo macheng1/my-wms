@@ -24,6 +24,7 @@ const TenantsAPI = {
   /** 分页查询租户列表 */
   getTenantList: (params: TenantListParams) => {
     return request.post<Result<PageResult<TenantListData["data"]>>>("/admin/platform/tenants/list", {
+      ...params,
       page: params.page || 1,
       pageSize: params.pageSize || 20,
     });

@@ -95,7 +95,7 @@ export default function RegisterSuccessPage() {
           <Title heading={2} style={{ marginBottom: 8 }}>
             入驻申请提交成功
           </Title>
-          <Text type="secondary">企业空间已创建完成，请使用以下信息登录</Text>
+          <Text type="secondary">企业空间已创建完成，审核通过后可使用以下信息登录</Text>
         </div>
 
         <Banner

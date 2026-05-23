@@ -43,6 +43,10 @@ export interface RegisterParams {
 export interface TenantListParams {
   page?: number;
   pageSize?: number;
+  code?: string;
+  name?: string;
+  lifecycleStatus?: "pending" | "active" | "rejected" | "disabled" | "expired";
+  isActive?: number | string;
 }
 
 /**
@@ -67,6 +71,7 @@ export interface TenantItem {
   industryName?: string;
   contactPerson?: string;
   contactPhone?: string;
+  email?: string;
   address?: string;
   website?: string;
   isActive: number;
@@ -85,10 +90,16 @@ export interface TenantMenu {
   code: string;
   name: string;
   description?: string | null;
-  type?: string;
+  type?: "DIRECTORY" | "MENU" | "BUTTON" | "API";
   scope?: "tenant";
   routePath?: string | null;
+  componentPath?: string | null;
+  icon?: string | null;
   parentId?: number;
+  sortOrder?: number;
+  isHidden?: number;
+  isActive?: number;
+  children?: TenantMenu[];
 }
 
 export interface TenantMenuGrant {
