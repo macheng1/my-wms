@@ -14,6 +14,8 @@ import {
 import { IconEdit2, IconPlus, IconPlay, IconPause } from "@douyinfe/semi-icons";
 import AdminPlatformAPI from "@/api/adminPlatform";
 import { PlatformRole, PlatformUser } from "@/api/adminPlatform/types";
+import DeptAPI from "@/api/dept";
+import PostAPI from "@/api/post";
 
 const { Title } = Typography;
 const { Section } = Form;
@@ -22,6 +24,8 @@ export default function PlatformUsersPage() {
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<PlatformUser[]>([]);
   const [roles, setRoles] = useState<PlatformRole[]>([]);
+  const [deptOptions, setDeptOptions] = useState<any[]>([]);
+  const [postOptions, setPostOptions] = useState<any[]>([]);
   const [visible, setVisible] = useState(false);
   const [currentUser, setCurrentUser] = useState<PlatformUser | null>(null);
   const [formApi, setFormApi] = useState<any>(null);
@@ -29,12 +33,21 @@ export default function PlatformUsersPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [userRes, roleRes] = await Promise.all([
+      const [userRes, roleRes, deptRes, postRes] = await Promise.all([
         AdminPlatformAPI.getUsers({ page: 1, pageSize: 100 }),
         AdminPlatformAPI.getRoles(),
+        DeptAPI.getOptions(),
+        PostAPI.getOptions(),
       ]);
       setUsers(userRes.data?.list || []);
       setRoles(roleRes.data || []);
+      setDeptOptions(deptRes.data || []);
+      setPostOptions(
+        (postRes.data || []).map((item: any) => ({
+          label: item.label || item.postName,
+          value: item.value || item.id,
+        })),
+      );
     } finally {
       setLoading(false);
     }
@@ -68,6 +81,18 @@ export default function PlatformUsersPage() {
       })),
     [roles],
   );
+
+  const flatDeptOptions = useMemo(() => {
+    const walk = (list: any[] = [], level = 0): any[] =>
+      list.flatMap((item) => {
+        const current = [{
+          label: `${"　".repeat(level)}${item.label || item.deptName}`,
+          value: item.value || item.id,
+        }];
+        return item.children?.length ? current.concat(walk(item.children, level + 1)) : current;
+      });
+    return walk(deptOptions);
+  }, [deptOptions]);
 
   const handleSave = async (values: any) => {
     await AdminPlatformAPI.saveUser({
@@ -139,6 +164,16 @@ export default function PlatformUsersPage() {
               Array.isArray(items) && items.length > 0 ? items.join(", ") : "-",
           },
           {
+            title: "部门",
+            dataIndex: "deptName",
+            render: (text) => text || "-",
+          },
+          {
+            title: "岗位",
+            dataIndex: "postName",
+            render: (text) => text || "-",
+          },
+          {
             title: "状态",
             dataIndex: "isActive",
             render: (value) => (
@@ -197,6 +232,22 @@ export default function PlatformUsersPage() {
               rules={[{ required: true, message: "请输入账号" }]}
             />
             <Form.Input field="realName" label="姓名" />
+            <Form.Input field="phone" label="手机号" />
+            <Form.Input field="email" label="邮箱" />
+            <Form.Select
+              field="deptId"
+              label="平台部门"
+              optionList={flatDeptOptions}
+              placeholder="请选择平台部门"
+              style={{ width: "100%" }}
+            />
+            <Form.Select
+              field="postId"
+              label="平台岗位"
+              optionList={postOptions}
+              placeholder="请选择平台岗位"
+              style={{ width: "100%" }}
+            />
             <Form.Input
               field="password"
               label="密码"

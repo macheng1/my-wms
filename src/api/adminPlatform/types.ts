@@ -3,16 +3,22 @@ export interface PlatformPermission {
   code: string;
   name: string;
   description?: string | null;
-  type?: string;
+  type?: "DIRECTORY" | "MENU" | "BUTTON" | "API";
   scope?: "platform" | "tenant";
   routePath?: string | null;
+  componentPath?: string | null;
   icon?: string | null;
   parentId?: number;
   sortOrder?: number;
   isHidden?: number;
+  isActive?: number;
   isMenu?: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface PlatformMenuTreeNode extends PlatformPermission {
+  children?: PlatformMenuTreeNode[];
 }
 
 export interface PlatformRole {
@@ -22,6 +28,10 @@ export interface PlatformRole {
   remark?: string | null;
   isActive: number;
   permissions?: PlatformPermission[];
+  permissionCodes?: string[];
+  permissionIds?: Array<string | number>;
+  dataScope?: "ALL" | "CUSTOM" | "DEPT" | "DEPT_AND_CHILD" | "SELF";
+  deptIds?: Array<string | number>;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -30,7 +40,13 @@ export interface PlatformUser {
   id: string | number;
   username: string;
   realName?: string | null;
+  phone?: string | null;
+  email?: string | null;
   avatar?: string | null;
+  deptId?: string | null;
+  deptName?: string | null;
+  postId?: string | null;
+  postName?: string | null;
   isActive: number;
   roles?: PlatformRole[];
   roleNames?: string[];
@@ -46,6 +62,8 @@ export interface SavePlatformRoleParams {
   remark?: string;
   isActive?: number;
   permissionCodes?: string[];
+  dataScope?: "ALL" | "CUSTOM" | "DEPT" | "DEPT_AND_CHILD" | "SELF";
+  deptIds?: Array<string | number>;
 }
 
 export interface QueryPlatformUserParams {
@@ -55,26 +73,43 @@ export interface QueryPlatformUserParams {
   isActive?: number;
 }
 
+export interface QueryPlatformMenuParams {
+  page?: number;
+  pageSize?: number;
+  type?: "DIRECTORY" | "MENU" | "BUTTON" | "all";
+  name?: string;
+  code?: string;
+  routePath?: string;
+  isHidden?: number;
+}
+
 export interface SavePlatformUserParams {
   id?: string | number;
   username: string;
   password?: string;
   realName?: string;
+  phone?: string;
+  email?: string;
   avatar?: string;
+  deptId?: string | null;
+  postId?: string | null;
   isActive?: number;
   roleIds?: Array<string | number>;
 }
 
 export interface SavePlatformMenuParams {
   id?: number;
+  type?: "DIRECTORY" | "MENU" | "BUTTON";
   code: string;
   name: string;
   routePath?: string | null;
+  componentPath?: string | null;
   description?: string | null;
   parentId?: number;
   icon?: string | null;
   sortOrder?: number;
   isHidden?: number;
+  isActive?: number;
 }
 
 export interface PlatformDashboard {

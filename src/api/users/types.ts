@@ -17,15 +17,22 @@ export interface ChangePassword {
 // 创建用户
 export interface CreateUser {
   username: string;
-  password: string;
+  password?: string;
   realName?: string;
-  roleIds: string[];
-  isActive?: boolean; // 默认为 true
+  phone?: string;
+  email?: string;
+  deptId?: string;
+  postId?: string;
+  roleIds?: string[];
+  isActive?: number; // 默认为 1
 }
 
 // 查询用户
 export interface QueryUser {
   username?: string;
+  realName?: string;
+  phone?: string;
+  deptId?: string;
   page?: number; // 默认为 1
   pageSize?: number; // 默认为 20
   isActive?: number;

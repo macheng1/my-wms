@@ -57,11 +57,16 @@ export const filterMenuByUser = (
         return null;
       }
 
+      const nextItem =
+        item.itemKey === "/"
+          ? { ...item, text: isPlatformUser ? "平台工作台" : "租户工作台" }
+          : item;
+
       if (children) {
-        return { ...item, items: children };
+        return { ...nextItem, items: children };
       }
 
-      return item;
+      return nextItem;
     })
     .filter((item): item is MenuItem => Boolean(item));
 };
@@ -247,6 +252,18 @@ export const MENU_CONFIG: MenuItem[] = [
         menuType: "super_admin",
       },
       {
+        itemKey: "/settings/dept",
+        text: "平台部门",
+        code: "platform:dept",
+        menuType: "super_admin",
+      },
+      {
+        itemKey: "/settings/post",
+        text: "平台岗位",
+        code: "platform:post",
+        menuType: "super_admin",
+      },
+      {
         itemKey: "/settings/platform-audit-logs",
         text: "平台审计",
         code: "platform:audit-log",
@@ -262,6 +279,18 @@ export const MENU_CONFIG: MenuItem[] = [
         itemKey: "/settings/dict",
         text: "租户字典",
         code: "tenant:dict",
+        menuType: "tenant",
+      },
+      {
+        itemKey: "/settings/dept",
+        text: "部门管理",
+        code: "tenant:dept",
+        menuType: "tenant",
+      },
+      {
+        itemKey: "/settings/post",
+        text: "岗位管理",
+        code: "tenant:post",
         menuType: "tenant",
       },
       {

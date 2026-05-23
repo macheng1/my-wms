@@ -1,52 +1,128 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  Button,
-  Form,
-  Modal,
-  Space,
-  Table,
-  Tag,
-  Toast,
-  Typography,
-} from "@douyinfe/semi-ui-19";
-import { IconDelete, IconEdit2, IconPlus } from "@douyinfe/semi-icons";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Modal, Toast } from "@douyinfe/semi-ui-19";
 import AdminPlatformAPI from "@/api/adminPlatform";
-import { PlatformPermission } from "@/api/adminPlatform/types";
+import { PlatformPermission, SavePlatformMenuParams } from "@/api/adminPlatform/types";
+import PlatformMenuEditModal, { ParentMenuOption } from "./components/PlatformMenuEditModal";
+import PlatformMenuLayout, { PlatformMenuQuery } from "./components/PlatformMenuLayout";
 
-const { Title } = Typography;
+const DEFAULT_QUERY: PlatformMenuQuery = {
+  name: "",
+  code: "",
+  routePath: "",
+  type: "all",
+  isHidden: -1,
+};
 
 export default function PlatformMenusPage() {
   const [loading, setLoading] = useState(false);
-  const [dataSource, setDataSource] = useState<PlatformPermission[]>([]);
+  const [menus, setMenus] = useState<PlatformPermission[]>([]);
+  const [selectedTopId, setSelectedTopId] = useState<number | null>(null);
   const [visible, setVisible] = useState(false);
   const [currentMenu, setCurrentMenu] = useState<PlatformPermission | null>(null);
-  const [formApi, setFormApi] = useState<any>(null);
+  const [defaultParentId, setDefaultParentId] = useState(0);
+  const [query, setQuery] = useState<PlatformMenuQuery>(DEFAULT_QUERY);
+  const [searchFormApi, setSearchFormApi] = useState<any>(null);
 
-  const loadData = () => {
+  const menuById = useMemo(() => {
+    const map = new Map<number, PlatformPermission>();
+    menus.forEach((menu) => map.set(Number(menu.id), menu));
+    return map;
+  }, [menus]);
+
+  const topMenus = useMemo(
+    () =>
+      menus
+        .filter((menu) => Number(menu.parentId || 0) === 0 && menu.type !== "BUTTON")
+        .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || Number(a.id) - Number(b.id)),
+    [menus],
+  );
+
+  const childMap = useMemo(() => {
+    const map = new Map<number, PlatformPermission[]>();
+    menus.forEach((menu) => {
+      const parentId = Number(menu.parentId || 0);
+      if (!map.has(parentId)) map.set(parentId, []);
+      map.get(parentId)?.push(menu);
+    });
+    map.forEach((items) => {
+      items.sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || Number(a.id) - Number(b.id));
+    });
+    return map;
+  }, [menus]);
+
+  const selectedTop = selectedTopId ? menuById.get(selectedTopId) || null : null;
+
+  const getDescendants = useCallback((parentId: number, depth = 0): Array<PlatformPermission & { depth: number }> => {
+    const children = childMap.get(parentId) || [];
+    return children.flatMap((menu) => [
+      { ...menu, depth },
+      ...getDescendants(Number(menu.id), depth + 1),
+    ]);
+  }, [childMap]);
+
+  const rightData = useMemo(() => {
+    if (!selectedTopId) return [];
+    return getDescendants(selectedTopId).filter((menu) => {
+      if (query.name && !menu.name.includes(query.name)) return false;
+      if (query.code && !menu.code.includes(query.code)) return false;
+      if (query.routePath && !(menu.routePath || "").includes(query.routePath)) return false;
+      if (query.type !== "all" && menu.type !== query.type) return false;
+      if (query.isHidden === 0 || query.isHidden === 1) return Number(menu.isHidden || 0) === query.isHidden;
+      return true;
+    });
+  }, [childMap, query, selectedTopId]);
+
+  const parentOptions: ParentMenuOption[] = useMemo(
+    () =>
+      menus
+        .filter((menu) => menu.type !== "BUTTON" && Number(menu.id) !== Number(currentMenu?.id || 0))
+        .map((menu) => ({
+          label: menu.parentId ? `${menuById.get(Number(menu.parentId))?.name || "顶级"} / ${menu.name}` : menu.name,
+          value: Number(menu.id),
+        })),
+    [currentMenu?.id, menuById, menus],
+  );
+
+  const loadData = useCallback(async () => {
     setLoading(true);
-    AdminPlatformAPI.getMenus()
-      .then((res) => setDataSource(res.data || []))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadData();
+    try {
+      const res = await AdminPlatformAPI.getMenus();
+      const list = res.data || [];
+      setMenus(list);
+      setSelectedTopId((current) => {
+        if (current && list.some((menu) => Number(menu.id) === current)) return current;
+        return Number(list.find((menu) => Number(menu.parentId || 0) === 0)?.id || 0) || null;
+      });
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (!visible || !formApi) return;
+    loadData();
+  }, [loadData]);
 
-    if (currentMenu) {
-      formApi.setValues(currentMenu);
-    } else {
-      formApi.reset();
-      formApi.setValues({ parentId: 0, sortOrder: 0, isHidden: 0 });
+  const openCreate = (parentId: number) => {
+    setCurrentMenu(null);
+    setDefaultParentId(parentId);
+    setVisible(true);
+  };
+
+  const handleEdit = async (record: PlatformPermission) => {
+    setLoading(true);
+    try {
+      const res = await AdminPlatformAPI.getMenuDetail(record.id);
+      setCurrentMenu(res.data);
+      setDefaultParentId(Number(res.data.parentId || 0));
+      setVisible(true);
+    } finally {
+      setLoading(false);
     }
-  }, [visible, currentMenu, formApi]);
+  };
 
-  const handleSave = async (values: any) => {
+  const handleSave = async (values: SavePlatformMenuParams) => {
     await AdminPlatformAPI.saveMenu({
       ...values,
       id: currentMenu?.id as number | undefined,
@@ -54,178 +130,59 @@ export default function PlatformMenusPage() {
     Toast.success("保存成功");
     setVisible(false);
     setCurrentMenu(null);
-    loadData();
+    await loadData();
   };
 
   const handleDelete = (record: PlatformPermission) => {
     Modal.confirm({
       title: "确认删除平台菜单",
-      content: `删除「${record.name}」后，已绑定该菜单的角色也会失去对应权限。`,
+      content: `确认删除「${record.name}」？如果存在下级菜单或角色绑定，系统会阻止删除。`,
       onOk: async () => {
         await AdminPlatformAPI.deleteMenu(record.id);
         Toast.success("删除成功");
-        loadData();
+        await loadData();
       },
     });
   };
 
+  const handleSearch = (values: Partial<PlatformMenuQuery>) => {
+    setQuery({ ...query, ...values });
+  };
+
+  const handleReset = () => {
+    const nextQuery = { ...DEFAULT_QUERY };
+    searchFormApi?.setValues(nextQuery);
+    setQuery(nextQuery);
+  };
+
   return (
-    <div style={{ padding: 4 }}>
-      <div
-        style={{
-          marginBottom: 16,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Title heading={5} style={{ margin: 0 }}>
-          平台菜单
-        </Title>
-        <Button
-          icon={<IconPlus />}
-          theme="solid"
-          onClick={() => {
-            setCurrentMenu(null);
-            setVisible(true);
-          }}
-        >
-          创建平台菜单
-        </Button>
-      </div>
-      <Table
-        rowKey="code"
+    <>
+      <PlatformMenuLayout
         loading={loading}
-        dataSource={dataSource}
-        pagination={false}
-        columns={[
-          { title: "菜单名称", dataIndex: "name" },
-          { title: "权限码", dataIndex: "code" },
-          {
-            title: "路由",
-            dataIndex: "routePath",
-            render: (text) => text || "-",
-          },
-          {
-            title: "图标",
-            dataIndex: "icon",
-            render: (text) => text || "-",
-          },
-          {
-            title: "排序",
-            dataIndex: "sortOrder",
-            render: (text) => text ?? 0,
-          },
-          {
-            title: "隐藏",
-            dataIndex: "isHidden",
-            render: (value) => (
-              <Tag color={value === 1 ? "grey" : "green"}>
-                {value === 1 ? "隐藏" : "显示"}
-              </Tag>
-            ),
-          },
-          {
-            title: "范围",
-            dataIndex: "scope",
-            render: () => <Tag color="blue">platform</Tag>,
-          },
-          {
-            title: "说明",
-            dataIndex: "description",
-            render: (text) => text || "-",
-          },
-          {
-            title: "操作",
-            dataIndex: "option",
-            render: (_, record) => (
-              <Space>
-                <Button
-                  icon={<IconEdit2 />}
-                  theme="light"
-                  onClick={() => {
-                    setCurrentMenu(record);
-                    setVisible(true);
-                  }}
-                >
-                  编辑
-                </Button>
-                <Button
-                  icon={<IconDelete />}
-                  theme="light"
-                  type="danger"
-                  onClick={() => handleDelete(record)}
-                >
-                  删除
-                </Button>
-              </Space>
-            ),
-          },
-        ]}
+        topMenus={topMenus}
+        selectedTop={selectedTop}
+        selectedTopId={selectedTopId}
+        dataSource={rightData}
+        defaultQuery={DEFAULT_QUERY}
+        onSelectTop={setSelectedTopId}
+        onRefresh={loadData}
+        onCreateTop={() => openCreate(0)}
+        onCreateChild={openCreate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onSearch={handleSearch}
+        onReset={handleReset}
+        onSearchFormReady={setSearchFormApi}
       />
 
-      <Modal
-        title={currentMenu ? "编辑平台菜单" : "创建平台菜单"}
+      <PlatformMenuEditModal
         visible={visible}
+        currentMenu={currentMenu}
+        defaultParentId={defaultParentId}
+        parentOptions={parentOptions}
         onCancel={() => setVisible(false)}
-        footer={null}
-        width={620}
-        keepDOM
-      >
-        <Form
-          getFormApi={setFormApi}
-          onSubmit={handleSave}
-          labelPosition="left"
-          labelWidth={100}
-        >
-          <Form.Input
-            field="name"
-            label="菜单名称"
-            rules={[{ required: true, message: "请输入菜单名称" }]}
-          />
-          <Form.Input
-            field="code"
-            label="权限码"
-            placeholder="例如 platform:user"
-            rules={[{ required: true, message: "请输入权限码" }]}
-          />
-          <Form.Input
-            field="routePath"
-            label="前端路由"
-            placeholder="例如 /settings/platform-users"
-          />
-          <Form.Input
-            field="icon"
-            label="图标标识"
-            placeholder="例如 IconUserGroup"
-          />
-          <Form.InputNumber
-            field="parentId"
-            label="父级ID"
-            initValue={0}
-            style={{ width: 160 }}
-          />
-          <Form.InputNumber
-            field="sortOrder"
-            label="排序"
-            initValue={0}
-            style={{ width: 160 }}
-          />
-          <Form.Select field="isHidden" label="是否隐藏" initValue={0} style={{ width: 160 }}>
-            <Form.Select.Option value={0}>显示</Form.Select.Option>
-            <Form.Select.Option value={1}>隐藏</Form.Select.Option>
-          </Form.Select>
-          <Form.TextArea field="description" label="说明" />
-          <div style={{ marginTop: 24, textAlign: "right" }}>
-            <Button onClick={() => setVisible(false)} style={{ marginRight: 12 }}>
-              取消
-            </Button>
-            <Button type="primary" theme="solid" htmlType="submit">
-              保存
-            </Button>
-          </div>
-        </Form>
-      </Modal>
-    </div>
+        onSubmit={handleSave}
+      />
+    </>
   );
 }

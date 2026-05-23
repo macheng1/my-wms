@@ -7,14 +7,26 @@ interface UserEditModalProps {
   visible: boolean;
   data: any;
   roleOptions: { label: string; value: string }[];
+  deptOptions: any[];
+  postOptions: { label: string; value: string }[];
   onClose: () => void;
   onSuccess: () => void;
+}
+
+function flattenDeptOptions(list: any[] = [], level = 0): { label: string; value: string }[] {
+  return list.flatMap((item) => {
+    const label = `${"　".repeat(level)}${item.label || item.deptName}`;
+    const current = [{ label, value: item.value || item.id }];
+    return item.children?.length ? current.concat(flattenDeptOptions(item.children, level + 1)) : current;
+  });
 }
 
 export default function UserEditModal({
   visible,
   data,
   roleOptions,
+  deptOptions,
+  postOptions,
   onClose,
   onSuccess,
 }: UserEditModalProps) {
@@ -45,10 +57,11 @@ export default function UserEditModal({
     }
     values.avatar = avatarUrl;
 
+    const payload = data?.id ? { ...values, id: data.id } : values;
     if (data?.id) {
-      await UserAPI.updateUser({ ...values, id: data.id });
+      await UserAPI.updateUser(payload);
     } else {
-      await UserAPI.saveUser(values);
+      await UserAPI.saveUser(payload);
     }
     onSuccess();
   };
@@ -72,6 +85,7 @@ export default function UserEditModal({
           field="avatar"
           label="头像"
           max={1}
+          uploadPath="avatar"
           uploadText="上传头像"
           prompt="建议尺寸 40x40"
         />
@@ -94,7 +108,23 @@ export default function UserEditModal({
             ]}
           />
         )}
-        <Form.Input field="realName" label="昵称" placeholder="请输入昵称" />
+        <Form.Input field="realName" label="姓名" placeholder="请输入姓名" />
+        <Form.Input field="phone" label="手机号" placeholder="请输入手机号" />
+        <Form.Input field="email" label="邮箱" placeholder="请输入邮箱" />
+        <Form.Select
+          field="deptId"
+          label="部门"
+          placeholder="请选择部门"
+          optionList={flattenDeptOptions(deptOptions)}
+          style={{ width: "100%" }}
+        />
+        <Form.Select
+          field="postId"
+          label="岗位"
+          placeholder="请选择岗位"
+          optionList={postOptions}
+          style={{ width: "100%" }}
+        />
         <Form.Select
           field="roleIds"
           label="角色"

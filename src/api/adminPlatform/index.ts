@@ -6,7 +6,9 @@ import {
   TenantDashboard,
   OperationLog,
   QueryAuditLogParams,
+  QueryPlatformMenuParams,
   PlatformUser,
+  PlatformMenuTreeNode,
   QueryPlatformUserParams,
   SavePlatformMenuParams,
   SavePlatformRoleParams,
@@ -21,6 +23,20 @@ const AdminPlatformAPI = {
     request.get<TenantDashboard>("/admin/tenant/dashboard"),
 
   getMenus: () => request.get<PlatformPermission[]>("/admin/platform/menus"),
+
+  getMenusPage: (params: QueryPlatformMenuParams) =>
+    request.post<{
+      list: PlatformPermission[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>("/admin/platform/menus/list", params),
+
+  getMenuTree: () =>
+    request.get<PlatformMenuTreeNode[]>("/admin/platform/menus/tree"),
+
+  getMenuDetail: (id: string | number) =>
+    request.get<PlatformPermission>(`/admin/platform/menus/${id}`),
 
   getPermissions: () =>
     request.get<PlatformPermission[]>("/admin/platform/permissions"),

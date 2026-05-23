@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, Form, Toast, InputNumber } from "@douyinfe/semi-ui-19";
+import { Modal, Form, Toast } from "@douyinfe/semi-ui-19";
 import DictAPI from "@/api/dict";
 
 interface DictEditModalProps {
@@ -9,13 +9,6 @@ interface DictEditModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
-
-// 字典类型选项
-const DICT_TYPE_OPTIONS = [
-  { label: "行业分类", value: "INDUSTRY" },
-  { label: "计量单位", value: "UNIT" },
-  { label: "材质类型", value: "MATERIAL" },
-];
 
 export default function DictEditModal({
   visible,
@@ -27,6 +20,7 @@ export default function DictEditModal({
   const [formApi, setFormApi] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const isEdit = !!data?.id;
+  const isTypeLocked = isEdit || data?.lockType;
 
   useEffect(() => {
     if (visible && data) {
@@ -84,14 +78,13 @@ export default function DictEditModal({
           style={{ marginBottom: 12, width: "100%" }}
           disabled
         />
-        <Form.Select
+        <Form.Input
           field="type"
           label="字典类型"
-          placeholder="请选择字典类型"
-          optionList={DICT_TYPE_OPTIONS}
+          placeholder="请输入字典类型，如 INDUSTRY"
           style={{ marginBottom: 12, width: "100%" }}
-          rules={[{ required: true, message: "请选择字典类型" }]}
-          disabled={isEdit}
+          rules={[{ required: true, message: "请输入字典类型" }]}
+          disabled={isTypeLocked}
         />
         <Form.Input
           field="label"

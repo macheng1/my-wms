@@ -5,14 +5,18 @@ export interface QueryRolePage {
   pageSize?: number;
   /** 支持按角色名模糊搜索 */
   name?: string;
-  isActive: number;
+  isActive?: number;
 }
 export interface CreateRole {
   /** 角色名称 */
   name: string;
   isActive: number;
+  code?: string;
   /** 备注，可选 */
   remark?: string;
+  dataScope?: "ALL" | "CUSTOM" | "DEPT" | "DEPT_AND_CHILD" | "SELF";
+  deptIds?: string[];
   /** 权限码集合，对应前端 MENU_CONFIG 里的 code */
-  permissionCodes: string[];
+  permissionCodes?: string[];
+  permissionIds?: number[];
 }

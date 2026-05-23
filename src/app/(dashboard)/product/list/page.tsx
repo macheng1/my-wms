@@ -8,7 +8,6 @@ import {
   Modal,
   Toast,
   Switch,
-  Image,
 } from "@douyinfe/semi-ui-19";
 import { IconPlus, IconEdit2, IconDelete } from "@douyinfe/semi-icons";
 import ProductApi from "@/api/product";
@@ -19,6 +18,7 @@ import ProDataTable, {
 } from "@/components/ProDataTable";
 import ProductEditModal from "./components/ProductEditModal";
 import ImportModal from "@/components/ImportModal";
+import CommonImage from "@/components/CommonImage";
 
 export default function ProductListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
@@ -103,17 +103,7 @@ export default function ProductListPage() {
         dataIndex: "images",
         hideInSearch: true,
         render: (imgs: string[]) =>
-          imgs && imgs.length ? (
-            <Image
-              src={imgs[0]}
-              width={48}
-              height={48}
-              style={{ borderRadius: 8, cursor: "pointer" }}
-              preview={{ src: imgs[0] }}
-            />
-          ) : (
-            <span style={{ color: "#ccc" }}>无图</span>
-          ),
+          <CommonImage src={imgs} size={48} alt="product" />,
       },
       {
         title: "SKU编码",

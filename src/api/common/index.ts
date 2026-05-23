@@ -10,14 +10,29 @@ const CommonApi = {
    * @param files File | File[]
    * @returns Promise
    */
-  uploadFiles: (files) => {
-    const formData = new FormData();
-    if (Array.isArray(files)) {
-      files.forEach((file) => formData.append("file", file));
-    } else {
-      formData.append("file", files);
+  uploadFiles: (
+    files,
+    options?: {
+      path?: string;
+      url?: string;
+      fieldName?: string;
+      extraData?: Record<string, string | Blob>;
     }
-    return request.post("upload/fileList", formData, {
+  ) => {
+    const formData = new FormData();
+    const fieldName = options?.fieldName || "file";
+    if (Array.isArray(files)) {
+      files.forEach((file) => formData.append(fieldName, file));
+    } else {
+      formData.append(fieldName, files);
+    }
+    if (options?.path) {
+      formData.append("path", options.path);
+    }
+    Object.entries(options?.extraData || {}).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+    return request.post(options?.url || "upload/fileList", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },

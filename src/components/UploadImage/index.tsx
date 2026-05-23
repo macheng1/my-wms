@@ -15,6 +15,10 @@ const UploadImage = ({
   max = 1,
   prompt = "建议尺寸 800x800",
   uploadText = "上传图片",
+  uploadPath = "image",
+  uploadUrl,
+  uploadFieldName = "file",
+  uploadExtraData,
 }: any) => {
   const handleCustomRequest = async ({
     file,
@@ -24,7 +28,12 @@ const UploadImage = ({
   }: any) => {
     try {
       onProgress({ percent: 30 });
-      const res = await CommonApi.uploadFiles(file.fileInstance as File);
+      const res = await CommonApi.uploadFiles(file.fileInstance as File, {
+        url: uploadUrl,
+        fieldName: uploadFieldName,
+        path: uploadPath,
+        extraData: uploadExtraData,
+      });
 
       if (res.code === 200 && res.data?.length > 0) {
         onProgress({ percent: 100 });

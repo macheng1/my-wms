@@ -11,9 +11,11 @@ import {
   Toast,
   Tree,
   Typography,
+  Radio,
 } from "@douyinfe/semi-ui-19";
 import { IconEdit2, IconPlus } from "@douyinfe/semi-icons";
 import AdminPlatformAPI from "@/api/adminPlatform";
+import DeptAPI from "@/api/dept";
 import {
   PlatformPermission,
   PlatformRole,
@@ -26,20 +28,25 @@ export default function PlatformRolesPage() {
   const [loading, setLoading] = useState(false);
   const [roles, setRoles] = useState<PlatformRole[]>([]);
   const [permissions, setPermissions] = useState<PlatformPermission[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [visible, setVisible] = useState(false);
   const [currentRole, setCurrentRole] = useState<PlatformRole | null>(null);
   const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
+  const [checkedDeptKeys, setCheckedDeptKeys] = useState<string[]>([]);
+  const [dataScope, setDataScope] = useState<string>("ALL");
   const [formApi, setFormApi] = useState<any>(null);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [roleRes, permissionRes] = await Promise.all([
+      const [roleRes, permissionRes, deptRes] = await Promise.all([
         AdminPlatformAPI.getRoles(),
         AdminPlatformAPI.getPermissions(),
+        DeptAPI.getOptions(),
       ]);
       setRoles(roleRes.data || []);
       setPermissions(permissionRes.data || []);
+      setDepartments(deptRes.data || []);
     } finally {
       setLoading(false);
     }
@@ -58,12 +65,17 @@ export default function PlatformRolesPage() {
         code: currentRole.code,
         remark: currentRole.remark,
         isActive: currentRole.isActive,
+        dataScope: currentRole.dataScope || "ALL",
       });
       setCheckedKeys(currentRole.permissions?.map((item) => item.code) || []);
+      setCheckedDeptKeys((currentRole.deptIds || []).map(String));
+      setDataScope(currentRole.dataScope || "ALL");
     } else {
       formApi.reset();
-      formApi.setValues({ isActive: 1 });
+      formApi.setValues({ isActive: 1, dataScope: "ALL" });
       setCheckedKeys([]);
+      setCheckedDeptKeys([]);
+      setDataScope("ALL");
     }
   }, [visible, currentRole, formApi]);
 
@@ -76,11 +88,23 @@ export default function PlatformRolesPage() {
     [permissions],
   );
 
+  const deptTree = useMemo(() => {
+    const walk = (list: any[] = []): any[] =>
+      list.map((item) => ({
+        label: item.label || item.deptName,
+        key: item.value || item.id,
+        children: item.children?.length ? walk(item.children) : undefined,
+      }));
+    return walk(departments);
+  }, [departments]);
+
   const handleSave = async (values: any) => {
     await AdminPlatformAPI.saveRole({
       ...values,
       id: currentRole?.id,
       permissionCodes: checkedKeys,
+      dataScope,
+      deptIds: dataScope === "CUSTOM" ? checkedDeptKeys : [],
     });
     Toast.success("保存成功");
     setVisible(false);
@@ -195,6 +219,48 @@ export default function PlatformRolesPage() {
           </Section>
 
           <Section text="权限配置">
+            <Form.Slot label="数据权限">
+              <Radio.Group
+                value={dataScope}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setDataScope(value);
+                  formApi?.setValue("dataScope", value);
+                }}
+              >
+                <Radio value="ALL">全部数据</Radio>
+                <Radio value="CUSTOM">自定义部门</Radio>
+                <Radio value="DEPT">本部门</Radio>
+                <Radio value="DEPT_AND_CHILD">本部门及以下</Radio>
+                <Radio value="SELF">仅本人</Radio>
+              </Radio.Group>
+            </Form.Slot>
+
+            {dataScope === "CUSTOM" && (
+              <Form.Slot label="部门范围">
+                <div
+                  style={{
+                    border: "1px solid var(--semi-color-border)",
+                    borderRadius: "var(--semi-border-radius-medium)",
+                    padding: 12,
+                    maxHeight: 240,
+                    overflowY: "auto",
+                    backgroundColor: "var(--semi-color-fill-0)",
+                  }}
+                >
+                  <Tree
+                    treeData={deptTree}
+                    multiple
+                    value={checkedDeptKeys}
+                    onChange={(values) =>
+                      setCheckedDeptKeys(Array.isArray(values) ? values : [])
+                    }
+                    defaultExpandAll
+                  />
+                </div>
+              </Form.Slot>
+            )}
+
             <Form.Slot label="平台权限">
               <div
                 style={{

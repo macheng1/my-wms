@@ -17,12 +17,12 @@ const UserAPI = {
   /** 获取用户信息 */
   getUserInfo: () => request.get<UserInfoResponse>("/users/getUserInfo"),
 
-  getUserDetail: (id: string) => request.post("/users/detail", { id }),
+  getUserDetail: (id: string) => request.get(`/users/${id}`),
 
   /** 分页查询用户 */
   getUserPage: (params: QueryUser) => request.get("/users/page", { params }),
 
-  /** 新增用户 */
+  /** 新增/保存用户 */
   saveUser: (data: CreateUser) => request.post("/users/save", data),
 
   /** 更新用户 */

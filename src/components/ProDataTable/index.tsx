@@ -70,6 +70,10 @@ export interface ProDataTableProps<T = any>
   title?: string | React.ReactNode; // 表格标题
   initialValues?: any; // 搜索表单默认值
   rowSelection?: boolean; // 是否启用行选择
+  tree?: boolean; // 是否启用树状表格
+  childrenRecordName?: string; // 树节点子级字段名，Semi Table 默认为 children
+  defaultExpandAllRows?: boolean; // 默认展开所有树节点
+  expandAllRows?: boolean; // 受控展开所有树节点
 }
 
 // 暴露给父组件的方法
@@ -92,6 +96,10 @@ const ProDataTable = forwardRef(
       title,
       initialValues,
       rowSelection = false,
+      tree = false,
+      childrenRecordName = "children",
+      defaultExpandAllRows = true,
+      expandAllRows,
       ...restProps
     } = props;
 
@@ -417,15 +425,22 @@ const ProDataTable = forwardRef(
                   }
                 : undefined
             }
-            pagination={{
-              currentPage: pagination.currentPage,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-              onPageChange: (page) => loadData(page),
-              showTotal: true,
-              size: "small",
-              style: { marginTop: 16, justifyContent: "flex-end" },
-            }}
+            pagination={
+              tree
+                ? false
+                : {
+                    currentPage: pagination.currentPage,
+                    pageSize: pagination.pageSize,
+                    total: pagination.total,
+                    onPageChange: (page) => loadData(page),
+                    showTotal: true,
+                    size: "small",
+                    style: { marginTop: 16, justifyContent: "flex-end" },
+                  }
+            }
+            childrenRecordName={childrenRecordName}
+            defaultExpandAllRows={tree ? defaultExpandAllRows : undefined}
+            expandAllRows={tree ? expandAllRows ?? defaultExpandAllRows : undefined}
           />
         </div>
       </Card>

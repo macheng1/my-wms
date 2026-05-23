@@ -1,37 +1,54 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Form, Tree, Button } from "@douyinfe/semi-ui-19";
+import { Modal, Form, Tree, Button, Radio } from "@douyinfe/semi-ui-19";
 import RoleAPI from "@/api/role";
-import { TenantMenuPermission } from "@/api/tenants/types";
+import DeptAPI from "@/api/dept";
 
 const { Section } = Form;
+
+interface TreeNode {
+  label: string;
+  key: string;
+  children?: TreeNode[];
+}
+
+const toPermissionTree = (list: any[] = []): TreeNode[] =>
+  list.map((item) => ({
+    label: `${item.name}（${item.code}）`,
+    key: item.code,
+    children: item.children?.length ? toPermissionTree(item.children) : undefined,
+  }));
+
+const toDepartmentTree = (list: any[] = []): TreeNode[] =>
+  list.map((item) => ({
+    label: item.label || item.deptName,
+    key: item.value || item.id,
+    children: item.children?.length ? toDepartmentTree(item.children) : undefined,
+  }));
 
 export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
   const [formApi, setFormApi] = useState<any>(null);
   // 💡 增加一个本地状态同步 Tree 的勾选，确保视图实时更新
   const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
-  const [menus, setMenus] = useState<TenantMenuPermission[]>([]);
+  const [checkedDeptKeys, setCheckedDeptKeys] = useState<string[]>([]);
+  const [dataScope, setDataScope] = useState<string>("ALL");
+  const [permissions, setPermissions] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
 
-  // 1. 转换菜单配置为 Tree 格式
-  interface TreeNode {
-    label: string;
-    key: string;
-    children?: TreeNode[];
-  }
   const treeData = useMemo(() => {
-    return menus.map(
-      (item): TreeNode => ({
-        label: `${item.name}（${item.code}）`,
-        key: item.code,
-      })
-    );
-  }, [menus]);
+    return toPermissionTree(permissions);
+  }, [permissions]);
+
+  const deptTreeData = useMemo(() => toDepartmentTree(departments), [departments]);
 
   useEffect(() => {
     if (!visible) return;
-    RoleAPI.getTenantMenus().then((res: any) => {
-      setMenus(res.data?.menus || []);
+    RoleAPI.getPermissionTree().then((res: any) => {
+      setPermissions(res.data || []);
+    });
+    DeptAPI.getOptions().then((res: any) => {
+      setDepartments(res.data || []);
     });
   }, [visible]);
 
@@ -43,6 +60,8 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
         RoleAPI.getRoleById(data.id).then((res: any) => {
           const detail = res.data || {};
           setCheckedKeys(detail.permissionCodes || []);
+          setCheckedDeptKeys(detail.deptIds || []);
+          setDataScope(detail.dataScope || "ALL");
         });
       } else if (data) {
         // 只有当权限码变化时才 setCheckedKeys，避免 effect 死循环和 eslint 报错
@@ -52,8 +71,12 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
         ) {
           setCheckedKeys(data.permissionCodes);
         }
+        setCheckedDeptKeys((data as any).deptIds || []);
+        setDataScope((data as any).dataScope || "ALL");
       } else {
         if (checkedKeys.length > 0) setCheckedKeys([]);
+        if (checkedDeptKeys.length > 0) setCheckedDeptKeys([]);
+        setDataScope("ALL");
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -66,11 +89,13 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
         RoleAPI.getRoleById(data.id).then((res: any) => {
           const detail = res.data || {};
           formApi.setValues(detail);
+          formApi.setValue("dataScope", detail.dataScope || "ALL");
         });
       } else if (data) {
         formApi.setValues(data);
       } else {
         formApi.reset();
+        formApi.setValue("dataScope", "ALL");
       }
     }
   }, [visible, data, formApi]);
@@ -78,8 +103,12 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
   const handleSubmit = async (values: any) => {
     try {
       // 💡 提交时确保包含 Tree 勾选的最新权限码
-      console.log("🚀 ~ handleSubmit ~ checkedKeys:", checkedKeys);
-      const payload = { ...values, permissionCodes: checkedKeys };
+      const payload = {
+        ...values,
+        dataScope,
+        permissionCodes: checkedKeys,
+        deptIds: dataScope === "CUSTOM" ? checkedDeptKeys : [],
+      };
 
       if (data?.id) {
         await RoleAPI.updateRole(data.id, payload);
@@ -126,6 +155,48 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
         </Section>
 
         <Section text="权限配置">
+          <Form.Slot label="数据权限">
+            <Radio.Group
+              value={dataScope}
+              onChange={(event) => {
+                const value = event.target.value;
+                setDataScope(value);
+                formApi?.setValue("dataScope", value);
+              }}
+            >
+              <Radio value="ALL">全部数据</Radio>
+              <Radio value="CUSTOM">自定义部门</Radio>
+              <Radio value="DEPT">本部门</Radio>
+              <Radio value="DEPT_AND_CHILD">本部门及以下</Radio>
+              <Radio value="SELF">仅本人</Radio>
+            </Radio.Group>
+          </Form.Slot>
+
+          {dataScope === "CUSTOM" && (
+            <Form.Slot label="部门范围">
+              <div
+                style={{
+                  border: "1px solid var(--semi-color-border)",
+                  borderRadius: "var(--semi-border-radius-medium)",
+                  padding: "12px",
+                  maxHeight: "240px",
+                  overflowY: "auto",
+                  backgroundColor: "var(--semi-color-fill-0)",
+                }}
+              >
+                <Tree
+                  treeData={deptTreeData}
+                  multiple
+                  value={checkedDeptKeys}
+                  onChange={(values) =>
+                    setCheckedDeptKeys(Array.isArray(values) ? values : [])
+                  }
+                  defaultExpandAll
+                />
+              </div>
+            </Form.Slot>
+          )}
+
           {/* 💡 使用 Form.Slot 封装平铺的 Tree 组件 */}
           <Form.Slot label="功能权限">
             <div

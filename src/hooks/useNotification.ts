@@ -76,6 +76,7 @@ const globalNotifiedIds = new Set<string>();
  */
 export function useNotification(options: UseNotificationOptions = {}): UseNotificationReturn {
   const { onMessage, onConnected, onError, autoConnect = true } = options;
+  const userInfo = useUserStore((state) => state.userInfo);
 
   const [isConnected, setIsConnected] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -85,11 +86,19 @@ export function useNotification(options: UseNotificationOptions = {}): UseNotifi
   const localEventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttemptsRef = useRef(0);
+  const errorLoggedRef = useRef(false);
   const MAX_RECONNECT_ATTEMPTS = 5;
   const RECONNECT_DELAY = 3000;
+  const canUseTenantSse = userInfo?.userType === 'tenant' && Boolean(userInfo.tenantId);
 
   // 获取未读数量
   const refreshUnreadCount = useCallback(async () => {
+    if (!canUseTenantSse) {
+      setUnreadCount(0);
+      setUnreadStats(null);
+      return;
+    }
+
     try {
       const stats = await getUnreadCount();
       setUnreadCount(stats.total);
@@ -97,10 +106,14 @@ export function useNotification(options: UseNotificationOptions = {}): UseNotifi
     } catch (error) {
       console.error('获取未读数量失败:', error);
     }
-  }, []);
+  }, [canUseTenantSse]);
 
   // 建立 SSE 连接
   const connect = useCallback(() => {
+    if (!canUseTenantSse) {
+      return;
+    }
+
     const token = Cookies.get('wms_token');
     if (!token) {
       console.warn('[SSE] 未找到 token，无法连接 SSE');
@@ -146,6 +159,7 @@ export function useNotification(options: UseNotificationOptions = {}): UseNotifi
     eventSource.addEventListener('connected', (event: MessageEvent) => {
       setIsConnected(true);
       reconnectAttemptsRef.current = 0;
+      errorLoggedRef.current = false;
       onConnected?.();
       console.log('[SSE] 连接已建立');
 
@@ -198,20 +212,24 @@ export function useNotification(options: UseNotificationOptions = {}): UseNotifi
       setIsConnected(false);
       onError?.(error);
 
-      // 详细日志
-      console.error('[SSE] 连接错误详情:', {
-        readyState,
-        readyStateText:
-          readyState === EventSource.CONNECTING
-            ? 'CONNECTING'
-            : readyState === EventSource.OPEN
-              ? 'OPEN'
-              : readyState === EventSource.CLOSED
-                ? 'CLOSED'
-                : 'UNKNOWN',
-        url,
-        reconnectAttempts: reconnectAttemptsRef.current,
-      });
+      const readyStateText =
+        readyState === EventSource.CONNECTING
+          ? 'CONNECTING'
+          : readyState === EventSource.OPEN
+            ? 'OPEN'
+            : readyState === EventSource.CLOSED
+              ? 'CLOSED'
+              : 'UNKNOWN';
+
+      if (!errorLoggedRef.current) {
+        console.warn('[SSE] 连接失败，通知实时推送暂不可用', {
+          readyState,
+          readyStateText,
+          url,
+          reconnectAttempts: reconnectAttemptsRef.current,
+        });
+        errorLoggedRef.current = true;
+      }
 
       // 检查 EventSource 状态
       if (readyState === EventSource.CLOSED) {
@@ -220,12 +238,12 @@ export function useNotification(options: UseNotificationOptions = {}): UseNotifi
         return;
       }
 
-      // 检查是否是 404 错误（接口未实现）
-      // EventSource 在遇到 HTTP 错误时，readyState 会变成 CONNECTING
-      // 然后在多次尝试后关闭
       if (readyState === EventSource.CONNECTING) {
-        console.warn('[SSE] 正在尝试重新连接...');
-        // 如果正在尝试连接，让它自然重试
+        reconnectAttemptsRef.current += 1;
+        if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+          console.warn('[SSE] 达到最大重连次数，关闭实时通知连接');
+          eventSource.close();
+        }
         return;
       }
 
@@ -240,7 +258,7 @@ export function useNotification(options: UseNotificationOptions = {}): UseNotifi
         console.warn('[SSE] 达到最大重连次数，停止重连');
       }
     };
-  }, [onMessage, onConnected, onError, refreshUnreadCount]);
+  }, [canUseTenantSse, onMessage, onConnected, onError, refreshUnreadCount]);
 
   // 断开连接
   const disconnect = useCallback(() => {
@@ -300,7 +318,7 @@ export function useNotification(options: UseNotificationOptions = {}): UseNotifi
 
   // 组件挂载时连接，卸载时断开
   useEffect(() => {
-    if (autoConnect) {
+    if (autoConnect && canUseTenantSse) {
       connect();
     }
 
@@ -308,7 +326,7 @@ export function useNotification(options: UseNotificationOptions = {}): UseNotifi
       // 只清理本地引用，不关闭全局连接
       localEventSourceRef.current = null;
     };
-  }, [connect, autoConnect]);
+  }, [connect, autoConnect, canUseTenantSse]);
 
   return {
     isConnected,

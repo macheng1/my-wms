@@ -208,7 +208,7 @@ export default function ProductEditModal({
         )}
 
         <Section text="产品图片">
-          <UploadImage field="images" label="产品图" max={3} />
+          <UploadImage field="images" label="产品图" max={3} uploadPath="product" />
         </Section>
 
         <Section text="其他配置">
