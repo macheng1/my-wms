@@ -1,4 +1,4 @@
-export interface PlatformPermission {
+export interface PlatformMenu {
   id: string | number;
   code: string;
   name: string;
@@ -15,9 +15,10 @@ export interface PlatformPermission {
   isMenu?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  children?: PlatformMenu[];
 }
 
-export interface PlatformMenuTreeNode extends PlatformPermission {
+export interface PlatformMenuTreeNode extends PlatformMenu {
   children?: PlatformMenuTreeNode[];
 }
 
@@ -27,9 +28,9 @@ export interface PlatformRole {
   code?: string;
   remark?: string | null;
   isActive: number;
-  permissions?: PlatformPermission[];
-  permissionCodes?: string[];
-  permissionIds?: Array<string | number>;
+  menus?: PlatformMenu[];
+  menuCodes?: string[];
+  menuIds?: Array<string | number>;
   dataScope?: "ALL" | "CUSTOM" | "DEPT" | "DEPT_AND_CHILD" | "SELF";
   deptIds?: Array<string | number>;
   createdAt?: string;
@@ -61,7 +62,7 @@ export interface SavePlatformRoleParams {
   code?: string;
   remark?: string;
   isActive?: number;
-  permissionCodes?: string[];
+  menuCodes?: string[];
   dataScope?: "ALL" | "CUSTOM" | "DEPT" | "DEPT_AND_CHILD" | "SELF";
   deptIds?: Array<string | number>;
 }
@@ -70,6 +71,7 @@ export interface QueryPlatformUserParams {
   page?: number;
   pageSize?: number;
   username?: string;
+  deptId?: string | number;
   isActive?: number;
 }
 

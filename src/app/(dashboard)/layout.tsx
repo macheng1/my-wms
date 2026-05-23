@@ -7,7 +7,7 @@ import { AppSider } from "@/components/layout/AppSider";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AuthInitializer } from "@/components/layout/AuthInitializer";
 import { useUserStore } from "@/store/useUserStore";
-import { MENU_CONFIG, MenuItem } from "@/constants/menuConfig";
+import { collectUserMenuCodes, MENU_CONFIG, MenuItem } from "@/constants/menuConfig";
 import { IllustrationNoAccess } from "@douyinfe/semi-illustrations";
 
 const { Sider, Content } = Layout;
@@ -27,7 +27,10 @@ export default function DashboardLayout({
   // 💡 派生状态：不再使用 useState + useEffect
   // 假设初始状态 userInfo 为 null，获取到数据后 userInfo.id 存在
   const isUserLoaded = !!userInfo?.id;
-  const permissions = useMemo(() => userInfo?.permissions || [], [userInfo]);
+  const menuCodes = useMemo(
+    () => collectUserMenuCodes(userInfo?.menus || []),
+    [userInfo?.menus]
+  );
 
   /**
    * 💡 2. 递归查找当前路径对应的权限码
@@ -52,12 +55,12 @@ export default function DashboardLayout({
   const hasPermission = useMemo(() => {
     // 如果还没加载完，默认不放行（显示 loading）
     if (!isUserLoaded) return false;
-    // 首页或超级管理员放行
-    if (pathname === "/" || permissions.includes("*")) return true;
+    // 首页放行
+    if (pathname === "/") return true;
     // 如果页面没配置 code，默认放行
     if (!currentPageCode) return true;
-    return permissions.includes(currentPageCode);
-  }, [pathname, currentPageCode, permissions, isUserLoaded]);
+    return menuCodes.includes(currentPageCode);
+  }, [pathname, currentPageCode, menuCodes, isUserLoaded]);
 
   /**
    * 💡 4. 处理无权限时的弹窗拦截 (可选)
@@ -66,7 +69,7 @@ export default function DashboardLayout({
   useEffect(() => {
     if (isUserLoaded && !hasPermission && pathname !== "/") {
       // 仅在明确加载完成且没权限时才提示
-      console.warn("Permission denied for:", pathname);
+      console.warn("Menu denied for:", pathname);
     }
   }, [isUserLoaded, hasPermission, pathname]);
 

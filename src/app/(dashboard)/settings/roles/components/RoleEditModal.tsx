@@ -13,11 +13,11 @@ interface TreeNode {
   children?: TreeNode[];
 }
 
-const toPermissionTree = (list: any[] = []): TreeNode[] =>
+const toMenuTree = (list: any[] = []): TreeNode[] =>
   list.map((item) => ({
-    label: `${item.name}（${item.code}）`,
+    label: item.name,
     key: item.code,
-    children: item.children?.length ? toPermissionTree(item.children) : undefined,
+    children: item.children?.length ? toMenuTree(item.children) : undefined,
   }));
 
 const toDepartmentTree = (list: any[] = []): TreeNode[] =>
@@ -27,25 +27,61 @@ const toDepartmentTree = (list: any[] = []): TreeNode[] =>
     children: item.children?.length ? toDepartmentTree(item.children) : undefined,
   }));
 
+const collectTreeKeys = (nodes: TreeNode[] = []): string[] =>
+  nodes.flatMap((node) => [
+    node.key,
+    ...(node.children?.length ? collectTreeKeys(node.children) : []),
+  ]);
+
+const collectAncestorKeys = (
+  nodes: TreeNode[] = [],
+  checkedKeySet: Set<string>,
+  ancestors: string[] = [],
+): string[] =>
+  nodes.flatMap((node) => {
+    const childAncestorKeys = node.children?.length
+      ? collectAncestorKeys(node.children, checkedKeySet, [...ancestors, node.key])
+      : [];
+    return checkedKeySet.has(node.key)
+      ? [...ancestors, ...childAncestorKeys]
+      : childAncestorKeys;
+  });
+
+const mergeHalfCheckedMenuCodes = (
+  checkedKeys: string[],
+  treeData: TreeNode[],
+): string[] =>
+  Array.from(
+    new Set([
+      ...checkedKeys,
+      ...collectAncestorKeys(treeData, new Set(checkedKeys)),
+    ]),
+  );
+
 export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
   const [formApi, setFormApi] = useState<any>(null);
   // 💡 增加一个本地状态同步 Tree 的勾选，确保视图实时更新
   const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
   const [checkedDeptKeys, setCheckedDeptKeys] = useState<string[]>([]);
+  const [expandedMenuKeys, setExpandedMenuKeys] = useState<string[]>([]);
   const [dataScope, setDataScope] = useState<string>("ALL");
-  const [permissions, setPermissions] = useState<any[]>([]);
+  const [menus, setMenus] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
 
   const treeData = useMemo(() => {
-    return toPermissionTree(permissions);
-  }, [permissions]);
+    return toMenuTree(menus);
+  }, [menus]);
 
   const deptTreeData = useMemo(() => toDepartmentTree(departments), [departments]);
 
   useEffect(() => {
+    setExpandedMenuKeys(collectTreeKeys(treeData));
+  }, [treeData]);
+
+  useEffect(() => {
     if (!visible) return;
-    RoleAPI.getPermissionTree().then((res: any) => {
-      setPermissions(res.data || []);
+    RoleAPI.getMenuTree().then((res: any) => {
+      setMenus(res.data || []);
     });
     DeptAPI.getOptions().then((res: any) => {
       setDepartments(res.data || []);
@@ -59,17 +95,17 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
       if (data?.id) {
         RoleAPI.getRoleById(data.id).then((res: any) => {
           const detail = res.data || {};
-          setCheckedKeys(detail.permissionCodes || []);
+          setCheckedKeys(detail.menuCodes || []);
           setCheckedDeptKeys(detail.deptIds || []);
           setDataScope(detail.dataScope || "ALL");
         });
       } else if (data) {
-        // 只有当权限码变化时才 setCheckedKeys，避免 effect 死循环和 eslint 报错
+        // 只有当菜单码变化时才 setCheckedKeys，避免 effect 死循环和 eslint 报错
         if (
-          Array.isArray(data.permissionCodes) &&
-          JSON.stringify(data.permissionCodes) !== JSON.stringify(checkedKeys)
+          Array.isArray(data.menuCodes) &&
+          JSON.stringify(data.menuCodes) !== JSON.stringify(checkedKeys)
         ) {
-          setCheckedKeys(data.permissionCodes);
+          setCheckedKeys(data.menuCodes);
         }
         setCheckedDeptKeys((data as any).deptIds || []);
         setDataScope((data as any).dataScope || "ALL");
@@ -102,11 +138,12 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
 
   const handleSubmit = async (values: any) => {
     try {
-      // 💡 提交时确保包含 Tree 勾选的最新权限码
+      const menuCodes = mergeHalfCheckedMenuCodes(checkedKeys, treeData);
+      // 💡 提交时确保包含 Tree 勾选的最新菜单码
       const payload = {
         ...values,
         dataScope,
-        permissionCodes: checkedKeys,
+        menuCodes,
         deptIds: dataScope === "CUSTOM" ? checkedDeptKeys : [],
       };
 
@@ -154,7 +191,7 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
           <Form.TextArea field="remark" label="备注" />
         </Section>
 
-        <Section text="权限配置">
+        <Section text="菜单配置">
           <Form.Slot label="数据权限">
             <Radio.Group
               value={dataScope}
@@ -198,7 +235,7 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
           )}
 
           {/* 💡 使用 Form.Slot 封装平铺的 Tree 组件 */}
-          <Form.Slot label="功能权限">
+          <Form.Slot label="菜单权限">
             <div
               style={{
                 border: "1px solid var(--semi-color-border)",
@@ -213,16 +250,17 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
                 treeData={treeData}
                 multiple
                 value={checkedKeys}
+                expandedKeys={expandedMenuKeys}
                 onChange={(values) => {
-                  // values 就是所有已选权限码的数组
-                  setCheckedKeys(Array.isArray(values) ? values : []);
+                  // values 就是所有已选菜单码的数组
+                  const nextKeys = Array.isArray(values) ? values : [];
+                  setCheckedKeys(nextKeys as string[]);
                   formApi?.setValue(
-                    "permissionCodes",
-                    Array.isArray(values) ? values : []
+                    "menuCodes",
+                    mergeHalfCheckedMenuCodes(nextKeys as string[], treeData)
                   );
                 }}
-                // 展开所有节点，方便管理员快速勾选
-                defaultExpandAll
+                onExpand={(keys) => setExpandedMenuKeys(keys)}
               />
             </div>
           </Form.Slot>

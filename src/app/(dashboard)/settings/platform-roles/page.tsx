@@ -17,35 +17,61 @@ import { IconEdit2, IconPlus } from "@douyinfe/semi-icons";
 import AdminPlatformAPI from "@/api/adminPlatform";
 import DeptAPI from "@/api/dept";
 import {
-  PlatformPermission,
+  PlatformMenu,
   PlatformRole,
 } from "@/api/adminPlatform/types";
 
 const { Title } = Typography;
 const { Section } = Form;
 
+const collectAncestorKeys = (
+  nodes: any[] = [],
+  checkedKeySet: Set<string>,
+  ancestors: string[] = [],
+): string[] =>
+  nodes.flatMap((node) => {
+    const childAncestorKeys = node.children?.length
+      ? collectAncestorKeys(node.children, checkedKeySet, [...ancestors, node.key])
+      : [];
+    return checkedKeySet.has(node.key)
+      ? [...ancestors, ...childAncestorKeys]
+      : childAncestorKeys;
+  });
+
+const mergeHalfCheckedMenuCodes = (
+  checkedKeys: string[],
+  menuTree: any[],
+): string[] =>
+  Array.from(
+    new Set([
+      ...checkedKeys,
+      ...collectAncestorKeys(menuTree, new Set(checkedKeys)),
+    ]),
+  );
+
 export default function PlatformRolesPage() {
   const [loading, setLoading] = useState(false);
   const [roles, setRoles] = useState<PlatformRole[]>([]);
-  const [permissions, setPermissions] = useState<PlatformPermission[]>([]);
+  const [menus, setMenus] = useState<PlatformMenu[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [visible, setVisible] = useState(false);
   const [currentRole, setCurrentRole] = useState<PlatformRole | null>(null);
   const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
   const [checkedDeptKeys, setCheckedDeptKeys] = useState<string[]>([]);
+  const [expandedMenuKeys, setExpandedMenuKeys] = useState<string[]>([]);
   const [dataScope, setDataScope] = useState<string>("ALL");
   const [formApi, setFormApi] = useState<any>(null);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [roleRes, permissionRes, deptRes] = await Promise.all([
+      const [roleRes, menuRes, deptRes] = await Promise.all([
         AdminPlatformAPI.getRoles(),
         AdminPlatformAPI.getMenuTree(),
         DeptAPI.getOptions(),
       ]);
       setRoles(roleRes.data || []);
-      setPermissions(permissionRes.data || []);
+      setMenus(menuRes.data || []);
       setDepartments(deptRes.data || []);
     } finally {
       setLoading(false);
@@ -62,12 +88,11 @@ export default function PlatformRolesPage() {
     if (currentRole) {
       formApi.setValues({
         name: currentRole.name,
-        code: currentRole.code,
         remark: currentRole.remark,
         isActive: currentRole.isActive,
         dataScope: currentRole.dataScope || "ALL",
       });
-      setCheckedKeys(currentRole.permissions?.map((item) => item.code) || []);
+      setCheckedKeys(currentRole.menus?.map((item) => item.code) || []);
       setCheckedDeptKeys((currentRole.deptIds || []).map(String));
       setDataScope(currentRole.dataScope || "ALL");
     } else {
@@ -79,15 +104,24 @@ export default function PlatformRolesPage() {
     }
   }, [visible, currentRole, formApi]);
 
-  const permissionTree = useMemo(() => {
-    const walk = (list: PlatformPermission[] = []): any[] =>
+  const menuTree = useMemo(() => {
+    const walk = (list: PlatformMenu[] = []): any[] =>
       list.map((item) => ({
-        label: `${item.name}（${item.code}）`,
+        label: item.name,
         key: item.code,
-        children: item.children?.length ? walk(item.children as PlatformPermission[]) : undefined,
+        children: item.children?.length ? walk(item.children as PlatformMenu[]) : undefined,
       }));
-    return walk(permissions);
-  }, [permissions]);
+    return walk(menus);
+  }, [menus]);
+
+  useEffect(() => {
+    const collectKeys = (nodes: any[] = []): string[] =>
+      nodes.flatMap((node) => [
+        node.key,
+        ...(node.children?.length ? collectKeys(node.children) : []),
+      ]);
+    setExpandedMenuKeys(collectKeys(menuTree));
+  }, [menuTree]);
 
   const deptTree = useMemo(() => {
     const walk = (list: any[] = []): any[] =>
@@ -100,10 +134,14 @@ export default function PlatformRolesPage() {
   }, [departments]);
 
   const handleSave = async (values: any) => {
+    const menuCodes = mergeHalfCheckedMenuCodes(
+      checkedKeys,
+      menuTree,
+    );
     await AdminPlatformAPI.saveRole({
       ...values,
       id: currentRole?.id,
-      permissionCodes: checkedKeys,
+      menuCodes,
       dataScope,
       deptIds: dataScope === "CUSTOM" ? checkedDeptKeys : [],
     });
@@ -156,8 +194,8 @@ export default function PlatformRolesPage() {
             ),
           },
           {
-            title: "权限数量",
-            dataIndex: "permissions",
+            title: "菜单数量",
+            dataIndex: "menus",
             render: (items) => `${items?.length || 0} 个`,
           },
           {
@@ -206,7 +244,6 @@ export default function PlatformRolesPage() {
               label="角色名称"
               rules={[{ required: true, message: "请输入角色名称" }]}
             />
-            <Form.Input field="code" label="角色编码" />
             <Form.Select
               field="isActive"
               label="是否启用"
@@ -219,7 +256,7 @@ export default function PlatformRolesPage() {
             <Form.TextArea field="remark" label="备注" />
           </Section>
 
-          <Section text="权限配置">
+          <Section text="菜单配置">
             <Form.Slot label="数据权限">
               <Radio.Group
                 value={dataScope}
@@ -262,7 +299,7 @@ export default function PlatformRolesPage() {
               </Form.Slot>
             )}
 
-            <Form.Slot label="功能权限">
+            <Form.Slot label="菜单权限">
               <div
                 style={{
                   border: "1px solid var(--semi-color-border)",
@@ -274,13 +311,14 @@ export default function PlatformRolesPage() {
                 }}
               >
                 <Tree
-                  treeData={permissionTree}
+                  treeData={menuTree}
                   multiple
                   value={checkedKeys}
-                  onChange={(values) =>
-                    setCheckedKeys(Array.isArray(values) ? values : [])
-                  }
-                  defaultExpandAll
+                  expandedKeys={expandedMenuKeys}
+                  onChange={(values) => {
+                    setCheckedKeys(Array.isArray(values) ? values as string[] : []);
+                  }}
+                  onExpand={(keys) => setExpandedMenuKeys(keys)}
                 />
               </div>
             </Form.Slot>

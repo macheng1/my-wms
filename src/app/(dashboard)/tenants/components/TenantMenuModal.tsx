@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Modal, Space, Spin, Toast, Tree, Typography } from "@douyinfe/semi-ui-19";
 import TenantsAPI from "@/api/tenants";
-import { TenantMenuPermission } from "@/api/tenants/types";
+import { TenantMenu } from "@/api/tenants/types";
 
 const { Text } = Typography;
 
@@ -20,7 +20,7 @@ export default function TenantMenuModal({
 }: TenantMenuModalProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [menus, setMenus] = useState<TenantMenuPermission[]>([]);
+  const [menus, setMenus] = useState<TenantMenu[]>([]);
   const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
 
   useEffect(() => {

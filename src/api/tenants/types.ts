@@ -80,7 +80,7 @@ export interface TenantItem {
   updatedAt: string;
 }
 
-export interface TenantMenuPermission {
+export interface TenantMenu {
   id: string | number;
   code: string;
   name: string;
@@ -94,7 +94,7 @@ export interface TenantMenuPermission {
 export interface TenantMenuGrant {
   tenantId: string;
   tenantName: string;
-  menus: TenantMenuPermission[];
+  menus: TenantMenu[];
   selectedCodes: string[];
 }
 

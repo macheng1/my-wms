@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Form, Modal, Radio, Space } from "@douyinfe/semi-ui-19";
-import { PlatformPermission, SavePlatformMenuParams } from "@/api/adminPlatform/types";
+import { PlatformMenu, SavePlatformMenuParams } from "@/api/adminPlatform/types";
 import { MENU_STATUS_OPTIONS, MENU_TYPE_OPTIONS, MENU_VISIBLE_OPTIONS, MenuType } from "../constants";
 import { MENU_ICON_OPTIONS, renderMenuIcon } from "../menuIcons";
 
@@ -13,7 +13,7 @@ export interface ParentMenuOption {
 
 interface PlatformMenuEditModalProps {
   visible: boolean;
-  currentMenu: PlatformPermission | null;
+  currentMenu: PlatformMenu | null;
   defaultParentId: number;
   parentOptions: ParentMenuOption[];
   onCancel: () => void;
@@ -82,9 +82,9 @@ export default function PlatformMenuEditModal({
 
         <Form.Input
           field="code"
-          label="权限码"
+          label="菜单码"
           placeholder="例如 platform:settings 或 platform:user:create"
-          rules={[{ required: true, message: "请输入权限码" }]}
+          rules={[{ required: true, message: "请输入菜单码" }]}
         />
 
         <Form.Select

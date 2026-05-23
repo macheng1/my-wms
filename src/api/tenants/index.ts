@@ -77,9 +77,9 @@ const TenantsAPI = {
   },
 
   /** 保存租户菜单授权 */
-  saveTenantMenus: (id: string, permissionCodes: string[]) => {
+  saveTenantMenus: (id: string, menuCodes: string[]) => {
     return request.post<TenantMenuGrant>(`/admin/platform/tenants/${id}/menus/save`, {
-      permissionCodes,
+      menuCodes,
     });
   },
 };

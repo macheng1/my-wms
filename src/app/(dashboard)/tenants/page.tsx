@@ -19,6 +19,7 @@ import TenantEditModal from "./components/TenantEditModal";
 import TenantDetailModal from "./components/TenantDetailModal";
 import TenantMenuModal from "./components/TenantMenuModal";
 import { getIndustryName } from "@/constants/industryCodes";
+import BtnAuth from "@/components/BtnAuth";
 
 export default function TenantListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
@@ -151,58 +152,68 @@ export default function TenantListPage() {
           <Button theme="light" size="small" onClick={() => handleView(record)}>
             详情
           </Button>
-          <Button
-            icon={<IconEdit2 />}
-            theme="light"
-            size="small"
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          <Button
-            icon={<IconSetting />}
-            theme="light"
-            size="small"
-            onClick={() => handleMenu(record)}
-          >
-            管理菜单
-          </Button>
-          <Button
-            theme="light"
-            size="small"
-            onClick={() => handleLifecycle(record)}
-          >
-            生命周期
-          </Button>
-          {record.isApproved !== 1 ? (
+          <BtnAuth code="platform:tenant:update">
             <Button
-              icon={<IconTickCircle />}
+              icon={<IconEdit2 />}
               theme="light"
-              type="primary"
               size="small"
-              onClick={() => handleApprove(record)}
+              onClick={() => handleEdit(record)}
             >
-              通过
+              编辑
             </Button>
-          ) : null}
-          <Button
-            icon={<IconClose />}
-            theme="light"
-            type="warning"
-            size="small"
-            onClick={() => handleReject(record)}
-          >
-            驳回
-          </Button>
-          <Button
-            icon={<IconDelete />}
-            theme="light"
-            type="danger"
-            size="small"
-            onClick={() => handleDelete(record)}
-          >
-            删除
-          </Button>
+          </BtnAuth>
+          <BtnAuth code="platform:tenant:update">
+            <Button
+              icon={<IconSetting />}
+              theme="light"
+              size="small"
+              onClick={() => handleMenu(record)}
+            >
+              管理菜单
+            </Button>
+          </BtnAuth>
+          <BtnAuth code="platform:tenant:status">
+            <Button
+              theme="light"
+              size="small"
+              onClick={() => handleLifecycle(record)}
+            >
+              生命周期
+            </Button>
+          </BtnAuth>
+          <BtnAuth code="platform:tenant:approve">
+            {record.isApproved !== 1 ? (
+              <Button
+                icon={<IconTickCircle />}
+                theme="light"
+                type="primary"
+                size="small"
+                onClick={() => handleApprove(record)}
+              >
+                通过
+              </Button>
+            ) : null}
+            <Button
+              icon={<IconClose />}
+              theme="light"
+              type="warning"
+              size="small"
+              onClick={() => handleReject(record)}
+            >
+              驳回
+            </Button>
+          </BtnAuth>
+          <BtnAuth code="platform:tenant:delete">
+            <Button
+              icon={<IconDelete />}
+              theme="light"
+              type="danger"
+              size="small"
+              onClick={() => handleDelete(record)}
+            >
+              删除
+            </Button>
+          </BtnAuth>
         </Space>
       ),
     },

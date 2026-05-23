@@ -1,6 +1,6 @@
 import request from "@/utils/request";
 import {
-  PlatformPermission,
+  PlatformMenu,
   PlatformRole,
   PlatformDashboard,
   TenantDashboard,
@@ -22,11 +22,11 @@ const AdminPlatformAPI = {
   getTenantDashboard: () =>
     request.get<TenantDashboard>("/admin/tenant/dashboard"),
 
-  getMenus: () => request.get<PlatformPermission[]>("/admin/platform/menus"),
+  getMenus: () => request.get<PlatformMenu[]>("/admin/platform/menus"),
 
   getMenusPage: (params: QueryPlatformMenuParams) =>
     request.post<{
-      list: PlatformPermission[];
+      list: PlatformMenu[];
       total: number;
       page: number;
       pageSize: number;
@@ -36,10 +36,7 @@ const AdminPlatformAPI = {
     request.get<PlatformMenuTreeNode[]>("/admin/platform/menus/tree"),
 
   getMenuDetail: (id: string | number) =>
-    request.get<PlatformPermission>(`/admin/platform/menus/${id}`),
-
-  getPermissions: () =>
-    request.get<PlatformPermission[]>("/admin/platform/permissions"),
+    request.get<PlatformMenu>(`/admin/platform/menus/${id}`),
 
   getRoles: () => request.get<PlatformRole[]>("/admin/platform/roles"),
 
@@ -60,11 +57,14 @@ const AdminPlatformAPI = {
   saveUser: (data: SavePlatformUserParams) =>
     request.post<PlatformUser>("/admin/platform/users/save", data),
 
+  resetUserPassword: (data: { userId: string | number; newPassword: string }) =>
+    request.post("/admin/platform/users/reset", data),
+
   updateUserStatus: (id: string | number, isActive: number) =>
     request.post(`/admin/platform/users/${id}/status`, { isActive }),
 
   saveMenu: (data: SavePlatformMenuParams) =>
-    request.post<PlatformPermission>("/admin/platform/menus/save", data),
+    request.post<PlatformMenu>("/admin/platform/menus/save", data),
 
   deleteMenu: (id: string | number) =>
     request.post(`/admin/platform/menus/${id}/delete`),

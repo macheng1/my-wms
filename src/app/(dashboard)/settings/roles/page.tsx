@@ -23,7 +23,7 @@ interface Role {
   name: string;
   isActive: number; // 1=启用, 0=禁用
   remark?: string;
-  permissionCodes: string[];
+  menuCodes: string[];
   createdAt?: string;
 }
 

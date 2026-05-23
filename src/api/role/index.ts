@@ -9,7 +9,7 @@ const RoleAPI = {
   /** 获取所有激活角色下拉列表 */
   selectRoleList: () => request.post("/roles/selectRoleLists"),
   getOptions: () => request.get("/roles/options"),
-  getPermissionTree: () => request.get("/roles/permissions/tree"),
+  getMenuTree: () => request.get("/roles/menus/tree"),
   /** 更新角色启用状态 */
   updateRoleStatus: (id: string | number, isActive: number) =>
     request.post(`/roles/${id}/status`, { isActive }),

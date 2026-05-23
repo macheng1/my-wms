@@ -16,7 +16,7 @@ export interface CreateRole {
   remark?: string;
   dataScope?: "ALL" | "CUSTOM" | "DEPT" | "DEPT_AND_CHILD" | "SELF";
   deptIds?: string[];
-  /** 权限码集合，对应前端 MENU_CONFIG 里的 code */
-  permissionCodes?: string[];
-  permissionIds?: number[];
+  /** 菜单码集合，对应前端 MENU_CONFIG 里的 code */
+  menuCodes?: string[];
+  menuIds?: number[];
 }

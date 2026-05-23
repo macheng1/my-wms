@@ -8,6 +8,7 @@ import {
   IconSetting,
   IconUserGroup,
 } from "@douyinfe/semi-icons";
+import type { UserMenuInfo } from "@/api/users/types";
 
 /**
  * 菜单项接口定义
@@ -70,6 +71,46 @@ export const filterMenuByUser = (
     })
     .filter((item): item is MenuItem => Boolean(item));
 };
+
+const flattenMenuConfig = (items: MenuItem[], map = new Map<string, MenuItem>()) => {
+  items.forEach((item) => {
+    if (item.code) map.set(item.code, item);
+    if (item.items?.length) flattenMenuConfig(item.items, map);
+  });
+  return map;
+};
+
+export const buildMenuFromUserMenus = (menus: UserMenuInfo[] = []): MenuItem[] => {
+  const localMenuByCode = flattenMenuConfig(MENU_CONFIG);
+
+  const walk = (items: UserMenuInfo[]): MenuItem[] =>
+    items
+      .filter((item) => item.type !== "BUTTON")
+      .map((item) => {
+        const localMenu = item.code ? localMenuByCode.get(item.code) : undefined;
+        const children = item.children?.length ? walk(item.children) : undefined;
+        return {
+          ...localMenu,
+          itemKey: item.itemKey || item.routePath || localMenu?.itemKey || "",
+          text: item.text || item.name || localMenu?.text || "",
+          code: item.code || localMenu?.code,
+          items: children?.length ? children : undefined,
+        };
+      })
+      .filter((item) => item.itemKey && item.text);
+
+  return walk(menus);
+};
+
+export const collectUserMenuCodes = (menus: UserMenuInfo[] = []): string[] =>
+  Array.from(
+    new Set(
+      menus.flatMap((menu) => [
+        ...(menu.code ? [menu.code] : []),
+        ...(menu.children?.length ? collectUserMenuCodes(menu.children) : []),
+      ])
+    )
+  );
 
 /**
  * WMS 系统菜单配置

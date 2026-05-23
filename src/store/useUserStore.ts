@@ -2,19 +2,29 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import Cookies from "js-cookie";
 import { UserAPI } from "@/api"; // 💡 引入你之前创建的 UserAPI
+import { UserMenuInfo } from "@/api/users/types";
 
 interface UserInfo {
-  id?: string;
+  id?: string | number;
   username: string;
   avatar?: string;
-  tenantId?: string;
+  realName?: string;
+  tenantId?: string | number | null;
+  tenantName?: string;
+  deptId?: string | number | null;
+  deptName?: string | null;
+  postId?: string | number | null;
+  postName?: string | null;
   userType?: "platform" | "tenant";
+  roleIds?: Array<string | number>;
   roleNames?: string[];
-  role: "admin" | "staff";
+  menus?: UserMenuInfo[];
+  butAuths?: string[];
+  role?: "admin" | "staff";
 }
 
 interface UserState {
-  userInfo: (UserInfo & { permissions?: string[] }) | null;
+  userInfo: UserInfo | null;
   token: string | null;
   setToken: (token: string) => void;
   setUserInfo: (info: UserInfo) => void;

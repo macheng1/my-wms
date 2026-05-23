@@ -1,45 +1,64 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  Button,
-  Form,
-  Modal,
-  Space,
-  Table,
-  Tag,
-  Toast,
-  Typography,
-} from "@douyinfe/semi-ui-19";
-import { IconEdit2, IconPlus, IconPlay, IconPause } from "@douyinfe/semi-icons";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button, Modal, Space, Tag, Toast } from "@douyinfe/semi-ui-19";
+import { IconEdit2, IconKey, IconPause, IconPlay } from "@douyinfe/semi-icons";
 import AdminPlatformAPI from "@/api/adminPlatform";
 import { PlatformRole, PlatformUser } from "@/api/adminPlatform/types";
 import DeptAPI from "@/api/dept";
 import PostAPI from "@/api/post";
+import { ProColumnType, ProDataTableRef } from "@/components/ProDataTable";
+import CommonImage from "@/components/CommonImage";
+import ResetPasswordModal from "@/app/(dashboard)/users/components/ResetPasswordModal";
+import PlatformUserEditModal from "./components/PlatformUserEditModal";
+import PlatformUserLayout, {
+  DeptTreeNode,
+} from "./components/PlatformUserLayout";
 
-const { Title } = Typography;
-const { Section } = Form;
+const ALL_DEPT_KEY = "__all__";
+
+const toDeptTree = (list: any[] = []): DeptTreeNode[] =>
+  list.map((item) => ({
+    label: item.label || item.deptName,
+    key: String(item.value || item.id),
+    value: String(item.value || item.id),
+    children: item.children?.length ? toDeptTree(item.children) : undefined,
+  }));
+
+const findDeptLabel = (nodes: DeptTreeNode[], key: string): string => {
+  for (const node of nodes) {
+    if (node.key === key) return node.label;
+    if (node.children?.length) {
+      const childLabel = findDeptLabel(node.children, key);
+      if (childLabel) return childLabel;
+    }
+  }
+  return "";
+};
 
 export default function PlatformUsersPage() {
-  const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState<PlatformUser[]>([]);
+  const tableRef = useRef<ProDataTableRef>(null);
+  const mountedRef = useRef(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [resetPwdModal, setResetPwdModal] = useState({
+    visible: false,
+    userId: "",
+    username: "",
+  });
+  const [currentUser, setCurrentUser] = useState<PlatformUser | null>(null);
+  const [selectedDeptKey, setSelectedDeptKey] = useState(ALL_DEPT_KEY);
   const [roles, setRoles] = useState<PlatformRole[]>([]);
   const [deptOptions, setDeptOptions] = useState<any[]>([]);
-  const [postOptions, setPostOptions] = useState<any[]>([]);
-  const [visible, setVisible] = useState(false);
-  const [currentUser, setCurrentUser] = useState<PlatformUser | null>(null);
-  const [formApi, setFormApi] = useState<any>(null);
+  const [postOptions, setPostOptions] = useState<
+    { label: string; value: string | number }[]
+  >([]);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [userRes, roleRes, deptRes, postRes] = await Promise.all([
-        AdminPlatformAPI.getUsers({ page: 1, pageSize: 100 }),
-        AdminPlatformAPI.getRoles(),
-        DeptAPI.getOptions(),
-        PostAPI.getOptions(),
-      ]);
-      setUsers(userRes.data?.list || []);
+  useEffect(() => {
+    Promise.all([
+      AdminPlatformAPI.getRoles(),
+      DeptAPI.getOptions(),
+      PostAPI.getOptions(),
+    ]).then(([roleRes, deptRes, postRes]) => {
       setRoles(roleRes.data || []);
       setDeptOptions(deptRes.data || []);
       setPostOptions(
@@ -48,30 +67,60 @@ export default function PlatformUsersPage() {
           value: item.value || item.id,
         })),
       );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
+    });
   }, []);
 
-  useEffect(() => {
-    if (!visible || !formApi) return;
+  const deptTreeData = useMemo(
+    () => [
+      {
+        label: "全部部门",
+        key: ALL_DEPT_KEY,
+        value: ALL_DEPT_KEY,
+        children: toDeptTree(deptOptions),
+      },
+    ],
+    [deptOptions],
+  );
 
-    if (currentUser?.id) {
-      AdminPlatformAPI.getUserDetail(currentUser.id).then((res) => {
-        formApi.setValues({
-          ...res.data,
-          password: "",
-        });
-      });
-    } else {
-      formApi.reset();
-      formApi.setValues({ isActive: 1, roleIds: [] });
+  const selectedDeptId =
+    selectedDeptKey === ALL_DEPT_KEY ? undefined : selectedDeptKey;
+
+  const selectedDeptName =
+    selectedDeptKey === ALL_DEPT_KEY
+      ? "全部部门"
+      : findDeptLabel(deptTreeData, selectedDeptKey) || "已选部门";
+
+  const loadPlatformUsers = useCallback(async (params: any) => {
+    if (!selectedDeptId) {
+      return AdminPlatformAPI.getUsers(params);
     }
-  }, [visible, currentUser, formApi]);
+
+    const res = await AdminPlatformAPI.getUsers({
+      ...params,
+      deptId: selectedDeptId,
+    });
+    const list = res.data?.list || [];
+    const filteredList = list.filter(
+      (user) => String(user.deptId || "") === String(selectedDeptId),
+    );
+
+    return {
+      ...res,
+      data: {
+        ...(res.data || {}),
+        list: filteredList,
+        total: filteredList.length,
+      },
+    };
+  }, [selectedDeptId]);
+
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    tableRef.current?.reload(true);
+  }, [selectedDeptId]);
 
   const roleOptions = useMemo(
     () =>
@@ -82,28 +131,12 @@ export default function PlatformUsersPage() {
     [roles],
   );
 
-  const flatDeptOptions = useMemo(() => {
-    const walk = (list: any[] = [], level = 0): any[] =>
-      list.flatMap((item) => {
-        const current = [{
-          label: `${"　".repeat(level)}${item.label || item.deptName}`,
-          value: item.value || item.id,
-        }];
-        return item.children?.length ? current.concat(walk(item.children, level + 1)) : current;
-      });
-    return walk(deptOptions);
-  }, [deptOptions]);
-
-  const handleSave = async (values: any) => {
-    await AdminPlatformAPI.saveUser({
-      ...values,
-      id: currentUser?.id,
-      password: values.password || undefined,
+  const handleResetPassword = async (newPassword: string) => {
+    await AdminPlatformAPI.resetUserPassword({
+      userId: resetPwdModal.userId,
+      newPassword,
     });
-    Toast.success("保存成功");
-    setVisible(false);
-    setCurrentUser(null);
-    loadData();
+    setResetPwdModal({ visible: false, userId: "", username: "" });
   };
 
   const handleToggleStatus = (record: PlatformUser) => {
@@ -115,178 +148,173 @@ export default function PlatformUsersPage() {
       onOk: async () => {
         await AdminPlatformAPI.updateUserStatus(record.id, nextStatus);
         Toast.success(`${actionText}成功`);
-        loadData();
+        tableRef.current?.reload();
       },
     });
   };
 
-  return (
-    <div style={{ padding: 4 }}>
-      <div
-        style={{
-          marginBottom: 16,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Title heading={5} style={{ margin: 0 }}>
-          平台用户
-        </Title>
-        <Button
-          icon={<IconPlus />}
-          theme="solid"
-          onClick={() => {
-            setCurrentUser(null);
-            setVisible(true);
-          }}
-        >
-          创建平台用户
-        </Button>
-      </div>
+  const columns: ProColumnType<PlatformUser>[] = [
+    {
+      title: "头像",
+      dataIndex: "avatar",
+      hideInSearch: true,
+      width: 72,
+      render: (_, record) => (
+        <CommonImage
+          src={record.avatar}
+          size={40}
+          radius={20}
+          alt="avatar"
+          preview={false}
+          fallbackText="-"
+        />
+      ),
+    },
+    { title: "账号", dataIndex: "username", valueType: "text" },
+    {
+      title: "姓名",
+      dataIndex: "realName",
+      valueType: "text",
+      hideInSearch: true,
+      render: (text) => text || "-",
+    },
+    {
+      title: "手机号",
+      dataIndex: "phone",
+      valueType: "text",
+      hideInSearch: true,
+      render: (text) => text || "-",
+    },
+    {
+      title: "邮箱",
+      dataIndex: "email",
+      valueType: "text",
+      hideInSearch: true,
+      render: (text) => text || "-",
+    },
+    {
+      title: "部门",
+      dataIndex: "deptName",
+      hideInSearch: true,
+      render: (text) => text || "-",
+    },
+    {
+      title: "岗位",
+      dataIndex: "postName",
+      hideInSearch: true,
+      render: (text) => text || "-",
+    },
+    {
+      title: "角色",
+      dataIndex: "roleNames",
+      hideInSearch: true,
+      render: (items) =>
+        Array.isArray(items) && items.length > 0 ? items.join(", ") : "-",
+    },
+    {
+      title: "状态",
+      dataIndex: "isActive",
+      valueType: "select",
+      valueEnum: {
+        1: { text: "启用", color: "green" },
+        0: { text: "禁用", color: "grey" },
+      },
+      fieldProps: {
+        optionList: [
+          { label: "启用", value: 1 },
+          { label: "禁用", value: 0 },
+        ],
+      },
+      render: (value) => (
+        <Tag color={value === 1 ? "green" : "grey"}>
+          {value === 1 ? "启用" : "禁用"}
+        </Tag>
+      ),
+    },
+    {
+      title: "操作",
+      dataIndex: "option",
+      hideInSearch: true,
+      fixed: "right",
+      width: 300,
+      render: (_, record) => (
+        <Space>
+          <Button
+            icon={<IconEdit2 />}
+            theme="light"
+            onClick={() => {
+              setCurrentUser(record);
+              setIsModalVisible(true);
+            }}
+          >
+            编辑
+          </Button>
+          <Button
+            icon={record.isActive === 1 ? <IconPause /> : <IconPlay />}
+            theme="light"
+            type={record.isActive === 1 ? "warning" : "primary"}
+            onClick={() => handleToggleStatus(record)}
+          >
+            {record.isActive === 1 ? "禁用" : "启用"}
+          </Button>
+          <Button
+            icon={<IconKey />}
+            theme="light"
+            type="warning"
+            onClick={() =>
+              setResetPwdModal({
+                visible: true,
+                userId: String(record.id),
+                username: record.username || record.realName || "",
+              })
+            }
+          >
+            重置密码
+          </Button>
+        </Space>
+      ),
+    },
+  ];
 
-      <Table
-        rowKey="id"
-        loading={loading}
-        dataSource={users}
-        pagination={false}
-        columns={[
-          { title: "账号", dataIndex: "username" },
-          {
-            title: "姓名",
-            dataIndex: "realName",
-            render: (text) => text || "-",
-          },
-          {
-            title: "角色",
-            dataIndex: "roleNames",
-            render: (items) =>
-              Array.isArray(items) && items.length > 0 ? items.join(", ") : "-",
-          },
-          {
-            title: "部门",
-            dataIndex: "deptName",
-            render: (text) => text || "-",
-          },
-          {
-            title: "岗位",
-            dataIndex: "postName",
-            render: (text) => text || "-",
-          },
-          {
-            title: "状态",
-            dataIndex: "isActive",
-            render: (value) => (
-              <Tag color={value === 1 ? "green" : "grey"}>
-                {value === 1 ? "启用" : "禁用"}
-              </Tag>
-            ),
-          },
-          {
-            title: "操作",
-            dataIndex: "option",
-            render: (_, record) => (
-              <Space>
-                <Button
-                  icon={<IconEdit2 />}
-                  theme="light"
-                  onClick={() => {
-                    setCurrentUser(record);
-                    setVisible(true);
-                  }}
-                >
-                  编辑
-                </Button>
-                <Button
-                  icon={record.isActive === 1 ? <IconPause /> : <IconPlay />}
-                  theme="light"
-                  type={record.isActive === 1 ? "warning" : "primary"}
-                  onClick={() => handleToggleStatus(record)}
-                >
-                  {record.isActive === 1 ? "禁用" : "启用"}
-                </Button>
-              </Space>
-            ),
-          },
-        ]}
+  return (
+    <>
+      <PlatformUserLayout
+        tableRef={tableRef}
+        deptTreeData={deptTreeData}
+        selectedDeptKey={selectedDeptKey}
+        selectedDeptName={selectedDeptName}
+        columns={columns}
+        api={loadPlatformUsers}
+        onSelectDept={(key) => setSelectedDeptKey(key || ALL_DEPT_KEY)}
+        onRefreshUsers={() => tableRef.current?.reload()}
+        onCreateUser={() => {
+          setCurrentUser(null);
+          setIsModalVisible(true);
+        }}
       />
 
-      <Modal
-        title={currentUser ? "编辑平台用户" : "创建平台用户"}
-        visible={visible}
-        onCancel={() => setVisible(false)}
-        footer={null}
-        width={640}
-        keepDOM
-      >
-        <Form
-          getFormApi={setFormApi}
-          onSubmit={handleSave}
-          labelPosition="left"
-          labelWidth={100}
-        >
-          <Section text="基础信息">
-            <Form.Input
-              field="username"
-              label="账号"
-              rules={[{ required: true, message: "请输入账号" }]}
-            />
-            <Form.Input field="realName" label="姓名" />
-            <Form.Input field="phone" label="手机号" />
-            <Form.Input field="email" label="邮箱" />
-            <Form.Select
-              field="deptId"
-              label="平台部门"
-              optionList={flatDeptOptions}
-              placeholder="请选择平台部门"
-              style={{ width: "100%" }}
-            />
-            <Form.Select
-              field="postId"
-              label="平台岗位"
-              optionList={postOptions}
-              placeholder="请选择平台岗位"
-              style={{ width: "100%" }}
-            />
-            <Form.Input
-              field="password"
-              label="密码"
-              mode="password"
-              placeholder={currentUser ? "不填则不修改密码" : "请输入初始密码"}
-              rules={
-                currentUser
-                  ? []
-                  : [{ required: true, message: "请输入初始密码" }]
-              }
-            />
-            <Form.Select
-              field="roleIds"
-              label="平台角色"
-              multiple
-              optionList={roleOptions}
-              placeholder="请选择平台角色"
-              style={{ width: "100%" }}
-            />
-            <Form.Select
-              field="isActive"
-              label="是否启用"
-              initValue={1}
-              style={{ width: 120 }}
-            >
-              <Form.Select.Option value={1}>启用</Form.Select.Option>
-              <Form.Select.Option value={0}>禁用</Form.Select.Option>
-            </Form.Select>
-          </Section>
-          <div style={{ marginTop: 24, textAlign: "right" }}>
-            <Button onClick={() => setVisible(false)} style={{ marginRight: 12 }}>
-              取消
-            </Button>
-            <Button type="primary" theme="solid" htmlType="submit">
-              保存
-            </Button>
-          </div>
-        </Form>
-      </Modal>
-    </div>
+      <PlatformUserEditModal
+        visible={isModalVisible}
+        data={currentUser}
+        defaultDeptId={selectedDeptId}
+        roleOptions={roleOptions}
+        deptOptions={deptOptions}
+        postOptions={postOptions}
+        onClose={() => setIsModalVisible(false)}
+        onSuccess={() => {
+          Toast.success("保存成功");
+          setIsModalVisible(false);
+          setCurrentUser(null);
+          tableRef.current?.reload();
+        }}
+      />
+      <ResetPasswordModal
+        visible={resetPwdModal.visible}
+        userId={resetPwdModal.userId}
+        username={resetPwdModal.username}
+        onOk={handleResetPassword}
+        onCancel={() => setResetPwdModal({ visible: false, userId: "", username: "" })}
+      />
+    </>
   );
 }

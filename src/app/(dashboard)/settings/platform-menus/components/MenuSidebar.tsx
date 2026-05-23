@@ -2,13 +2,13 @@
 
 import { Button, Space, Typography } from "@douyinfe/semi-ui-19";
 import { IconPlus, IconRefresh } from "@douyinfe/semi-icons";
-import { PlatformPermission } from "@/api/adminPlatform/types";
+import { PlatformMenu } from "@/api/adminPlatform/types";
 
 const { Text } = Typography;
 
 interface MenuSidebarProps {
   loading?: boolean;
-  menus: PlatformPermission[];
+  menus: PlatformMenu[];
   selectedId: number | null;
   onSelect: (id: number) => void;
   onRefresh: () => void;

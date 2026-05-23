@@ -3,17 +3,17 @@
 import { useEffect, useState } from "react";
 import { Table, Tag, Typography } from "@douyinfe/semi-ui-19";
 import AdminPlatformAPI from "@/api/adminPlatform";
-import { PlatformPermission } from "@/api/adminPlatform/types";
+import { PlatformMenu } from "@/api/adminPlatform/types";
 
 const { Title } = Typography;
 
-export default function PlatformPermissionsPage() {
+export default function PlatformMenusPage() {
   const [loading, setLoading] = useState(false);
-  const [dataSource, setDataSource] = useState<PlatformPermission[]>([]);
+  const [dataSource, setDataSource] = useState<PlatformMenu[]>([]);
 
   useEffect(() => {
     setLoading(true);
-    AdminPlatformAPI.getPermissions()
+    AdminPlatformAPI.getMenus()
       .then((res) => setDataSource(res.data || []))
       .finally(() => setLoading(false));
   }, []);
@@ -30,7 +30,7 @@ export default function PlatformPermissionsPage() {
         pagination={false}
         columns={[
           { title: "权限名称", dataIndex: "name" },
-          { title: "权限码", dataIndex: "code" },
+          { title: "菜单码", dataIndex: "code" },
           {
             title: "类型",
             dataIndex: "type",

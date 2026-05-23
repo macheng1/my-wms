@@ -17,7 +17,7 @@ import {
 } from "@douyinfe/semi-icons";
 import { usePathname, useRouter } from "next/navigation";
 import { useUserStore } from "@/store/useUserStore";
-import { MENU_CONFIG, MenuItem } from "@/constants/menuConfig";
+import { collectUserMenuCodes, MENU_CONFIG, MenuItem } from "@/constants/menuConfig";
 import { NotificationBell } from "@/components/NotificationBell";
 
 const { Header } = Layout;
@@ -27,9 +27,11 @@ export const AppHeader: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
 
-  // 💡 修正 1: 从 userInfo 中解构 permissions，或者直接从 store 获取
   const { userInfo, logout } = useUserStore();
-  const permissions = userInfo?.permissions || [];
+  const menuCodes = useMemo(
+    () => collectUserMenuCodes(userInfo?.menus || []),
+    [userInfo?.menus]
+  );
 
   /**
    * 递归查找匹配项，增加对通配符权限的健壮判断
@@ -65,16 +67,13 @@ export const AppHeader: React.FC = () => {
     if (pathname === "/" || pathname === "") return items;
 
     const pathSnippets = pathname.split("/").filter(Boolean);
-    const isSuperAdmin = permissions.includes("*"); // 💡 修正超级权限判断逻辑
 
     pathSnippets.forEach((_, index) => {
       const url = `/${pathSnippets.slice(0, index + 1).join("/")}`;
       const menuItem = findItemByPath(MENU_CONFIG, url);
 
       if (menuItem) {
-        // 权限检查
-        const hasAuth =
-          isSuperAdmin || !menuItem.code || permissions.includes(menuItem.code);
+        const hasAuth = !menuItem.code || menuCodes.includes(menuItem.code);
         if (hasAuth) {
           items.push(
             <Breadcrumb.Item key={url}>{menuItem.text}</Breadcrumb.Item>
@@ -90,7 +89,7 @@ export const AppHeader: React.FC = () => {
     });
 
     return items;
-  }, [pathname, permissions, router]);
+  }, [pathname, menuCodes, router]);
 
   const handleLogout = () => {
     // 💡 修正 4: logout 内部已处理清理，这里只需执行并跳转

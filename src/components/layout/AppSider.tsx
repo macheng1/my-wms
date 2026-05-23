@@ -5,7 +5,11 @@ import { Nav } from "@douyinfe/semi-ui-19";
 import { useRouter, usePathname } from "next/navigation";
 
 import { useUserStore } from "@/store/useUserStore";
-import { MENU_CONFIG, filterMenuByUser } from "@/constants/menuConfig";
+import {
+  MENU_CONFIG,
+  buildMenuFromUserMenus,
+  filterMenuByUser,
+} from "@/constants/menuConfig";
 import Image from "next/image";
 
 interface AppSiderProps {
@@ -20,9 +24,8 @@ export const AppSider: React.FC<AppSiderProps> = ({
   const router = useRouter();
   const pathname = usePathname();
 
-  // 从 Store 获取用户权限码列表
   const userInfo = useUserStore((state) => state.userInfo);
-  const permissions = useMemo(() => userInfo?.permissions || [], [userInfo?.permissions]);
+  const userMenus = userInfo?.menus;
   const isPlatformUser = userInfo?.userType === "platform";
 
   /**
@@ -30,8 +33,11 @@ export const AppSider: React.FC<AppSiderProps> = ({
    * 使用统一的 filterMenuByUser 函数处理
    */
   const authorizedMenu = useMemo(() => {
-    return filterMenuByUser(MENU_CONFIG, isPlatformUser, permissions);
-  }, [permissions, isPlatformUser]);
+    if (userMenus?.length) {
+      return buildMenuFromUserMenus(userMenus);
+    }
+    return filterMenuByUser(MENU_CONFIG, isPlatformUser, []);
+  }, [isPlatformUser, userMenus]);
 
   return (
     <Nav
