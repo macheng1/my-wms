@@ -43,6 +43,9 @@ const AdminPlatformAPI = {
   saveRole: (data: SavePlatformRoleParams) =>
     request.post<PlatformRole>("/admin/platform/roles/save", data),
 
+  deleteRole: (id: string | number) =>
+    request.post(`/admin/platform/roles/${id}/delete`),
+
   getUsers: (params: QueryPlatformUserParams) =>
     request.post<{
       list: PlatformUser[];
@@ -62,6 +65,9 @@ const AdminPlatformAPI = {
 
   updateUserStatus: (id: string | number, isActive: number) =>
     request.post(`/admin/platform/users/${id}/status`, { isActive }),
+
+  deleteUser: (id: string | number) =>
+    request.post(`/admin/platform/users/${id}/delete`),
 
   saveMenu: (data: SavePlatformMenuParams) =>
     request.post<PlatformMenu>("/admin/platform/menus/save", data),

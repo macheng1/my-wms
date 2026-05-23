@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Modal, Space, Tag, Toast } from "@douyinfe/semi-ui-19";
-import { IconEdit2, IconKey, IconPause, IconPlay } from "@douyinfe/semi-icons";
+import { IconDelete, IconEdit2, IconKey, IconPause, IconPlay } from "@douyinfe/semi-icons";
 import AdminPlatformAPI from "@/api/adminPlatform";
 import { PlatformRole, PlatformUser } from "@/api/adminPlatform/types";
 import DeptAPI from "@/api/dept";
@@ -153,6 +153,18 @@ export default function PlatformUsersPage() {
     });
   };
 
+  const handleDelete = (record: PlatformUser) => {
+    Modal.confirm({
+      title: "确认删除平台用户",
+      content: `确定要删除「${record.username}」吗？删除后该账号将无法登录。`,
+      onOk: async () => {
+        await AdminPlatformAPI.deleteUser(record.id);
+        Toast.success("删除成功");
+        tableRef.current?.reload();
+      },
+    });
+  };
+
   const columns: ProColumnType<PlatformUser>[] = [
     {
       title: "头像",
@@ -236,7 +248,7 @@ export default function PlatformUsersPage() {
       dataIndex: "option",
       hideInSearch: true,
       fixed: "right",
-      width: 300,
+      width: 380,
       render: (_, record) => (
         <Space>
           <Button
@@ -270,6 +282,14 @@ export default function PlatformUsersPage() {
             }
           >
             重置密码
+          </Button>
+          <Button
+            icon={<IconDelete />}
+            theme="light"
+            type="danger"
+            onClick={() => handleDelete(record)}
+          >
+            删除
           </Button>
         </Space>
       ),

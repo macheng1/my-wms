@@ -13,7 +13,7 @@ import {
   Typography,
   Radio,
 } from "@douyinfe/semi-ui-19";
-import { IconEdit2, IconPlus } from "@douyinfe/semi-icons";
+import { IconDelete, IconEdit2, IconPlus } from "@douyinfe/semi-icons";
 import AdminPlatformAPI from "@/api/adminPlatform";
 import DeptAPI from "@/api/dept";
 import {
@@ -151,6 +151,18 @@ export default function PlatformRolesPage() {
     loadData();
   };
 
+  const handleDelete = (record: PlatformRole) => {
+    Modal.confirm({
+      title: "确认删除平台角色",
+      content: `确定要删除角色「${record.name}」吗？如果角色已分配给平台用户，系统会阻止删除。`,
+      onOk: async () => {
+        await AdminPlatformAPI.deleteRole(record.id);
+        Toast.success("删除成功");
+        loadData();
+      },
+    });
+  };
+
   return (
     <div style={{ padding: 4 }}>
       <div
@@ -217,6 +229,14 @@ export default function PlatformRolesPage() {
                   }}
                 >
                   编辑
+                </Button>
+                <Button
+                  icon={<IconDelete />}
+                  theme="light"
+                  type="danger"
+                  onClick={() => handleDelete(record)}
+                >
+                  删除
                 </Button>
               </Space>
             ),

@@ -1,93 +1,69 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Button, Form, Space, Table, Tag, Typography } from "@douyinfe/semi-ui-19";
+import { Tag } from "@douyinfe/semi-ui-19";
 import AdminPlatformAPI from "@/api/adminPlatform";
-import { OperationLog } from "@/api/adminPlatform/types";
-
-const { Title } = Typography;
+import type { OperationLog } from "@/api/adminPlatform/types";
+import ProDataTable, { ProColumnType } from "@/components/ProDataTable";
 
 export default function PlatformAuditLogsPage() {
-  const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState<OperationLog[]>([]);
-  const [total, setTotal] = useState(0);
-  const [query, setQuery] = useState({ page: 1, pageSize: 20, module: "", username: "" });
-
-  const loadData = async (nextQuery = query) => {
-    setLoading(true);
-    try {
-      const res: any = await AdminPlatformAPI.getPlatformAuditLogs(nextQuery);
-      setLogs(res.data?.list || []);
-      setTotal(res.data?.total || 0);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const columns: ProColumnType<OperationLog>[] = [
+    {
+      title: "操作人",
+      dataIndex: "username",
+      valueType: "text",
+      render: (text) => text || "-",
+    },
+    {
+      title: "模块",
+      dataIndex: "module",
+      valueType: "text",
+      fieldProps: {
+        placeholder: "tenant / platform-menu",
+      },
+    },
+    {
+      title: "动作",
+      dataIndex: "action",
+      valueType: "text",
+      hideInSearch: true,
+    },
+    {
+      title: "范围",
+      dataIndex: "scope",
+      hideInSearch: true,
+      render: () => <Tag color="blue">platform</Tag>,
+    },
+    {
+      title: "描述",
+      dataIndex: "description",
+      hideInSearch: true,
+      render: (text) => text || "-",
+    },
+    {
+      title: "IP",
+      dataIndex: "ip",
+      hideInSearch: true,
+      render: (text) => text || "-",
+    },
+    {
+      title: "时间",
+      dataIndex: "createdAt",
+      hideInSearch: true,
+      render: (text) => (text ? new Date(String(text)).toLocaleString("zh-CN") : "-"),
+    },
+  ];
 
   return (
     <div style={{ padding: 4 }}>
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
-        <Title heading={5} style={{ margin: 0 }}>
-          平台操作审计
-        </Title>
-      </div>
-
-      <Form
-        layout="horizontal"
-        onSubmit={(values) => {
-          const nextQuery = { ...query, ...values, page: 1 };
-          setQuery(nextQuery);
-          loadData(nextQuery);
-        }}
-        style={{ marginBottom: 16 }}
-      >
-        <Form.Input field="module" label="模块" placeholder="tenant / platform-menu" style={{ width: 220 }} />
-        <Form.Input field="username" label="操作人" placeholder="账号" style={{ width: 180 }} />
-        <Form.Slot>
-          <Space>
-            <Button theme="solid" type="primary" htmlType="submit">
-              查询
-            </Button>
-          </Space>
-        </Form.Slot>
-      </Form>
-
-      <Table
+      <ProDataTable
+        title="平台操作审计"
+        api={AdminPlatformAPI.getPlatformAuditLogs}
+        columns={columns}
         rowKey="id"
-        loading={loading}
-        dataSource={logs}
-        pagination={{
-          currentPage: query.page,
-          pageSize: query.pageSize,
-          total,
-          onPageChange: (page) => {
-            const nextQuery = { ...query, page };
-            setQuery(nextQuery);
-            loadData(nextQuery);
-          },
+        initialValues={{
+          module: "",
+          username: "",
         }}
-        columns={[
-          { title: "操作人", dataIndex: "username", render: (text) => text || "-" },
-          { title: "模块", dataIndex: "module" },
-          { title: "动作", dataIndex: "action" },
-          {
-            title: "范围",
-            dataIndex: "scope",
-            render: () => <Tag color="blue">platform</Tag>,
-          },
-          { title: "描述", dataIndex: "description", render: (text) => text || "-" },
-          { title: "IP", dataIndex: "ip", render: (text) => text || "-" },
-          {
-            title: "时间",
-            dataIndex: "createdAt",
-            render: (text) => (text ? new Date(text).toLocaleString("zh-CN") : "-"),
-          },
-        ]}
       />
     </div>
   );
