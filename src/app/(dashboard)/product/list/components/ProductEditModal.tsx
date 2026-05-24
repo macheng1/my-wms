@@ -40,7 +40,9 @@ export default function ProductEditModal({
     setAttrLoading(true);
     try {
       const res = await CategoryApi.getCategoryDetail(categoryId);
-      setDynamicAttributes(res.data?.attributes || []);
+      const attrs = res.data?.attributes || [];
+      setDynamicAttributes(attrs);
+      return attrs;
     } finally {
       setAttrLoading(false);
     }
@@ -71,7 +73,18 @@ export default function ProductEditModal({
           const categoryId = String(product.categoryId);
 
           // 等待类目属性加载完成
-          await handleCategoryChange(categoryId);
+          const attrs = await handleCategoryChange(categoryId);
+          const specs = product.specs || {};
+          const normalizedSpecs = { ...specs };
+          (attrs || []).forEach((attr: any) => {
+            const fieldKey = attr.code || attr.name;
+            if (
+              normalizedSpecs[fieldKey] === undefined &&
+              specs[attr.name] !== undefined
+            ) {
+              normalizedSpecs[fieldKey] = specs[attr.name];
+            }
+          });
 
           // 属性加载完成后再设置表单值
           const formattedImages = (product.images || []).map(
@@ -84,7 +97,7 @@ export default function ProductEditModal({
           formApi.setValues({
             ...product,
             categoryId,
-            dynamicAttrs: product.specs,
+            dynamicAttrs: normalizedSpecs,
             images: formattedImages,
           });
         } else {
@@ -121,8 +134,10 @@ export default function ProductEditModal({
       const payload: any = {
         ...values,
         images: imageUrls, // 💡 此时发给后端的将是真正的远程 URL 列表
-        specs: values.dynamicAttrs,
+        specs: values.dynamicAttrs || {},
+        isActive: values.isActive ? 1 : 0,
       };
+      delete payload.dynamicAttrs;
 
       if (data?.id) await ProductApi.updateProduct({ ...payload, id: data.id });
       else await ProductApi.saveProduct(payload);
@@ -172,7 +187,10 @@ export default function ProductEditModal({
             placeholder="请选择类目"
             optionList={categoryOptions}
             rules={[{ required: true }]}
-            onChange={(v) => handleCategoryChange(v as string)}
+            onChange={async (v) => {
+              formApi?.setValue("dynamicAttrs", {});
+              await handleCategoryChange(v as string);
+            }}
           />
         </Section>
 
@@ -185,19 +203,27 @@ export default function ProductEditModal({
                     key={attr.id}
                     style={{ width: "100%" }}
                     placeholder={`请选择${attr.name}`}
-                    field={`dynamicAttrs.${attr.name}`}
+                    field={`dynamicAttrs.${attr.code || attr.name}`}
                     label={attr.name}
                     optionList={attr.options?.map((o: any) => ({
                       label: o.value || o.name || o,
                       value: o.value || o.id || o,
                     }))}
                   />
+                ) : attr.type === "number" ? (
+                  <Form.InputNumber
+                    style={{ width: "100%" }}
+                    key={attr.id}
+                    placeholder={`请输入${attr.name}`}
+                    field={`dynamicAttrs.${attr.code || attr.name}`}
+                    label={attr.name}
+                  />
                 ) : (
                   <Form.Input
                     style={{ width: "100%" }}
                     key={attr.id}
                     placeholder={`请输入${attr.name}`}
-                    field={`dynamicAttrs.${attr.name}`}
+                    field={`dynamicAttrs.${attr.code || attr.name}`}
                     label={attr.name}
                     addonAfter={attr.unit || null}
                   />

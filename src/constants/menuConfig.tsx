@@ -80,6 +80,24 @@ const flattenMenuConfig = (items: MenuItem[], map = new Map<string, MenuItem>())
   return map;
 };
 
+const MENU_ICON_BY_CODE: Record<string, React.ReactNode> = {
+  "platform:dashboard": <IconHome />,
+  "platform:tenant": <IconUserGroup />,
+  "platform:tenant:list": <IconUserGroup />,
+  "platform:settings": <IconSetting />,
+  "platform:template": <IconList />,
+  "platform:template:category": <IconList />,
+  "platform:template:attribute": <IconAppCenter />,
+  "platform:template:unit": <IconKanban />,
+  "tenant:dashboard": <IconHome />,
+  "tenant:base": <IconAppCenter />,
+  "tenant:portal": <IconGlobeStroke />,
+  "tenant:product": <IconKanban />,
+  "tenant:warehouse": <IconHome />,
+  "tenant:inventory": <IconKanban />,
+  "tenant:settings": <IconSetting />,
+};
+
 export const buildMenuFromUserMenus = (menus: UserMenuInfo[] = []): MenuItem[] => {
   const localMenuByCode = flattenMenuConfig(MENU_CONFIG);
 
@@ -94,6 +112,7 @@ export const buildMenuFromUserMenus = (menus: UserMenuInfo[] = []): MenuItem[] =
           itemKey: item.itemKey || item.routePath || localMenu?.itemKey || "",
           text: item.text || item.name || localMenu?.text || "",
           code: item.code || localMenu?.code,
+          icon: localMenu?.icon || (item.code ? MENU_ICON_BY_CODE[item.code] : undefined),
           items: children?.length ? children : undefined,
         };
       })
@@ -246,6 +265,33 @@ export const MENU_CONFIG: MenuItem[] = [
     icon: <IconUserGroup />,
     code: "platform:tenant:list",
     menuType: "super_admin",
+  },
+  {
+    itemKey: "/settings/platform-templates",
+    text: "模板管理",
+    icon: <IconList />,
+    code: "platform:template",
+    menuType: "super_admin",
+    items: [
+      {
+        itemKey: "/settings/platform-templates/categories",
+        text: "标准类目",
+        code: "platform:template:category",
+        menuType: "super_admin",
+      },
+      {
+        itemKey: "/settings/platform-templates/attributes",
+        text: "标准属性",
+        code: "platform:template:attribute",
+        menuType: "super_admin",
+      },
+      {
+        itemKey: "/settings/platform-templates/units",
+        text: "标准单位",
+        code: "platform:template:unit",
+        menuType: "super_admin",
+      },
+    ],
   },
   // 系统设置
   {

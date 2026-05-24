@@ -10,9 +10,13 @@ import {
   PlatformUser,
   PlatformMenuTreeNode,
   QueryPlatformUserParams,
+  QueryPlatformTemplateParams,
   SavePlatformMenuParams,
   SavePlatformRoleParams,
   SavePlatformUserParams,
+  PlatformTemplateAttribute,
+  PlatformTemplateCategory,
+  PlatformTemplateUnit,
 } from "./types";
 
 const AdminPlatformAPI = {
@@ -102,6 +106,66 @@ const AdminPlatformAPI = {
       page: number;
       pageSize: number;
     }>("/admin/tenant/audit-logs", params),
+
+  getTemplateCategories: (params: QueryPlatformTemplateParams) =>
+    request.post<{
+      list: PlatformTemplateCategory[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>("/admin/platform/templates/categories/list", params),
+
+  getTemplateCategoryDetail: (id: string | number) =>
+    request.get<PlatformTemplateCategory>(`/admin/platform/templates/categories/${id}`),
+
+  saveTemplateCategory: (data: Partial<PlatformTemplateCategory>) =>
+    request.post<PlatformTemplateCategory>("/admin/platform/templates/categories/save", data),
+
+  updateTemplateCategoryStatus: (id: string | number, isActive: number) =>
+    request.post(`/admin/platform/templates/categories/${id}/status`, { isActive }),
+
+  deleteTemplateCategory: (id: string | number) =>
+    request.post(`/admin/platform/templates/categories/${id}/delete`),
+
+  getTemplateAttributes: (params: QueryPlatformTemplateParams) =>
+    request.post<{
+      list: PlatformTemplateAttribute[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>("/admin/platform/templates/attributes/list", params),
+
+  getTemplateAttributeDetail: (id: string | number) =>
+    request.get<PlatformTemplateAttribute>(`/admin/platform/templates/attributes/${id}`),
+
+  saveTemplateAttribute: (data: Partial<PlatformTemplateAttribute>) =>
+    request.post<PlatformTemplateAttribute>("/admin/platform/templates/attributes/save", data),
+
+  updateTemplateAttributeStatus: (id: string | number, isActive: number) =>
+    request.post(`/admin/platform/templates/attributes/${id}/status`, { isActive }),
+
+  deleteTemplateAttribute: (id: string | number) =>
+    request.post(`/admin/platform/templates/attributes/${id}/delete`),
+
+  getTemplateUnits: (params: QueryPlatformTemplateParams) =>
+    request.post<{
+      list: PlatformTemplateUnit[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>("/admin/platform/templates/units/list", params),
+
+  getTemplateUnitDetail: (id: string | number) =>
+    request.post<PlatformTemplateUnit>("/admin/platform/templates/units/detail", { id }),
+
+  saveTemplateUnit: (data: Partial<PlatformTemplateUnit>) =>
+    request.post<PlatformTemplateUnit>("/admin/platform/templates/units/save", data),
+
+  updateTemplateUnitStatus: (id: string | number, isActive: number) =>
+    request.post<PlatformTemplateUnit>("/admin/platform/templates/units/save", { id, isActive }),
+
+  deleteTemplateUnit: (id: string | number) =>
+    request.post(`/admin/platform/templates/units/${id}/delete`),
 };
 
 export default AdminPlatformAPI;

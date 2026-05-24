@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import {
   Button,
   Dropdown,
@@ -26,8 +26,8 @@ import AdminPlatformAPI from "@/api/adminPlatform";
 import TenantEditModal from "./components/TenantEditModal";
 import TenantDetailModal from "./components/TenantDetailModal";
 import TenantMenuModal from "./components/TenantMenuModal";
-import { getIndustryName } from "@/constants/industryCodes";
 import { useBtnAuth } from "@/hooks/useBtnAuth";
+import { useDictOptions } from "@/hooks/useDictOptions";
 
 type TenantAction = {
   key: string;
@@ -40,6 +40,17 @@ type TenantAction = {
 export default function TenantListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
   const { hasBtnAuth } = useBtnAuth();
+  const industryOptions = useDictOptions("INDUSTRY");
+  const industryNameMap = useMemo(
+    () =>
+      new Map(
+        industryOptions.map((option) => [
+          String(option.value),
+          String(option.label),
+        ])
+      ),
+    [industryOptions]
+  );
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [menuModalVisible, setMenuModalVisible] = useState(false);
@@ -195,7 +206,7 @@ export default function TenantListPage() {
           return record.industryName;
         }
         if (record.industryCode) {
-          return getIndustryName(record.industryCode);
+          return industryNameMap.get(record.industryCode) || record.industryCode;
         }
         return "-";
       },

@@ -24,6 +24,8 @@ export interface RegisterParams {
   code?: string; // 企业唯一编码
   name: string; // 企业全称
   industryCode?: string; // 行业标识
+  industryName?: string; // 行业名称
+  industryType?: string; // 行业分类
   contactPerson?: string; // 工厂联系人
   contactPhone?: string; // 联系电话
   email?: string; // 联系邮箱

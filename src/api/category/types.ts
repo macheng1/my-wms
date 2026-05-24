@@ -12,7 +12,7 @@ export interface ICategory {
   /** 状态：1 启用，0 禁用 */
   isActive: 1 | 0;
   /** 租户 ID，多租户隔离标识 */
-  tenantId: string;
+  tenantId: string | null;
   /** 级联绑定的属性实体列表 (仅在详情或列表关联查询时存在) */
   attributes?: IAttributeBrief[];
   /** 创建时间 */

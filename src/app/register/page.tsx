@@ -87,10 +87,15 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
+      const industry = industryOptions.find(
+        (option) => option.value === values.industryCode
+      );
       // 1. 发起注册请求并接收返回数据
       const res = await AuthAPI.register({
         name: values.name,
         industryCode: values.industryCode,
+        industryName: industry?.label,
+        industryType: industry?.label,
         contactPerson: values.contactPerson,
         contactPhone: values.contactPhone,
         email: values.email,
@@ -176,7 +181,9 @@ export default function RegisterPage() {
               label="所属行业"
               placeholder="请选择"
               style={{ width: "100%" }}
+              filter
               optionList={industryOptions} // 直接透传 {label, value} 格式
+              rules={[{ required: true, message: "请选择所属行业" }]}
             />
           </div>
 

@@ -150,3 +150,54 @@ export interface QueryAuditLogParams {
   module?: string;
   username?: string;
 }
+
+export interface QueryPlatformTemplateParams {
+  page?: number;
+  pageSize?: number;
+  name?: string;
+  code?: string;
+  keyword?: string;
+  category?: string;
+  isActive?: number;
+}
+
+export interface PlatformTemplateAttribute {
+  id: string;
+  name: string;
+  code: string;
+  type: "select" | "input" | "number";
+  unit?: string | null;
+  isActive: number;
+  options?: Array<{
+    id?: string;
+    value: string;
+    sort?: number;
+    isActive?: number;
+  }>;
+  createdAt?: string;
+}
+
+export interface PlatformTemplateCategory {
+  id: string;
+  name: string;
+  code: string;
+  isActive: number;
+  attributes?: PlatformTemplateAttribute[];
+  attributeIds?: string[];
+  attributeNames?: string;
+  createdAt?: string;
+}
+
+export interface PlatformTemplateUnit {
+  id: string;
+  name: string;
+  code: string;
+  category: "COUNT" | "WEIGHT" | "LENGTH" | "VOLUME" | "AREA" | "TIME";
+  baseRatio: number;
+  baseUnitCode: string;
+  symbol?: string | null;
+  description?: string | null;
+  isActive: number;
+  sortOrder: number;
+  createdAt?: string;
+}

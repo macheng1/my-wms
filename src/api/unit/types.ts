@@ -15,7 +15,7 @@ export enum UnitCategory {
  */
 export interface IUnit {
   id: string;
-  tenantId: string;
+  tenantId: string | null;
   name: string;
   code: string;
   category: UnitCategory;

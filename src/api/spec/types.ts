@@ -29,7 +29,7 @@ export interface IAttributeOption {
   /** 状态：1 启用，0 禁用。禁用后的规格在录入产品时不可见 */
   isActive: 1 | 0;
   /** 租户 ID，用于多厂家数据物理隔离 */
-  tenantId: string;
+  tenantId: string | null;
   /** 级联对象：所属属性的简要信息，仅在列表查询 relations 开启时返回 */
   attribute?: IAttributeBrief;
   /** 创建时间，后端统一按此字段正序 (ASC) 返回列表 */

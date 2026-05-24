@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useMemo } from "react";
 import dayjs from "dayjs";
-import { Button, Space, Modal, Toast } from "@douyinfe/semi-ui-19";
+import { Button, Space, Modal, Toast, Tag } from "@douyinfe/semi-ui-19";
 import {
   IconPlus,
   IconEdit2,
@@ -64,6 +64,14 @@ export default function CategoryListPage() {
   const columns: ProColumnType<ICategory>[] = useMemo(
     () => [
       {
+        title: "来源",
+        dataIndex: "tenantId",
+        hideInSearch: true,
+        width: 100,
+        render: (tenantId) =>
+          tenantId ? <Tag color="blue">租户自建</Tag> : <Tag color="green">标准模板</Tag>,
+      },
+      {
         title: "类目名称",
         dataIndex: "name",
         valueType: "text",
@@ -102,36 +110,42 @@ export default function CategoryListPage() {
         title: "操作",
         dataIndex: "option",
         hideInSearch: true,
-        render: (_, record) => (
-          <Space>
-            <Button
-              icon={<IconEdit2 />}
-              theme="light"
-              onClick={() => {
-                setCurrentCategory(record);
-                setIsModalVisible(true);
-              }}
-            >
-              编辑
-            </Button>
-            <Button
-              icon={record.isActive === 1 ? <IconPause /> : <IconPlay />}
-              theme="light"
-              type={record.isActive === 1 ? "warning" : "primary"}
-              onClick={() => handleToggleStatus(record)}
-            >
-              {record.isActive === 1 ? "禁用" : "启用"}
-            </Button>
-            <Button
-              icon={<IconDelete />}
-              theme="light"
-              type="danger"
-              onClick={() => handleDelete(record.id)}
-            >
-              删除
-            </Button>
-          </Space>
-        ),
+        render: (_, record) => {
+          const isStandard = !record.tenantId;
+          return (
+            <Space>
+              <Button
+                icon={<IconEdit2 />}
+                theme="light"
+                disabled={isStandard}
+                onClick={() => {
+                  setCurrentCategory(record);
+                  setIsModalVisible(true);
+                }}
+              >
+                编辑
+              </Button>
+              <Button
+                icon={record.isActive === 1 ? <IconPause /> : <IconPlay />}
+                theme="light"
+                type={record.isActive === 1 ? "warning" : "primary"}
+                disabled={isStandard}
+                onClick={() => handleToggleStatus(record)}
+              >
+                {record.isActive === 1 ? "禁用" : "启用"}
+              </Button>
+              <Button
+                icon={<IconDelete />}
+                theme="light"
+                type="danger"
+                disabled={isStandard}
+                onClick={() => handleDelete(record.id)}
+              >
+                删除
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
     []

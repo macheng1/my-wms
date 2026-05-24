@@ -2,6 +2,8 @@
 export interface AttributeListItem {
   /** 属性ID */
   id: string;
+  /** 租户 ID；为空表示平台标准模板 */
+  tenantId?: string | null;
   /** 属性名称 */
   name: string;
   /** 属性编码 */

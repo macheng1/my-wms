@@ -76,12 +76,20 @@ export default function ProductListPage() {
     });
   };
 
+  const getSpecLabel = (key: string, record: any) => {
+    const attrs = record?.category?.attributes || [];
+    const attr = attrs.find((item: any) => item.code === key || item.name === key);
+    return attr?.name || key;
+  };
+
   // 规格展示
-  const renderSpecs = (specs: any) => {
+  const renderSpecs = (specs: any, record: any) => {
     if (!specs || typeof specs !== "object") return "-";
-    return Object.entries(specs)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join(" | ");
+    const text = Object.entries(specs)
+      .filter(([, value]) => value !== undefined && value !== null && value !== "")
+      .map(([key, value]) => `${getSpecLabel(key, record)}:${value}`)
+      .join(" / ");
+    return text || "-";
   };
 
   // 下载模板
@@ -128,7 +136,7 @@ export default function ProductListPage() {
         title: "规格",
         dataIndex: "specs",
         hideInSearch: true,
-        render: renderSpecs,
+        render: (specs: any, record: any) => renderSpecs(specs, record),
       },
       {
         title: "状态",

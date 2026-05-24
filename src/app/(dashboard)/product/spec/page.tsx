@@ -6,7 +6,7 @@ import ProDataTable, {
 } from "@/components/ProDataTable";
 import SpecEditModal from "./components/SpecEditModal";
 import SpecBatchModal from "./components/SpecBatchModal";
-import { Switch, Button, Modal, Toast } from "@douyinfe/semi-ui-19";
+import { Switch, Button, Modal, Toast, Tag } from "@douyinfe/semi-ui-19";
 import { IconDelete } from "@douyinfe/semi-icons";
 import OptionApi from "@/api/spec";
 import { useRef, useState, useEffect } from "react";
@@ -44,6 +44,13 @@ const SpecPage = () => {
   // 表格列定义
   const columns: ProColumnType[] = [
     {
+      title: "来源",
+      dataIndex: "tenantId",
+      hideInSearch: true,
+      render: (tenantId: string | null) =>
+        tenantId ? <Tag color="blue">租户自建</Tag> : <Tag color="green">标准模板</Tag>,
+    },
+    {
       title: "规格值",
       dataIndex: "value",
     },
@@ -66,6 +73,7 @@ const SpecPage = () => {
       render: (v: any, record: any) => (
         <Switch
           checked={!!v}
+          disabled={!record.tenantId}
           onChange={(checked) => handleStatusChange(record, checked)}
         />
       ),
@@ -80,20 +88,28 @@ const SpecPage = () => {
       title: "操作",
       hideInSearch: true,
       dataIndex: "action",
-      render: (_: any, record: any) => (
-        <>
-          <Button theme="borderless" onClick={() => openEditModal(record.id)}>
-            编辑
-          </Button>
-          <Button
-            theme="borderless"
-            type="danger"
-            onClick={() => setDeleteId(record.id)}
-          >
-            删除
-          </Button>
-        </>
-      ),
+      render: (_: any, record: any) => {
+        const isStandard = !record.tenantId;
+        return (
+          <>
+            <Button
+              theme="borderless"
+              disabled={isStandard}
+              onClick={() => openEditModal(record.id)}
+            >
+              编辑
+            </Button>
+            <Button
+              theme="borderless"
+              type="danger"
+              disabled={isStandard}
+              onClick={() => setDeleteId(record.id)}
+            >
+              删除
+            </Button>
+          </>
+        );
+      },
     },
   ];
 
@@ -119,10 +135,18 @@ const SpecPage = () => {
       <Button
         icon={<IconDelete />}
         type="danger"
-        disabled={selectedKeys.length === 0}
-        onClick={() => selectedKeys.length > 0 && setBatchDeleteIds(selectedKeys as string[])}
+        disabled={selectedRows.filter((row) => row.tenantId).length === 0}
+        onClick={() => {
+          const deletableIds = selectedRows
+            .filter((row) => row.tenantId)
+            .map((row) => row.id);
+          if (deletableIds.length !== selectedKeys.length) {
+            Toast.warning("标准模板由平台维护，已自动跳过");
+          }
+          if (deletableIds.length > 0) setBatchDeleteIds(deletableIds);
+        }}
       >
-        批量删除 {selectedKeys.length > 0 && `(${selectedKeys.length})`}
+        批量删除 {selectedRows.length > 0 && `(${selectedRows.filter((row) => row.tenantId).length})`}
       </Button>
       <Button style={{ marginRight: 16 }} onClick={openBatchModal}>
         批量新增

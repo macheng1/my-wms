@@ -95,6 +95,14 @@ export default function UnitListPage() {
   // 列定义
   const columns: ProColumnType<any>[] = [
     {
+      title: "来源",
+      dataIndex: "tenantId",
+      hideInSearch: true,
+      width: 100,
+      render: (tenantId: string | null) =>
+        tenantId ? <Tag color="blue">租户自建</Tag> : <Tag color="green">标准模板</Tag>,
+    },
+    {
       title: "单位名称",
       dataIndex: "name",
       valueType: "text",
@@ -148,7 +156,11 @@ export default function UnitListPage() {
         0: { text: "禁用", color: "grey" },
       },
       render: (v: any, record: IUnit) => (
-        <Switch checked={!!v} onChange={() => handleToggleStatus(record)} />
+        <Switch
+          checked={!!v}
+          disabled={!record.tenantId}
+          onChange={() => handleToggleStatus(record)}
+        />
       ),
     },
     {
@@ -156,30 +168,35 @@ export default function UnitListPage() {
       dataIndex: "option",
       hideInSearch: true,
       width: 150,
-      render: (_: any, record: IUnit) => (
-        <Space>
-          <Button
-            icon={<IconEdit2 />}
-            theme="light"
-            size="small"
-            onClick={() => {
-              setCurrentUnit(record);
-              setIsModalVisible(true);
-            }}
-          >
-            编辑
-          </Button>
-          <Button
-            icon={<IconDelete />}
-            theme="light"
-            type="danger"
-            size="small"
-            onClick={() => handleDelete(record.id)}
-          >
-            删除
-          </Button>
-        </Space>
-      ),
+      render: (_: any, record: IUnit) => {
+        const isStandard = !record.tenantId;
+        return (
+          <Space>
+            <Button
+              icon={<IconEdit2 />}
+              theme="light"
+              size="small"
+              disabled={isStandard}
+              onClick={() => {
+                setCurrentUnit(record);
+                setIsModalVisible(true);
+              }}
+            >
+              编辑
+            </Button>
+            <Button
+              icon={<IconDelete />}
+              theme="light"
+              type="danger"
+              size="small"
+              disabled={isStandard}
+              onClick={() => handleDelete(record.id)}
+            >
+              删除
+            </Button>
+          </Space>
+        );
+      },
     },
   ];
 
