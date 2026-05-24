@@ -57,6 +57,44 @@ export interface Location {
   updatedAt: string;
 }
 
+export interface LocationStockItem {
+  sku: string;
+  productName: string;
+  quantity: number;
+  lockedQuantity: number;
+  availableQuantity: number;
+  unitId?: string;
+  unitName?: string;
+  unitSymbol?: string;
+}
+
+export interface LocationVisualItem extends Location {
+  stockItems: LocationStockItem[];
+  skuCount: number;
+  totalQuantity: number;
+  hasStock: boolean;
+  matched: boolean;
+}
+
+export interface LocationVisualMapResponse {
+  warehouses: Array<{ value: string; label: string }>;
+  areas: Array<{ value: string; label: string; warehouse: string }>;
+  locations: LocationVisualItem[];
+  summary: {
+    totalLocations: number;
+    occupiedLocations: number;
+    emptyLocations: number;
+    disabledLocations: number;
+    matchedLocations: number;
+  };
+}
+
+export interface LocationVisualMapParams {
+  warehouse?: string;
+  area?: string;
+  keyword?: string;
+}
+
 /**
  * 创建库位请求
  */
@@ -132,6 +170,14 @@ export interface LocationSelectOption {
   status: LocationStatus;
   capacity?: number;
   usedCapacity?: number;
+}
+
+export interface LocationStockOption {
+  value: string;
+  label: string;
+  code: string;
+  name: string;
+  quantity: number;
 }
 
 /**

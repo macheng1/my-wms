@@ -19,6 +19,7 @@ import { OutboundType, IOutboundItem } from "@/api/outbound/types";
 import InventoryApi from "@/api/inventory";
 import { IAvailableOutboundProduct } from "@/api/inventory/types";
 import LocationApi from "@/api/location";
+import { LocationStockOption } from "@/api/location/types";
 import { useUserStore } from "@/store/useUserStore";
 
 const { Text } = Typography;
@@ -55,7 +56,8 @@ export default function OutboundModal({
   const [loading, setLoading] = useState(false);
   const [formApi, setFormApi] = useState<FormApi | null>(null);
   const [availableProducts, setAvailableProducts] = useState<IAvailableOutboundProduct[]>([]);
-  const [locationOptions, setLocationOptions] = useState<any[]>([]);
+  const [singleLocationOptions, setSingleLocationOptions] = useState<LocationStockOption[]>([]);
+  const [rowLocationOptions, setRowLocationOptions] = useState<Record<number, LocationStockOption[]>>({});
   const [items, setItems] = useState<IOutboundItemWithInfo[]>([
     { sku: "", quantity: 0, locationId: "" },
   ]);
@@ -65,14 +67,11 @@ export default function OutboundModal({
   // 获取当前用户信息
   const userInfo = useUserStore((state) => state.userInfo);
 
-  // 加载可出库产品列表和库位选项
+  // 加载可出库产品列表
   useEffect(() => {
     if (visible) {
       loadAvailableProducts();
     }
-    LocationApi.getLocationSelect().then((res) => {
-      setLocationOptions(res.data || []);
-    });
   }, [visible]);
 
   const loadAvailableProducts = async () => {
@@ -89,6 +88,8 @@ export default function OutboundModal({
     formApi?.reset();
     setItems([{ sku: "", quantity: 0, locationId: "" }]);
     setSelectedProduct(null);
+    setSingleLocationOptions([]);
+    setRowLocationOptions({});
     onClose();
   };
 
@@ -117,6 +118,10 @@ export default function OutboundModal({
         newItems[index].availableQty = selectedProduct.quantity;
         // 设置默认数量为可用数量
         newItems[index].quantity = selectedProduct.quantity;
+        newItems[index].locationId = "";
+        LocationApi.getStockLocations(selectedProduct.sku).then((res) => {
+          setRowLocationOptions((prev) => ({ ...prev, [index]: res.data || [] }));
+        });
       }
     }
 
@@ -139,10 +144,18 @@ export default function OutboundModal({
           Toast.error("请选择产品");
           return;
         }
+        if (!values.locationId) {
+          Toast.error("请选择出库库位");
+          return;
+        }
       } else {
         const hasEmptySku = items.some((item) => !item.sku);
         if (hasEmptySku) {
           Toast.error("请为所有行选择产品");
+          return;
+        }
+        if (items.some((item) => !item.quantity || !item.locationId)) {
+          Toast.error("请完整填写每一行出库数量和库位");
           return;
         }
       }
@@ -240,9 +253,9 @@ export default function OutboundModal({
       width: 200,
       render: (text: string, _record: IOutboundItemWithInfo, index: number) => (
         <Select
-          placeholder="请选择库位（可选）"
+          placeholder="请选择库位"
           value={text}
-          optionList={locationOptions}
+          optionList={rowLocationOptions[index] || []}
           onChange={(value) => handleUpdateItem(index, "locationId", value || "")}
           style={{ width: "100%" }}
           showClear
@@ -310,6 +323,12 @@ export default function OutboundModal({
                   setSelectedProduct(product || null);
                   if (product) {
                     formApi?.setValue("quantity", product.quantity);
+                    formApi?.setValue("locationId", undefined);
+                    LocationApi.getStockLocations(product.sku).then((res) => {
+                      setSingleLocationOptions(res.data || []);
+                    });
+                  } else {
+                    setSingleLocationOptions([]);
                   }
                 }}
               />
@@ -335,8 +354,9 @@ export default function OutboundModal({
               <Form.Select
                 field="locationId"
                 label="库位"
-                placeholder="请选择库位（可选）"
-                optionList={locationOptions}
+                placeholder="请选择库位"
+                optionList={singleLocationOptions}
+                rules={[{ required: true, message: "请选择库位" }]}
                 showClear
                 filter
               />

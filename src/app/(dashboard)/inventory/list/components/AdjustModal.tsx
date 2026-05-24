@@ -183,8 +183,9 @@ export default function AdjustModal({
           <Form.Select
             field="locationId"
             label="库位"
-            placeholder="请选择库位（可选）"
+            placeholder="请选择库位"
             optionList={locationOptions}
+            rules={[{ required: true, message: "请选择库位" }]}
             showClear
             filter
           />

@@ -93,6 +93,7 @@ const MENU_ICON_BY_CODE: Record<string, React.ReactNode> = {
   "tenant:base": <IconAppCenter />,
   "tenant:portal": <IconGlobeStroke />,
   "tenant:product": <IconKanban />,
+  "tenant:order": <IconList />,
   "tenant:warehouse": <IconHome />,
   "tenant:inventory": <IconKanban />,
   "tenant:settings": <IconSetting />,
@@ -217,8 +218,13 @@ export const MENU_CONFIG: MenuItem[] = [
     menuType: "tenant",
     items: [
       {
+        itemKey: "/warehouse/visual",
+        text: "仓库可视化",
+        code: "tenant:location:visual",
+      },
+      {
         itemKey: "/warehouse/list",
-        text: "仓库列表",
+        text: "库位管理",
         code: "tenant:location:list",
       },
     ],
@@ -255,6 +261,20 @@ export const MENU_CONFIG: MenuItem[] = [
         itemKey: "/inventory/alerts",
         text: "库存预警",
         code: "tenant:inventory:alert:list",
+      },
+    ],
+  },
+  {
+    itemKey: "/orders",
+    text: "订单管理",
+    icon: <IconList />,
+    code: "tenant:order",
+    menuType: "tenant",
+    items: [
+      {
+        itemKey: "/orders",
+        text: "订单列表",
+        code: "tenant:order:list",
       },
     ],
   },

@@ -125,6 +125,11 @@ export default function InboundModal({
         });
         Toast.success("入库成功");
       } else {
+        if (items.some((item) => !item.sku || !item.quantity || !item.unitCode || !item.locationId)) {
+          Toast.error("请完整填写每一行产品、数量、单位和库位");
+          return;
+        }
+
         await InboundApi.batchInbound({
           type: values.type,
           orderNo: values.orderNo,
@@ -196,7 +201,7 @@ export default function InboundModal({
       width: 200,
       render: (text: string, _record: IInboundItem, index: number) => (
         <Select
-          placeholder="请选择库位（可选）"
+          placeholder="请选择库位"
           value={text}
           optionList={locationOptions}
           onChange={(value) => handleUpdateItem(index, "locationId", value)}
@@ -278,8 +283,9 @@ export default function InboundModal({
               <Form.Select
                 field="locationId"
                 label="库位"
-                placeholder="请选择库位（可选）"
+                placeholder="请选择库位"
                 optionList={locationOptions}
+                rules={[{ required: true, message: "请选择库位" }]}
                 showClear
                 filter
               />

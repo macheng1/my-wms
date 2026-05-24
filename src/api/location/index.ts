@@ -8,6 +8,9 @@ import {
   BatchCreateLocationsRequest,
   LocationSelectOption,
   LocationSelectParams,
+  LocationStockOption,
+  LocationVisualMapParams,
+  LocationVisualMapResponse,
 } from "./types";
 
 /**
@@ -61,6 +64,20 @@ const LocationApi = {
    */
   getLocationSelect: (params?: LocationSelectParams) =>
     request.get<LocationSelectOption[]>("locations/available-for-selection", { params }),
+
+  /**
+   * 获取仓库可视化地图
+   */
+  getVisualMap: (params?: LocationVisualMapParams) =>
+    request.get<LocationVisualMapResponse>("locations/visual-map", { params }),
+
+  /**
+   * 获取指定 SKU 有库存的库位
+   */
+  getStockLocations: (sku: string) =>
+    request.get<LocationStockOption[]>("locations/stock-options", {
+      params: { sku },
+    }),
 };
 
 export default LocationApi;
