@@ -19,6 +19,7 @@ import ProDataTable, {
 import ProductEditModal from "./components/ProductEditModal";
 import ImportModal from "@/components/ImportModal";
 import CommonImage from "@/components/CommonImage";
+import { useBtnAuth } from "@/hooks/useBtnAuth";
 
 export default function ProductListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
@@ -27,6 +28,12 @@ export default function ProductListPage() {
   const [categoryOptions, setCategoryOptions] = useState<any>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
+  const { hasBtnAuth } = useBtnAuth();
+  const canCreate = hasBtnAuth("tenant:product:create");
+  const canUpdate = hasBtnAuth("tenant:product:update");
+  const canDelete = hasBtnAuth("tenant:product:delete");
+  const canStatus = hasBtnAuth("tenant:product:status");
+  const canImport = hasBtnAuth("tenant:product:import");
 
   // 拉取类目下拉
   React.useEffect(() => {
@@ -147,7 +154,11 @@ export default function ProductListPage() {
           0: { text: "禁用", color: "grey" },
         },
         render: (v: any, record: any) => (
-          <Switch checked={!!v} onChange={() => handleToggleStatus(record)} />
+          <Switch
+            checked={!!v}
+            disabled={!canStatus}
+            onChange={() => handleToggleStatus(record)}
+          />
         ),
       },
       {
@@ -168,6 +179,7 @@ export default function ProductListPage() {
             <Button
               icon={<IconEdit2 />}
               theme="light"
+              disabled={!canUpdate}
               onClick={() => {
                 setCurrentProduct(record);
                 setIsModalVisible(true);
@@ -179,6 +191,7 @@ export default function ProductListPage() {
               icon={<IconDelete />}
               theme="light"
               type="danger"
+              disabled={!canDelete}
               onClick={() => handleDelete(record.id)}
             >
               删除
@@ -187,7 +200,7 @@ export default function ProductListPage() {
         ),
       },
     ],
-    [categoryOptions],
+    [canDelete, canStatus, canUpdate, categoryOptions],
   );
 
   return (
@@ -202,6 +215,7 @@ export default function ProductListPage() {
             <Button
               icon={<IconPlus />}
               theme="solid"
+              disabled={!canCreate}
               onClick={() => {
                 setCurrentProduct(null);
                 setIsModalVisible(true);
@@ -209,7 +223,11 @@ export default function ProductListPage() {
             >
               新增产品
             </Button>
-            <Button theme="light" onClick={() => setImportModalVisible(true)}>
+            <Button
+              theme="light"
+              disabled={!canImport}
+              onClick={() => setImportModalVisible(true)}
+            >
               导入产品
             </Button>
           </Space>

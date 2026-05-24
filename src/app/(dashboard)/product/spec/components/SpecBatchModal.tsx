@@ -19,12 +19,18 @@ export default function SpecBatchModal({
     AttributeAPI.getAttributePage({ page: 1, pageSize: 100 }).then((res) => {
       setAttributes(
         (res.data?.list || []).map((item) => ({
-          label: item.name,
+          label: item.tenantId ? item.name : `${item.name}（标准）`,
           value: item.id,
         })),
       );
     });
   }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    setBatchValues("");
+    formApi?.setValue("attributeId", attributeId);
+  }, [attributeId, formApi, visible]);
 
   const handleSubmit = async (values: any) => {
     const arr = batchValues

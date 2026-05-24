@@ -18,6 +18,7 @@ import ProDataTable, {
 import UnitApi from "@/api/unit";
 import { UnitCategory, IUnit } from "@/api/unit/types";
 import UnitEditModal from "./components/UnitEditModal";
+import { useBtnAuth } from "@/hooks/useBtnAuth";
 
 // 单位分类选项
 const CATEGORY_OPTIONS = [
@@ -45,6 +46,11 @@ export default function UnitListPage() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentUnit, setCurrentUnit] = useState<IUnit | null>(null);
   const [activeTab, setActiveTab] = useState<string>("all");
+  const { hasBtnAuth } = useBtnAuth();
+  const canCreate = hasBtnAuth("tenant:unit:create");
+  const canUpdate = hasBtnAuth("tenant:unit:update");
+  const canDelete = hasBtnAuth("tenant:unit:delete");
+  const canStatus = hasBtnAuth("tenant:unit:status");
 
   // 单位分类映射
   const categoryMap: Record<string, string> = {
@@ -158,7 +164,7 @@ export default function UnitListPage() {
       render: (v: any, record: IUnit) => (
         <Switch
           checked={!!v}
-          disabled={!record.tenantId}
+          disabled={!record.tenantId || !canStatus}
           onChange={() => handleToggleStatus(record)}
         />
       ),
@@ -176,7 +182,7 @@ export default function UnitListPage() {
               icon={<IconEdit2 />}
               theme="light"
               size="small"
-              disabled={isStandard}
+              disabled={isStandard || !canUpdate}
               onClick={() => {
                 setCurrentUnit(record);
                 setIsModalVisible(true);
@@ -189,7 +195,7 @@ export default function UnitListPage() {
               theme="light"
               type="danger"
               size="small"
-              disabled={isStandard}
+              disabled={isStandard || !canDelete}
               onClick={() => handleDelete(record.id)}
             >
               删除
@@ -226,6 +232,7 @@ export default function UnitListPage() {
             <Button
               icon={<IconPlus />}
               theme="solid"
+              disabled={!canCreate}
               onClick={() => {
                 setCurrentUnit(null);
                 setIsModalVisible(true);

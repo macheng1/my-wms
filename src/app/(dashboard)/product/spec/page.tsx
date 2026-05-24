@@ -11,6 +11,7 @@ import { IconDelete } from "@douyinfe/semi-icons";
 import OptionApi from "@/api/spec";
 import { useRef, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useBtnAuth } from "@/hooks/useBtnAuth";
 
 const statusEnum = {
   1: { text: "启用", color: "green" },
@@ -30,6 +31,11 @@ const SpecPage = () => {
   const [attributeId, setAttributeId] = useState<string | undefined>(undefined);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { hasBtnAuth } = useBtnAuth();
+  const canCreate = hasBtnAuth("tenant:spec:create");
+  const canUpdate = hasBtnAuth("tenant:spec:update");
+  const canDelete = hasBtnAuth("tenant:spec:delete");
+  const canStatus = hasBtnAuth("tenant:spec:status");
 
   // 属性联动：如果有 attributeId 参数，自动填充并查询
   useEffect(() => {
@@ -73,7 +79,7 @@ const SpecPage = () => {
       render: (v: any, record: any) => (
         <Switch
           checked={!!v}
-          disabled={!record.tenantId}
+          disabled={!record.tenantId || !canStatus}
           onChange={(checked) => handleStatusChange(record, checked)}
         />
       ),
@@ -94,7 +100,7 @@ const SpecPage = () => {
           <>
             <Button
               theme="borderless"
-              disabled={isStandard}
+              disabled={isStandard || !canUpdate}
               onClick={() => openEditModal(record.id)}
             >
               编辑
@@ -102,7 +108,7 @@ const SpecPage = () => {
             <Button
               theme="borderless"
               type="danger"
-              disabled={isStandard}
+              disabled={isStandard || !canDelete}
               onClick={() => setDeleteId(record.id)}
             >
               删除
@@ -135,7 +141,9 @@ const SpecPage = () => {
       <Button
         icon={<IconDelete />}
         type="danger"
-        disabled={selectedRows.filter((row) => row.tenantId).length === 0}
+        disabled={
+          !canDelete || selectedRows.filter((row) => row.tenantId).length === 0
+        }
         onClick={() => {
           const deletableIds = selectedRows
             .filter((row) => row.tenantId)
@@ -148,10 +156,10 @@ const SpecPage = () => {
       >
         批量删除 {selectedRows.length > 0 && `(${selectedRows.filter((row) => row.tenantId).length})`}
       </Button>
-      <Button style={{ marginRight: 16 }} onClick={openBatchModal}>
+      <Button style={{ marginRight: 16 }} disabled={!canCreate} onClick={openBatchModal}>
         批量新增
       </Button>
-      <Button type="primary" onClick={openAddModal}>
+      <Button type="primary" disabled={!canCreate} onClick={openAddModal}>
         新增规格
       </Button>
     </>

@@ -9,6 +9,7 @@ import { Switch, Button, Modal, Toast, Tag } from "@douyinfe/semi-ui-19";
 import { IconDelete } from "@douyinfe/semi-icons";
 import AttributeAPI from "@/api/attributes";
 import { useRef, useState } from "react";
+import { useBtnAuth } from "@/hooks/useBtnAuth";
 
 const typeMap = {
   select: "下拉选择",
@@ -31,6 +32,12 @@ const AttributePage = () => {
   const [batchDeleteIds, setBatchDeleteIds] = useState<string[]>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
+  const { hasBtnAuth } = useBtnAuth();
+  const canCreate = hasBtnAuth("tenant:attribute:create");
+  const canUpdate = hasBtnAuth("tenant:attribute:update");
+  const canDelete = hasBtnAuth("tenant:attribute:delete");
+  const canStatus = hasBtnAuth("tenant:attribute:status");
+  const canImport = hasBtnAuth("tenant:attribute:import");
 
   // 表格列定义
   const columns: ProColumnType[] = [
@@ -59,7 +66,7 @@ const AttributePage = () => {
       render: (v: any, record: any) => (
         <Switch
           checked={!!v}
-          disabled={!record.tenantId}
+          disabled={!record.tenantId || !canStatus}
           onChange={(checked) => handleStatusChange(record, checked)}
         />
       ),
@@ -80,7 +87,7 @@ const AttributePage = () => {
           <>
             <Button
               theme="borderless"
-              disabled={isStandard}
+              disabled={isStandard || !canUpdate}
               onClick={() => openEditModal(record.id)}
             >
               编辑
@@ -88,7 +95,7 @@ const AttributePage = () => {
             <Button
               theme="borderless"
               type="danger"
-              disabled={isStandard}
+              disabled={isStandard || !canDelete}
               onClick={() => setDeleteId(record.id)}
             >
               删除
@@ -108,7 +115,9 @@ const AttributePage = () => {
       <Button
         icon={<IconDelete />}
         type="danger"
-        disabled={selectedRows.filter((row) => row.tenantId).length === 0}
+        disabled={
+          !canDelete || selectedRows.filter((row) => row.tenantId).length === 0
+        }
         onClick={() => {
           const deletableIds = selectedRows
             .filter((row) => row.tenantId)
@@ -123,11 +132,12 @@ const AttributePage = () => {
       </Button>
       <Button
         style={{ marginRight: 16 }}
+        disabled={!canImport}
         onClick={() => setImportModalVisible(true)}
       >
         导入
       </Button>
-      <Button type="primary" onClick={openAddModal}>
+      <Button type="primary" disabled={!canCreate} onClick={openAddModal}>
         新增属性
       </Button>
     </>

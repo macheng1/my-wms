@@ -11,6 +11,9 @@ import UploadImage from "@/components/UploadImage";
 
 const { Section } = Form;
 
+const getAttrLabel = (attr: any) =>
+  attr.unit ? `${attr.name}（${attr.unit}）` : attr.name;
+
 export default function ProductEditModal({
   visible,
   data,
@@ -204,7 +207,7 @@ export default function ProductEditModal({
                     style={{ width: "100%" }}
                     placeholder={`请选择${attr.name}`}
                     field={`dynamicAttrs.${attr.code || attr.name}`}
-                    label={attr.name}
+                    label={getAttrLabel(attr)}
                     optionList={attr.options?.map((o: any) => ({
                       label: o.value || o.name || o,
                       value: o.value || o.id || o,
@@ -217,6 +220,7 @@ export default function ProductEditModal({
                     placeholder={`请输入${attr.name}`}
                     field={`dynamicAttrs.${attr.code || attr.name}`}
                     label={attr.name}
+                    suffix={attr.unit || null}
                   />
                 ) : (
                   <Form.Input

@@ -18,6 +18,7 @@ import ProDataTable, {
 
 import { ICategory } from "@/api/category/types";
 import CategoryEditModal from "./components/CategoryEditModal";
+import { useBtnAuth } from "@/hooks/useBtnAuth";
 
 export default function CategoryListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
@@ -25,6 +26,11 @@ export default function CategoryListPage() {
   const [currentCategory, setCurrentCategory] = useState<ICategory | null>(
     null
   );
+  const { hasBtnAuth } = useBtnAuth();
+  const canCreate = hasBtnAuth("tenant:category:create");
+  const canUpdate = hasBtnAuth("tenant:category:update");
+  const canDelete = hasBtnAuth("tenant:category:delete");
+  const canStatus = hasBtnAuth("tenant:category:status");
 
   // 启用/禁用
   const handleToggleStatus = (record: ICategory) => {
@@ -117,7 +123,7 @@ export default function CategoryListPage() {
               <Button
                 icon={<IconEdit2 />}
                 theme="light"
-                disabled={isStandard}
+                disabled={isStandard || !canUpdate}
                 onClick={() => {
                   setCurrentCategory(record);
                   setIsModalVisible(true);
@@ -129,7 +135,7 @@ export default function CategoryListPage() {
                 icon={record.isActive === 1 ? <IconPause /> : <IconPlay />}
                 theme="light"
                 type={record.isActive === 1 ? "warning" : "primary"}
-                disabled={isStandard}
+                disabled={isStandard || !canStatus}
                 onClick={() => handleToggleStatus(record)}
               >
                 {record.isActive === 1 ? "禁用" : "启用"}
@@ -138,7 +144,7 @@ export default function CategoryListPage() {
                 icon={<IconDelete />}
                 theme="light"
                 type="danger"
-                disabled={isStandard}
+                disabled={isStandard || !canDelete}
                 onClick={() => handleDelete(record.id)}
               >
                 删除
@@ -148,7 +154,7 @@ export default function CategoryListPage() {
         },
       },
     ],
-    []
+    [canDelete, canStatus, canUpdate]
   );
 
   return (
@@ -162,6 +168,7 @@ export default function CategoryListPage() {
           <Button
             icon={<IconPlus />}
             theme="solid"
+            disabled={!canCreate}
             onClick={() => {
               setCurrentCategory(null);
               setIsModalVisible(true);
