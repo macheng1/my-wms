@@ -1,14 +1,15 @@
 export type InquiryStatus = "unread" | "read" | "replied";
 
 export interface InquiryDetail {
-  id: number;
+  id: string;
   tenantId: string;
   name: string;
   phone: string;
   email?: string;
   message: string;
-  attachments?: string[];
+  attachments?: string[] | string;
   status: InquiryStatus;
+  adminRemark?: string | null;
   reply?: string;
   replyAt?: string;
   createdAt: string;
@@ -21,7 +22,7 @@ export interface InquiryListQuery {
   page?: number;
   pageSize?: number;
   name?: string;
-  status?: InquiryStatus; // 新增：支持按状态筛选
+  status?: InquiryStatus | "all";
 }
 
 export interface PortalFooterInfo {
@@ -49,4 +50,42 @@ export interface PortalConfig {
   footerInfo?: PortalFooterInfo;
   seoConfig?: PortalSeoConfig;
   isActive?: 0 | 1;
+}
+
+export interface PortalJob {
+  id: string;
+  tenantId: string;
+  position: string;
+  count: number;
+  salary?: string | null;
+  location?: string | null;
+  experience?: string | null;
+  education?: string | null;
+  description?: string | null;
+  requirement?: string | null;
+  sortOrder: number;
+  isActive: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QueryPortalJobParams {
+  page?: number;
+  pageSize?: number;
+  position?: string;
+  isActive?: number;
+}
+
+export interface SavePortalJobParams {
+  id?: string;
+  position: string;
+  count?: number;
+  salary?: string | null;
+  location?: string | null;
+  experience?: string | null;
+  education?: string | null;
+  description?: string | null;
+  requirement?: string | null;
+  sortOrder?: number;
+  isActive?: number;
 }

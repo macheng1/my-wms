@@ -167,6 +167,11 @@ export const MENU_CONFIG: MenuItem[] = [
         text: "询价管理",
         code: "tenant:portal:inquiry:list",
       },
+      {
+        itemKey: "/website/jobs",
+        text: "招聘管理",
+        code: "tenant:portal:job:list",
+      },
     ],
   },
   // 类目管理
