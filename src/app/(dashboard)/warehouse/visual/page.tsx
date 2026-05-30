@@ -183,9 +183,35 @@ export default function WarehouseVisualPage() {
     setSelectedLocation(null);
   };
 
-  const triggerLight = (location?: LocationVisualItem | null) => {
+  const triggerLight = async (location?: LocationVisualItem | null) => {
     if (!location) return;
-    Toast.info(`已生成库位 ${location.code} 亮灯任务，等待设备接入`);
+    try {
+      const res = await LocationApi.lightOn(location.id, {
+        duration: 60,
+        color: "yellow",
+      });
+      if (res.data.status === "SUCCESS") {
+        Toast.success(`库位 ${location.code} 已亮灯`);
+      } else {
+        Toast.warning(res.data.errorMessage || "亮灯任务已生成，设备暂未执行成功");
+      }
+    } catch (error: any) {
+      Toast.error(error?.response?.data?.message || "亮灯失败");
+    }
+  };
+
+  const turnOffLight = async (location?: LocationVisualItem | null) => {
+    if (!location) return;
+    try {
+      const res = await LocationApi.lightOff(location.id);
+      if (res.data.status === "SUCCESS") {
+        Toast.success(`库位 ${location.code} 已熄灯`);
+      } else {
+        Toast.warning(res.data.errorMessage || "熄灯任务已生成，设备暂未执行成功");
+      }
+    } catch (error: any) {
+      Toast.error(error?.response?.data?.message || "熄灯失败");
+    }
   };
 
   return (
@@ -476,7 +502,7 @@ export default function WarehouseVisualPage() {
                 >
                   亮灯找货
                 </Button>
-                <Button onClick={() => Toast.info("熄灯接口待设备接入")}>
+                <Button onClick={() => turnOffLight(selectedLocation)}>
                   熄灯
                 </Button>
               </Space>

@@ -95,6 +95,25 @@ export interface LocationVisualMapParams {
   keyword?: string;
 }
 
+export interface LocationLightTask {
+  id: string;
+  tenantId: string;
+  locationId: string;
+  locationCode: string;
+  deviceCode?: string;
+  deviceUrl?: string;
+  ledIndex?: number;
+  action: "ON" | "OFF";
+  status: "PENDING" | "SUCCESS" | "FAILED";
+  duration: number;
+  color: string;
+  payload?: Record<string, any>;
+  errorMessage?: string;
+  executedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /**
  * 创建库位请求
  */
