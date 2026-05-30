@@ -40,6 +40,18 @@ export interface PortalSeoConfig {
   description?: string;
 }
 
+export interface PortalHomeConfig {
+  heroImage?: string;
+  productDescription?: string;
+  responseTitle?: string;
+  responseDescription?: string;
+  responseItems?: Array<{
+    title?: string;
+    description?: string;
+  }>;
+  jobsDescription?: string;
+}
+
 export interface PortalConfig {
   id?: string;
   tenantId?: string;
@@ -49,6 +61,7 @@ export interface PortalConfig {
   description?: string;
   footerInfo?: PortalFooterInfo;
   seoConfig?: PortalSeoConfig;
+  homeConfig?: PortalHomeConfig;
   isActive?: 0 | 1;
 }
 
