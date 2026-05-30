@@ -18,32 +18,37 @@ interface ImportModalProps {
   loading?: boolean;
   title?: string;
   templateFileName?: string;
+  templateOptions?: Array<{ label: string; value: string }>;
+  templateOptionPlaceholder?: string;
   onCancel: () => void;
   onOk: () => void;
-  onDownloadTemplate: () => Promise<void>;
+  onDownloadTemplate: (templateOption?: string) => Promise<void>;
   importApi: (file: File) => Promise<any>;
 }
 
 export default function ImportModal({
   visible,
-  loading = false,
+  loading: _loading = false,
   title = "数据导入",
   templateFileName = "导入模板.xlsx",
+  templateOptions = [],
+  templateOptionPlaceholder = "选择模板类型",
   onCancel,
   onOk,
   onDownloadTemplate,
   importApi,
 }: ImportModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [templateOption, setTemplateOption] = useState<string>("");
   const [importing, setImporting] = useState(false);
   const [failReasons, setFailReasons] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDownloadTemplate = async () => {
     try {
-      await onDownloadTemplate();
+      await onDownloadTemplate(templateOption || undefined);
       Toast.success("模板下载成功");
-    } catch (error) {
+    } catch {
       Toast.error("模板下载失败");
     }
   };
@@ -51,6 +56,7 @@ export default function ImportModal({
   // 关闭时清空数据
   const handleCancel = () => {
     setSelectedFile(null);
+    setTemplateOption("");
     setFailReasons([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -76,18 +82,22 @@ export default function ImportModal({
     setFailReasons([]);
     try {
       const res = await importApi(selectedFile);
-      console.log("🚀 ~ handleImport ~ res:", res.data);
-      // 兼容后端返回格式
-      if (res.code && res.code === 10001) {
-        setFailReasons(res.data);
+      const result = res.data || {};
+
+      if (result.failCount > 0) {
+        setFailReasons(result.errors || []);
+        if (result.successCount > 0) {
+          Toast.warning(`导入完成：成功${result.successCount}条，失败${result.failCount}条`);
+        } else {
+          Toast.error(`导入失败：共${result.failCount}条异常`);
+        }
       } else {
-        Toast.success("导入成功");
+        Toast.success(`导入成功${result.successCount || ""}条`);
         setSelectedFile(null);
         onOk(); // 关闭弹窗
       }
-    } catch (error) {
-      // console.log("🚀 ~ handleImport ~ error:", error);
-      // Toast.error("导入失败");
+    } catch (error: any) {
+      Toast.error(error?.message || "导入失败");
     } finally {
       setImporting(false);
     }
@@ -142,13 +152,29 @@ export default function ImportModal({
                     {templateFileName}
                   </div>
                   <div className="text-xs text-slate-500">
-                    请按模板要求填写数据，避免导入失败
+                    {templateOption
+                      ? "将下载所选类目的专属模板"
+                      : "未选择类目时下载通用模板"}
                   </div>
                 </div>
               </Space>
               <Button icon={<IconDownload />} theme="borderless" />
             </div>
           </Card>
+          {templateOptions.length > 0 && (
+            <select
+              value={templateOption}
+              onChange={(event) => setTemplateOption(event.target.value)}
+              className="mt-3 w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+            >
+              <option value="">{templateOptionPlaceholder}</option>
+              {templateOptions.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* 提示信息 */}

@@ -19,31 +19,30 @@ import ProDataTable, {
 import ProductEditModal from "./components/ProductEditModal";
 import ImportModal from "@/components/ImportModal";
 import CommonImage from "@/components/CommonImage";
-import { useBtnAuth } from "@/hooks/useBtnAuth";
 
 export default function ProductListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>(null);
   const [categoryOptions, setCategoryOptions] = useState<any>([]);
+  const [categoryTemplateOptions, setCategoryTemplateOptions] = useState<any>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
-  const [importLoading, setImportLoading] = useState(false);
-  const { hasBtnAuth } = useBtnAuth();
-  const canCreate = hasBtnAuth("tenant:product:create");
-  const canUpdate = hasBtnAuth("tenant:product:update");
-  const canDelete = hasBtnAuth("tenant:product:delete");
-  const canStatus = hasBtnAuth("tenant:product:status");
-  const canImport = hasBtnAuth("tenant:product:import");
 
   // 拉取类目下拉
   React.useEffect(() => {
     CategoryApi.getCategoryPage({ page: 1, pageSize: 100 }).then((res) => {
-      const options = (res.data?.list || []).map((item) => ({
+      const list = res.data?.list || [];
+      const options = list.map((item) => ({
         label: item.name,
         value: item.id,
       }));
-      console.log("类目选项数据:", options);
       setCategoryOptions(options);
+      setCategoryTemplateOptions(
+        list.map((item) => ({
+          label: `${item.name}（${item.code}）`,
+          value: item.code,
+        })),
+      );
     }).catch((err) => {
       console.error("加载类目失败:", err);
     });
@@ -63,7 +62,7 @@ export default function ProductListPage() {
           await ProductApi.updateProductStatus(record.id, isActive ? 0 : 1);
           Toast.success(`${actionText}成功`);
           tableRef.current?.reload();
-        } catch (error) {}
+        } catch {}
       },
     });
   };
@@ -78,30 +77,30 @@ export default function ProductListPage() {
           await ProductApi.deleteProduct(id);
           Toast.success("删除成功");
           tableRef.current?.reload();
-        } catch (error) {}
+        } catch {}
       },
     });
   };
 
-  const getSpecLabel = (key: string, record: any) => {
+  const getSpecLabel = React.useCallback((key: string, record: any) => {
     const attrs = record?.category?.attributes || [];
     const attr = attrs.find((item: any) => item.code === key || item.name === key);
     return attr?.name || key;
-  };
+  }, []);
 
   // 规格展示
-  const renderSpecs = (specs: any, record: any) => {
+  const renderSpecs = React.useCallback((specs: any, record: any) => {
     if (!specs || typeof specs !== "object") return "-";
     const text = Object.entries(specs)
       .filter(([, value]) => value !== undefined && value !== null && value !== "")
       .map(([key, value]) => `${getSpecLabel(key, record)}:${value}`)
       .join(" / ");
     return text || "-";
-  };
+  }, [getSpecLabel]);
 
   // 下载模板
-  async function handleDownloadTemplate() {
-    await ProductApi.downloadTemplate();
+  async function handleDownloadTemplate(categoryCode?: string) {
+    await ProductApi.downloadTemplate(categoryCode);
   }
 
   // 导入成功后关闭弹窗并刷新
@@ -156,7 +155,6 @@ export default function ProductListPage() {
         render: (v: any, record: any) => (
           <Switch
             checked={!!v}
-            disabled={!canStatus}
             onChange={() => handleToggleStatus(record)}
           />
         ),
@@ -179,7 +177,6 @@ export default function ProductListPage() {
             <Button
               icon={<IconEdit2 />}
               theme="light"
-              disabled={!canUpdate}
               onClick={() => {
                 setCurrentProduct(record);
                 setIsModalVisible(true);
@@ -191,7 +188,6 @@ export default function ProductListPage() {
               icon={<IconDelete />}
               theme="light"
               type="danger"
-              disabled={!canDelete}
               onClick={() => handleDelete(record.id)}
             >
               删除
@@ -200,7 +196,7 @@ export default function ProductListPage() {
         ),
       },
     ],
-    [canDelete, canStatus, canUpdate, categoryOptions],
+    [categoryOptions, renderSpecs],
   );
 
   return (
@@ -215,7 +211,6 @@ export default function ProductListPage() {
             <Button
               icon={<IconPlus />}
               theme="solid"
-              disabled={!canCreate}
               onClick={() => {
                 setCurrentProduct(null);
                 setIsModalVisible(true);
@@ -225,7 +220,6 @@ export default function ProductListPage() {
             </Button>
             <Button
               theme="light"
-              disabled={!canImport}
               onClick={() => setImportModalVisible(true)}
             >
               导入产品
@@ -247,9 +241,10 @@ export default function ProductListPage() {
 
       <ImportModal
         visible={importModalVisible}
-        loading={importLoading}
         title="产品导入"
         templateFileName="产品导入模板.xlsx"
+        templateOptions={categoryTemplateOptions}
+        templateOptionPlaceholder="下载通用模板或选择类目专属模板"
         onCancel={() => setImportModalVisible(false)}
         onOk={handleImportSuccess}
         onDownloadTemplate={handleDownloadTemplate}

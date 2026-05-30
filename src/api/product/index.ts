@@ -68,16 +68,20 @@ const ProductApi = {
   /**
    * 下载产品导入模板
    */
-  downloadTemplate: (categoryCode?: string) =>
-    getDownload(
-      categoryCode
-        ? `products/template?categoryCode=${categoryCode}`
+  downloadTemplate: (categoryCode?: string) => {
+    const encodedCategoryCode = categoryCode
+      ? encodeURIComponent(categoryCode)
+      : "";
+    return getDownload(
+      encodedCategoryCode
+        ? `products/template?categoryCode=${encodedCategoryCode}`
         : "products/template",
       undefined,
       categoryCode
         ? `product-template-${categoryCode}.xlsx`
         : "product-import-template.xlsx",
-    ),
+    );
+  },
 
   /**
    * 导入产品数据

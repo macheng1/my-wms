@@ -54,6 +54,8 @@ export interface ICategoryQuery {
   name?: string;
   /** 按状态筛选 */
   isActive?: 1 | 0;
+  /** 模板来源筛选 */
+  templateScope?: "standard" | "custom";
 }
 /** @description 类目详情返回对象 (完全对称 Save 接口) */
 export interface ICategoryDetail extends ICategory {

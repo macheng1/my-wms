@@ -6,12 +6,11 @@ import ProDataTable, {
 } from "@/components/ProDataTable";
 import SpecEditModal from "./components/SpecEditModal";
 import SpecBatchModal from "./components/SpecBatchModal";
-import { Switch, Button, Modal, Toast, Tag } from "@douyinfe/semi-ui-19";
+import { Switch, Button, Modal, Toast, Tag, Tabs } from "@douyinfe/semi-ui-19";
 import { IconDelete } from "@douyinfe/semi-icons";
 import OptionApi from "@/api/spec";
 import { useRef, useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useBtnAuth } from "@/hooks/useBtnAuth";
+import { useSearchParams } from "next/navigation";
 
 const statusEnum = {
   1: { text: "启用", color: "green" },
@@ -29,13 +28,8 @@ const SpecPage = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [batchDeleteIds, setBatchDeleteIds] = useState<string[]>([]);
   const [attributeId, setAttributeId] = useState<string | undefined>(undefined);
+  const [activeScope, setActiveScope] = useState<"all" | "standard" | "custom">("all");
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const { hasBtnAuth } = useBtnAuth();
-  const canCreate = hasBtnAuth("tenant:spec:create");
-  const canUpdate = hasBtnAuth("tenant:spec:update");
-  const canDelete = hasBtnAuth("tenant:spec:delete");
-  const canStatus = hasBtnAuth("tenant:spec:status");
 
   // 属性联动：如果有 attributeId 参数，自动填充并查询
   useEffect(() => {
@@ -54,7 +48,7 @@ const SpecPage = () => {
       dataIndex: "tenantId",
       hideInSearch: true,
       render: (tenantId: string | null) =>
-        tenantId ? <Tag color="blue">租户自建</Tag> : <Tag color="green">标准模板</Tag>,
+        tenantId ? null : <Tag color="green">标准模板</Tag>,
     },
     {
       title: "规格值",
@@ -79,7 +73,7 @@ const SpecPage = () => {
       render: (v: any, record: any) => (
         <Switch
           checked={!!v}
-          disabled={!record.tenantId || !canStatus}
+          disabled={!record.tenantId}
           onChange={(checked) => handleStatusChange(record, checked)}
         />
       ),
@@ -96,11 +90,12 @@ const SpecPage = () => {
       dataIndex: "action",
       render: (_: any, record: any) => {
         const isStandard = !record.tenantId;
+        if (isStandard) return null;
+
         return (
           <>
             <Button
               theme="borderless"
-              disabled={isStandard || !canUpdate}
               onClick={() => openEditModal(record.id)}
             >
               编辑
@@ -108,7 +103,6 @@ const SpecPage = () => {
             <Button
               theme="borderless"
               type="danger"
-              disabled={isStandard || !canDelete}
               onClick={() => setDeleteId(record.id)}
             >
               删除
@@ -121,15 +115,17 @@ const SpecPage = () => {
 
   // 数据请求
   const fetchList = (params: any) => {
+    const templateScope = activeScope === "all" ? undefined : activeScope;
     // 首次加载（仅有 page/pageSize）不加 relations/sort
     const keys = Object.keys(params || {});
     const isInitial =
       keys.length === 2 && keys.includes("page") && keys.includes("pageSize");
     if (isInitial) {
-      return OptionApi.getOptionPage(params);
+      return OptionApi.getOptionPage({ ...params, templateScope });
     }
     return OptionApi.getOptionPage({
       ...params,
+      templateScope,
       relations: ["attribute"],
       sort: "createdAt:ASC",
     });
@@ -141,9 +137,7 @@ const SpecPage = () => {
       <Button
         icon={<IconDelete />}
         type="danger"
-        disabled={
-          !canDelete || selectedRows.filter((row) => row.tenantId).length === 0
-        }
+        disabled={selectedRows.filter((row) => row.tenantId).length === 0}
         onClick={() => {
           const deletableIds = selectedRows
             .filter((row) => row.tenantId)
@@ -156,10 +150,10 @@ const SpecPage = () => {
       >
         批量删除 {selectedRows.length > 0 && `(${selectedRows.filter((row) => row.tenantId).length})`}
       </Button>
-      <Button style={{ marginRight: 16 }} disabled={!canCreate} onClick={openBatchModal}>
+      <Button style={{ marginRight: 16 }} onClick={openBatchModal}>
         批量新增
       </Button>
-      <Button type="primary" disabled={!canCreate} onClick={openAddModal}>
+      <Button type="primary" onClick={openAddModal}>
         新增规格
       </Button>
     </>
@@ -245,7 +239,18 @@ const SpecPage = () => {
 
   return (
     <>
+      <Tabs
+        activeKey={activeScope}
+        onChange={(key) => setActiveScope(key as "all" | "standard" | "custom")}
+        type="line"
+        style={{ marginBottom: 12 }}
+      >
+        <Tabs.TabPane itemKey="all" tab="全部" />
+        <Tabs.TabPane itemKey="standard" tab="标准模板" />
+        <Tabs.TabPane itemKey="custom" tab="租户自建" />
+      </Tabs>
       <ProDataTable
+        key={activeScope}
         ref={tableRef}
         api={fetchList}
         columns={columns}

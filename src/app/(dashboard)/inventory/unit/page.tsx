@@ -18,7 +18,6 @@ import ProDataTable, {
 import UnitApi from "@/api/unit";
 import { UnitCategory, IUnit } from "@/api/unit/types";
 import UnitEditModal from "./components/UnitEditModal";
-import { useBtnAuth } from "@/hooks/useBtnAuth";
 
 // 单位分类选项
 const CATEGORY_OPTIONS = [
@@ -46,11 +45,13 @@ export default function UnitListPage() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentUnit, setCurrentUnit] = useState<IUnit | null>(null);
   const [activeTab, setActiveTab] = useState<string>("all");
-  const { hasBtnAuth } = useBtnAuth();
-  const canCreate = hasBtnAuth("tenant:unit:create");
-  const canUpdate = hasBtnAuth("tenant:unit:update");
-  const canDelete = hasBtnAuth("tenant:unit:delete");
-  const canStatus = hasBtnAuth("tenant:unit:status");
+  const [activeScope, setActiveScope] = useState<"all" | "standard" | "custom">("all");
+
+  const fetchList = (params: any) => {
+    const category = activeTab === "all" ? undefined : activeTab;
+    const templateScope = activeScope === "all" ? undefined : activeScope;
+    return UnitApi.getUnitPage({ ...params, category: category as any, templateScope });
+  };
 
   // 单位分类映射
   const categoryMap: Record<string, string> = {
@@ -106,7 +107,7 @@ export default function UnitListPage() {
       hideInSearch: true,
       width: 100,
       render: (tenantId: string | null) =>
-        tenantId ? <Tag color="blue">租户自建</Tag> : <Tag color="green">标准模板</Tag>,
+        tenantId ? null : <Tag color="green">标准模板</Tag>,
     },
     {
       title: "单位名称",
@@ -164,7 +165,7 @@ export default function UnitListPage() {
       render: (v: any, record: IUnit) => (
         <Switch
           checked={!!v}
-          disabled={!record.tenantId || !canStatus}
+          disabled={!record.tenantId}
           onChange={() => handleToggleStatus(record)}
         />
       ),
@@ -176,13 +177,14 @@ export default function UnitListPage() {
       width: 150,
       render: (_: any, record: IUnit) => {
         const isStandard = !record.tenantId;
+        if (isStandard) return null;
+
         return (
           <Space>
             <Button
               icon={<IconEdit2 />}
               theme="light"
               size="small"
-              disabled={isStandard || !canUpdate}
               onClick={() => {
                 setCurrentUnit(record);
                 setIsModalVisible(true);
@@ -195,7 +197,6 @@ export default function UnitListPage() {
               theme="light"
               type="danger"
               size="small"
-              disabled={isStandard || !canDelete}
               onClick={() => handleDelete(record.id)}
             >
               删除
@@ -208,12 +209,11 @@ export default function UnitListPage() {
 
   return (
     <div style={{ padding: "4px" }}>
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
         <Tabs
           activeKey={activeTab}
           onChange={(key) => {
             setActiveTab(key as string);
-            tableRef.current?.reload();
           }}
           type="line"
         >
@@ -221,18 +221,27 @@ export default function UnitListPage() {
             <Tabs.TabPane key={pane.tabKey} tab={pane.tab} itemKey={pane.tabKey} />
           ))}
         </Tabs>
+        <Tabs
+          activeKey={activeScope}
+          onChange={(key) => setActiveScope(key as "all" | "standard" | "custom")}
+          type="line"
+        >
+          <Tabs.TabPane itemKey="all" tab="全部" />
+          <Tabs.TabPane itemKey="standard" tab="标准模板" />
+          <Tabs.TabPane itemKey="custom" tab="租户自建" />
+        </Tabs>
       </div>
       <ProDataTable
+        key={`${activeTab}-${activeScope}`}
         ref={tableRef}
         title="单位管理"
-        api={UnitApi.getUnitPage}
+        api={fetchList}
         columns={columns}
         toolBarRender={() => (
           <Space>
             <Button
               icon={<IconPlus />}
               theme="solid"
-              disabled={!canCreate}
               onClick={() => {
                 setCurrentUnit(null);
                 setIsModalVisible(true);

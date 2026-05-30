@@ -57,4 +57,6 @@ export interface QueryAttribute {
   code?: string;
   /** 状态筛选 */
   isActive?: number;
+  /** 模板来源筛选 */
+  templateScope?: "standard" | "custom";
 }

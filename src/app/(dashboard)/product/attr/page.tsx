@@ -5,11 +5,10 @@ import ProDataTable, {
 } from "@/components/ProDataTable";
 import AttributeEditModal from "./components/AttributeEditModal";
 import ImportModal from "@/components/ImportModal";
-import { Switch, Button, Modal, Toast, Tag } from "@douyinfe/semi-ui-19";
+import { Switch, Button, Modal, Toast, Tag, Tabs } from "@douyinfe/semi-ui-19";
 import { IconDelete } from "@douyinfe/semi-icons";
 import AttributeAPI from "@/api/attributes";
 import { useRef, useState } from "react";
-import { useBtnAuth } from "@/hooks/useBtnAuth";
 
 const typeMap = {
   select: "下拉选择",
@@ -31,13 +30,7 @@ const AttributePage = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [batchDeleteIds, setBatchDeleteIds] = useState<string[]>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
-  const [importLoading, setImportLoading] = useState(false);
-  const { hasBtnAuth } = useBtnAuth();
-  const canCreate = hasBtnAuth("tenant:attribute:create");
-  const canUpdate = hasBtnAuth("tenant:attribute:update");
-  const canDelete = hasBtnAuth("tenant:attribute:delete");
-  const canStatus = hasBtnAuth("tenant:attribute:status");
-  const canImport = hasBtnAuth("tenant:attribute:import");
+  const [activeScope, setActiveScope] = useState<"all" | "standard" | "custom">("all");
 
   // 表格列定义
   const columns: ProColumnType[] = [
@@ -46,7 +39,7 @@ const AttributePage = () => {
       dataIndex: "tenantId",
       hideInSearch: true,
       render: (tenantId: string | null) =>
-        tenantId ? <Tag color="blue">租户自建</Tag> : <Tag color="green">标准模板</Tag>,
+        tenantId ? null : <Tag color="green">标准模板</Tag>,
     },
     { title: "属性编码", dataIndex: "code" },
     { title: "属性名称", dataIndex: "name", hideInSearch: true },
@@ -66,7 +59,7 @@ const AttributePage = () => {
       render: (v: any, record: any) => (
         <Switch
           checked={!!v}
-          disabled={!record.tenantId || !canStatus}
+          disabled={!record.tenantId}
           onChange={(checked) => handleStatusChange(record, checked)}
         />
       ),
@@ -83,11 +76,12 @@ const AttributePage = () => {
       hideInSearch: true,
       render: (_: any, record: any) => {
         const isStandard = !record.tenantId;
+        if (isStandard) return null;
+
         return (
           <>
             <Button
               theme="borderless"
-              disabled={isStandard || !canUpdate}
               onClick={() => openEditModal(record.id)}
             >
               编辑
@@ -95,7 +89,6 @@ const AttributePage = () => {
             <Button
               theme="borderless"
               type="danger"
-              disabled={isStandard || !canDelete}
               onClick={() => setDeleteId(record.id)}
             >
               删除
@@ -107,7 +100,10 @@ const AttributePage = () => {
   ];
 
   // 数据请求
-  const fetchList = (params: any) => AttributeAPI.getAttributePage(params);
+  const fetchList = (params: any) => {
+    const templateScope = activeScope === "all" ? undefined : activeScope;
+    return AttributeAPI.getAttributePage({ ...params, templateScope });
+  };
 
   // 搜索栏工具栏
   const toolBarRender = (selectedRows: any[], selectedKeys: any[]) => (
@@ -115,9 +111,7 @@ const AttributePage = () => {
       <Button
         icon={<IconDelete />}
         type="danger"
-        disabled={
-          !canDelete || selectedRows.filter((row) => row.tenantId).length === 0
-        }
+        disabled={selectedRows.filter((row) => row.tenantId).length === 0}
         onClick={() => {
           const deletableIds = selectedRows
             .filter((row) => row.tenantId)
@@ -132,12 +126,11 @@ const AttributePage = () => {
       </Button>
       <Button
         style={{ marginRight: 16 }}
-        disabled={!canImport}
         onClick={() => setImportModalVisible(true)}
       >
         导入
       </Button>
-      <Button type="primary" disabled={!canCreate} onClick={openAddModal}>
+      <Button type="primary" onClick={openAddModal}>
         新增属性
       </Button>
     </>
@@ -169,7 +162,8 @@ const AttributePage = () => {
     setModalLoading(true);
     try {
       // 移除 id 字段，避免新增时出错
-      const { id, ...submitData } = values;
+      const submitData = { ...values };
+      delete submitData.id;
 
       if (editingId) {
         await AttributeAPI.updateAttribute({ ...submitData, id: editingId });
@@ -218,7 +212,18 @@ const AttributePage = () => {
 
   return (
     <>
+      <Tabs
+        activeKey={activeScope}
+        onChange={(key) => setActiveScope(key as "all" | "standard" | "custom")}
+        type="line"
+        style={{ marginBottom: 12 }}
+      >
+        <Tabs.TabPane itemKey="all" tab="全部" />
+        <Tabs.TabPane itemKey="standard" tab="标准模板" />
+        <Tabs.TabPane itemKey="custom" tab="租户自建" />
+      </Tabs>
       <ProDataTable
+        key={activeScope}
         ref={tableRef}
         api={fetchList}
         columns={columns}
@@ -252,7 +257,6 @@ const AttributePage = () => {
       </Modal>
       <ImportModal
         visible={importModalVisible}
-        loading={importLoading}
         title="属性导入"
         templateFileName="属性导入模板.xlsx"
         onCancel={() => setImportModalVisible(false)}

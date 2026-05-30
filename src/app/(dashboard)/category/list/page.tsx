@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useMemo } from "react";
 import dayjs from "dayjs";
-import { Button, Space, Modal, Toast, Tag } from "@douyinfe/semi-ui-19";
+import { Button, Space, Modal, Toast, Tag, Tabs } from "@douyinfe/semi-ui-19";
 import {
   IconPlus,
   IconEdit2,
@@ -18,19 +18,18 @@ import ProDataTable, {
 
 import { ICategory } from "@/api/category/types";
 import CategoryEditModal from "./components/CategoryEditModal";
-import { useBtnAuth } from "@/hooks/useBtnAuth";
 
 export default function CategoryListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [activeScope, setActiveScope] = useState<"all" | "standard" | "custom">("all");
   const [currentCategory, setCurrentCategory] = useState<ICategory | null>(
     null
   );
-  const { hasBtnAuth } = useBtnAuth();
-  const canCreate = hasBtnAuth("tenant:category:create");
-  const canUpdate = hasBtnAuth("tenant:category:update");
-  const canDelete = hasBtnAuth("tenant:category:delete");
-  const canStatus = hasBtnAuth("tenant:category:status");
+  const fetchList = React.useCallback((params: any) => {
+    const templateScope = activeScope === "all" ? undefined : activeScope;
+    return CategoryApi.getCategoryPage({ ...params, templateScope });
+  }, [activeScope]);
 
   // 启用/禁用
   const handleToggleStatus = (record: ICategory) => {
@@ -46,7 +45,7 @@ export default function CategoryListPage() {
           await CategoryApi.updateCategoryStatus(record.id, isActive ? 0 : 1);
           Toast.success(`${actionText}成功`);
           tableRef.current?.reload();
-        } catch (error) {}
+        } catch {}
       },
     });
   };
@@ -61,7 +60,7 @@ export default function CategoryListPage() {
           await CategoryApi.deleteCategory(id);
           Toast.success("删除成功");
           tableRef.current?.reload();
-        } catch (error) {}
+        } catch {}
       },
     });
   };
@@ -75,7 +74,7 @@ export default function CategoryListPage() {
         hideInSearch: true,
         width: 100,
         render: (tenantId) =>
-          tenantId ? <Tag color="blue">租户自建</Tag> : <Tag color="green">标准模板</Tag>,
+          tenantId ? null : <Tag color="green">标准模板</Tag>,
       },
       {
         title: "类目名称",
@@ -118,12 +117,13 @@ export default function CategoryListPage() {
         hideInSearch: true,
         render: (_, record) => {
           const isStandard = !record.tenantId;
+          if (isStandard) return null;
+
           return (
             <Space>
               <Button
                 icon={<IconEdit2 />}
                 theme="light"
-                disabled={isStandard || !canUpdate}
                 onClick={() => {
                   setCurrentCategory(record);
                   setIsModalVisible(true);
@@ -135,7 +135,6 @@ export default function CategoryListPage() {
                 icon={record.isActive === 1 ? <IconPause /> : <IconPlay />}
                 theme="light"
                 type={record.isActive === 1 ? "warning" : "primary"}
-                disabled={isStandard || !canStatus}
                 onClick={() => handleToggleStatus(record)}
               >
                 {record.isActive === 1 ? "禁用" : "启用"}
@@ -144,7 +143,6 @@ export default function CategoryListPage() {
                 icon={<IconDelete />}
                 theme="light"
                 type="danger"
-                disabled={isStandard || !canDelete}
                 onClick={() => handleDelete(record.id)}
               >
                 删除
@@ -154,21 +152,31 @@ export default function CategoryListPage() {
         },
       },
     ],
-    [canDelete, canStatus, canUpdate]
+    []
   );
 
   return (
     <div style={{ padding: "4px" }}>
+      <Tabs
+        activeKey={activeScope}
+        onChange={(key) => setActiveScope(key as "all" | "standard" | "custom")}
+        type="line"
+        style={{ marginBottom: 12 }}
+      >
+        <Tabs.TabPane itemKey="all" tab="全部" />
+        <Tabs.TabPane itemKey="standard" tab="标准模板" />
+        <Tabs.TabPane itemKey="custom" tab="租户自建" />
+      </Tabs>
       <ProDataTable
+        key={activeScope}
         ref={tableRef}
         title="类目管理"
-        api={CategoryApi.getCategoryPage}
+        api={fetchList}
         columns={columns}
         toolBarRender={() => (
           <Button
             icon={<IconPlus />}
             theme="solid"
-            disabled={!canCreate}
             onClick={() => {
               setCurrentCategory(null);
               setIsModalVisible(true);

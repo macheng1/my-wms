@@ -54,4 +54,5 @@ export interface IQueryUnit {
   keyword?: string;
   category?: UnitCategory;
   isActive?: 1 | 0;
+  templateScope?: "standard" | "custom";
 }

@@ -53,6 +53,8 @@ export interface IOptionQuery {
   value?: string;
   /** 筛选：规格状态 (1-启用, 0-禁用) */
   isActive?: 1 | 0;
+  /** 模板来源筛选 */
+  templateScope?: "standard" | "custom";
 }
 
 /**
