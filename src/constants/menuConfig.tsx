@@ -158,6 +158,11 @@ export const MENU_CONFIG: MenuItem[] = [
     menuType: "tenant",
     items: [
       {
+        itemKey: "/website/config",
+        text: "官网配置",
+        code: "tenant:portal:config",
+      },
+      {
         itemKey: "/website/inquiry",
         text: "询价管理",
         code: "tenant:portal:inquiry:list",

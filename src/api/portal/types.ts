@@ -23,3 +23,30 @@ export interface InquiryListQuery {
   name?: string;
   status?: InquiryStatus; // 新增：支持按状态筛选
 }
+
+export interface PortalFooterInfo {
+  phone?: string;
+  address?: string;
+  contactPerson?: string;
+  icp?: string;
+  publicNumber?: string;
+  copyright?: string;
+  qrCode?: string;
+}
+
+export interface PortalSeoConfig {
+  keywords?: string;
+  description?: string;
+}
+
+export interface PortalConfig {
+  id?: string;
+  tenantId?: string;
+  title?: string;
+  logo?: string;
+  slogan?: string;
+  description?: string;
+  footerInfo?: PortalFooterInfo;
+  seoConfig?: PortalSeoConfig;
+  isActive?: 0 | 1;
+}

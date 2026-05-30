@@ -1,15 +1,15 @@
 import request from "@/utils/request";
-import { InquiryListQuery } from "./types";
+import { InquiryListQuery, PortalConfig } from "./types";
 
 /**
  * 网站管理 API
  */
 const PortalAPI = {
   /** 获取网站配置 */
-  getConfig: () => request.get<any>("portal/config"),
+  getConfig: () => request.get<PortalConfig>("portal/config"),
 
   /** 更新网站配置 */
-  updateConfig: (data: any) => request.patch("portal/config", data),
+  updateConfig: (data: PortalConfig) => request.patch("portal/config", data),
 
   /** 获取访客询盘列表 */
   getInquiries: (params?: InquiryListQuery) =>
