@@ -24,31 +24,6 @@ import {
 const { Title } = Typography;
 const { Section } = Form;
 
-const collectAncestorKeys = (
-  nodes: any[] = [],
-  checkedKeySet: Set<string>,
-  ancestors: string[] = [],
-): string[] =>
-  nodes.flatMap((node) => {
-    const childAncestorKeys = node.children?.length
-      ? collectAncestorKeys(node.children, checkedKeySet, [...ancestors, node.key])
-      : [];
-    return checkedKeySet.has(node.key)
-      ? [...ancestors, ...childAncestorKeys]
-      : childAncestorKeys;
-  });
-
-const mergeHalfCheckedMenuCodes = (
-  checkedKeys: string[],
-  menuTree: any[],
-): string[] =>
-  Array.from(
-    new Set([
-      ...checkedKeys,
-      ...collectAncestorKeys(menuTree, new Set(checkedKeys)),
-    ]),
-  );
-
 export default function PlatformRolesPage() {
   const [loading, setLoading] = useState(false);
   const [roles, setRoles] = useState<PlatformRole[]>([]);
@@ -134,14 +109,10 @@ export default function PlatformRolesPage() {
   }, [departments]);
 
   const handleSave = async (values: any) => {
-    const menuCodes = mergeHalfCheckedMenuCodes(
-      checkedKeys,
-      menuTree,
-    );
     await AdminPlatformAPI.saveRole({
       ...values,
       id: currentRole?.id,
-      menuCodes,
+      menuCodes: checkedKeys,
       dataScope,
       deptIds: dataScope === "CUSTOM" ? checkedDeptKeys : [],
     });
@@ -333,6 +304,7 @@ export default function PlatformRolesPage() {
                 <Tree
                   treeData={menuTree}
                   multiple
+                  autoMergeValue={false}
                   value={checkedKeys}
                   expandedKeys={expandedMenuKeys}
                   onChange={(values) => {

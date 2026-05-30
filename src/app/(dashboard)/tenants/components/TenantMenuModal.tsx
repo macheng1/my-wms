@@ -87,20 +87,6 @@ const collectTreeKeys = (nodes: MenuTreeNode[] = []): string[] =>
     ...(node.children?.length ? collectTreeKeys(node.children) : []),
   ]);
 
-const collectAncestorKeys = (
-  nodes: MenuTreeNode[] = [],
-  checkedKeySet: Set<string>,
-  ancestors: string[] = [],
-): string[] =>
-  nodes.flatMap((node) => {
-    const childAncestorKeys = node.children?.length
-      ? collectAncestorKeys(node.children, checkedKeySet, [...ancestors, node.key])
-      : [];
-    return checkedKeySet.has(node.key)
-      ? [...ancestors, ...childAncestorKeys]
-      : childAncestorKeys;
-  });
-
 interface TenantMenuModalProps {
   visible: boolean;
   tenant?: { id?: string; name?: string } | null;
@@ -137,20 +123,14 @@ export default function TenantMenuModal({
   }, [treeData]);
 
   const allMenuCodes = useMemo(() => collectTreeKeys(treeData), [treeData]);
-  const mergeHalfCheckedMenuCodes = (keys: string[]) =>
-    Array.from(
-      new Set([
-        ...keys,
-        ...collectAncestorKeys(treeData, new Set(keys)),
-      ]),
-    );
 
   const handleSave = async () => {
     if (!tenant?.id) return;
 
     setSaving(true);
     try {
-      await TenantsAPI.saveTenantMenus(tenant.id, mergeHalfCheckedMenuCodes(checkedKeys));
+      // 只保存当前真实勾选项；半选父级不在前端补，登录态返回菜单时由后端补父级用于展示。
+      await TenantsAPI.saveTenantMenus(tenant.id, checkedKeys);
       Toast.success("租户菜单已保存");
       onClose();
     } finally {
@@ -215,6 +195,8 @@ export default function TenantMenuModal({
           <Tree
             treeData={treeData}
             multiple
+            // Semi Tree 默认会把全选子级合并成父级，这里关闭合并，确保按钮/子菜单都能完整提交。
+            autoMergeValue={false}
             value={checkedKeys}
             onChange={(values) => setCheckedKeys(Array.isArray(values) ? values : [])}
             expandedKeys={expandedKeys}

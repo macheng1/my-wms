@@ -33,31 +33,6 @@ const collectTreeKeys = (nodes: TreeNode[] = []): string[] =>
     ...(node.children?.length ? collectTreeKeys(node.children) : []),
   ]);
 
-const collectAncestorKeys = (
-  nodes: TreeNode[] = [],
-  checkedKeySet: Set<string>,
-  ancestors: string[] = [],
-): string[] =>
-  nodes.flatMap((node) => {
-    const childAncestorKeys = node.children?.length
-      ? collectAncestorKeys(node.children, checkedKeySet, [...ancestors, node.key])
-      : [];
-    return checkedKeySet.has(node.key)
-      ? [...ancestors, ...childAncestorKeys]
-      : childAncestorKeys;
-  });
-
-const mergeHalfCheckedMenuCodes = (
-  checkedKeys: string[],
-  treeData: TreeNode[],
-): string[] =>
-  Array.from(
-    new Set([
-      ...checkedKeys,
-      ...collectAncestorKeys(treeData, new Set(checkedKeys)),
-    ]),
-  );
-
 export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
   const [formApi, setFormApi] = useState<any>(null);
   // 💡 增加一个本地状态同步 Tree 的勾选，确保视图实时更新
@@ -138,12 +113,11 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
 
   const handleSubmit = async (values: any) => {
     try {
-      const menuCodes = mergeHalfCheckedMenuCodes(checkedKeys, treeData);
       // 💡 提交时确保包含 Tree 勾选的最新菜单码
       const payload = {
         ...values,
         dataScope,
-        menuCodes,
+        menuCodes: checkedKeys,
         deptIds: dataScope === "CUSTOM" ? checkedDeptKeys : [],
       };
 
@@ -249,16 +223,14 @@ export default function RoleEditModal({ visible, data, onClose, onSuccess }) {
               <Tree
                 treeData={treeData}
                 multiple
+                autoMergeValue={false}
                 value={checkedKeys}
                 expandedKeys={expandedMenuKeys}
                 onChange={(values) => {
                   // values 就是所有已选菜单码的数组
                   const nextKeys = Array.isArray(values) ? values : [];
                   setCheckedKeys(nextKeys as string[]);
-                  formApi?.setValue(
-                    "menuCodes",
-                    mergeHalfCheckedMenuCodes(nextKeys as string[], treeData)
-                  );
+                  formApi?.setValue("menuCodes", nextKeys);
                 }}
                 onExpand={(keys) => setExpandedMenuKeys(keys)}
               />
