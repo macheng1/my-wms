@@ -246,11 +246,12 @@ export default function WebsiteConfigPage() {
                       <Col xs={24} md={6}>
                         <UploadImage
                           field="heroImageFiles"
-                          label="首页主图"
+                          label="首页主图/视频"
                           max={1}
                           uploadPath="tenant/portal"
-                          uploadText="上传首页主图"
-                          prompt="未上传时默认取第一个产品图片作为首页背景"
+                          uploadText="上传主图/视频"
+                          mediaType="media"
+                          prompt="支持图片或视频，未上传时默认取第一个产品图片作为首页背景"
                         />
                       </Col>
                       <Col xs={24}>

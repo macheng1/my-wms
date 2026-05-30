@@ -19,7 +19,10 @@ const UploadImage = ({
   uploadUrl,
   uploadFieldName = "file",
   uploadExtraData,
+  mediaType = "image",
 }: any) => {
+  const accept = mediaType === "media" ? "image/*,video/*" : "image/*";
+
   const handleCustomRequest = async ({
     file,
     onProgress,
@@ -56,7 +59,7 @@ const UploadImage = ({
         customRequest={handleCustomRequest}
         fileList={value}
         listType="picture"
-        accept="image/*"
+        accept={accept}
         onChange={({ fileList }) => onChange?.(fileList)}
         limit={max}
       >
