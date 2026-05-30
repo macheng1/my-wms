@@ -5,6 +5,7 @@ import {
   IconHome,
   IconKanban,
   IconList,
+  IconPhoneStroked,
   IconSetting,
   IconUserGroup,
 } from "@douyinfe/semi-icons";
@@ -89,6 +90,8 @@ const MENU_ICON_BY_CODE: Record<string, React.ReactNode> = {
   "platform:template:category": <IconList />,
   "platform:template:attribute": <IconAppCenter />,
   "platform:template:unit": <IconKanban />,
+  "platform:miniapp": <IconPhoneStroked />,
+  "platform:miniapp:member:list": <IconPhoneStroked />,
   "tenant:dashboard": <IconHome />,
   "tenant:base": <IconAppCenter />,
   "tenant:portal": <IconGlobeStroke />,
@@ -319,6 +322,21 @@ export const MENU_CONFIG: MenuItem[] = [
         itemKey: "/settings/platform-templates/units",
         text: "标准单位",
         code: "platform:template:unit",
+        menuType: "super_admin",
+      },
+    ],
+  },
+  {
+    itemKey: "/miniapp",
+    text: "小程序管理",
+    icon: <IconPhoneStroked />,
+    code: "platform:miniapp",
+    menuType: "super_admin",
+    items: [
+      {
+        itemKey: "/miniapp/members",
+        text: "会员列表",
+        code: "platform:miniapp:member:list",
         menuType: "super_admin",
       },
     ],
