@@ -3,6 +3,7 @@ import {
   IconAppCenter,
   IconGlobeStroke,
   IconHome,
+  IconImage,
   IconKanban,
   IconList,
   IconPhoneStroked,
@@ -33,7 +34,7 @@ export interface MenuItem {
 export const filterMenuByUser = (
   items: MenuItem[],
   isPlatformUser: boolean,
-  permissions: string[]
+  permissions: string[],
 ): MenuItem[] => {
   return items
     .map((item) => {
@@ -52,7 +53,7 @@ export const filterMenuByUser = (
         : undefined;
       const hasPermission =
         !item.code ||
-        permissions.length === 1 && permissions[0] === "*" ||
+        (permissions.length === 1 && permissions[0] === "*") ||
         permissions.includes(item.code);
 
       if (!hasPermission && (!children || children.length === 0)) {
@@ -73,7 +74,10 @@ export const filterMenuByUser = (
     .filter((item): item is MenuItem => Boolean(item));
 };
 
-const flattenMenuConfig = (items: MenuItem[], map = new Map<string, MenuItem>()) => {
+const flattenMenuConfig = (
+  items: MenuItem[],
+  map = new Map<string, MenuItem>(),
+) => {
   items.forEach((item) => {
     if (item.code) map.set(item.code, item);
     if (item.items?.length) flattenMenuConfig(item.items, map);
@@ -91,6 +95,8 @@ const MENU_ICON_BY_CODE: Record<string, React.ReactNode> = {
   "platform:template:attribute": <IconAppCenter />,
   "platform:template:unit": <IconKanban />,
   "platform:miniapp": <IconPhoneStroked />,
+  "platform:miniapp:category:list": <IconAppCenter />,
+  "platform:miniapp:banner:list": <IconImage />,
   "platform:miniapp:member:list": <IconPhoneStroked />,
   "tenant:dashboard": <IconHome />,
   "tenant:base": <IconAppCenter />,
@@ -102,21 +108,29 @@ const MENU_ICON_BY_CODE: Record<string, React.ReactNode> = {
   "tenant:settings": <IconSetting />,
 };
 
-export const buildMenuFromUserMenus = (menus: UserMenuInfo[] = []): MenuItem[] => {
+export const buildMenuFromUserMenus = (
+  menus: UserMenuInfo[] = [],
+): MenuItem[] => {
   const localMenuByCode = flattenMenuConfig(MENU_CONFIG);
 
   const walk = (items: UserMenuInfo[]): MenuItem[] =>
     items
       .filter((item) => item.type !== "BUTTON")
       .map((item) => {
-        const localMenu = item.code ? localMenuByCode.get(item.code) : undefined;
-        const children = item.children?.length ? walk(item.children) : undefined;
+        const localMenu = item.code
+          ? localMenuByCode.get(item.code)
+          : undefined;
+        const children = item.children?.length
+          ? walk(item.children)
+          : undefined;
         return {
           ...localMenu,
           itemKey: item.itemKey || item.routePath || localMenu?.itemKey || "",
           text: item.text || item.name || localMenu?.text || "",
           code: item.code || localMenu?.code,
-          icon: localMenu?.icon || (item.code ? MENU_ICON_BY_CODE[item.code] : undefined),
+          icon:
+            localMenu?.icon ||
+            (item.code ? MENU_ICON_BY_CODE[item.code] : undefined),
           items: children?.length ? children : undefined,
         };
       })
@@ -131,8 +145,8 @@ export const collectUserMenuCodes = (menus: UserMenuInfo[] = []): string[] =>
       menus.flatMap((menu) => [
         ...(menu.code ? [menu.code] : []),
         ...(menu.children?.length ? collectUserMenuCodes(menu.children) : []),
-      ])
-    )
+      ]),
+    ),
   );
 
 /**
@@ -333,6 +347,18 @@ export const MENU_CONFIG: MenuItem[] = [
     code: "platform:miniapp",
     menuType: "super_admin",
     items: [
+      {
+        itemKey: "/miniapp/categories",
+        text: "分类管理",
+        code: "platform:miniapp:category:list",
+        menuType: "super_admin",
+      },
+      {
+        itemKey: "/miniapp/banners",
+        text: "轮播图管理",
+        code: "platform:miniapp:banner:list",
+        menuType: "super_admin",
+      },
       {
         itemKey: "/miniapp/members",
         text: "会员列表",

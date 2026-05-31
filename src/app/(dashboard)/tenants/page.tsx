@@ -47,21 +47,33 @@ export default function TenantListPage() {
         industryOptions.map((option) => [
           String(option.value),
           String(option.label),
-        ])
+        ]),
       ),
-    [industryOptions]
+    [industryOptions],
   );
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [menuModalVisible, setMenuModalVisible] = useState(false);
   const [currentTenant, setCurrentTenant] = useState<any>(null);
 
-  const lifecycleMap: Record<string, { text: string; color: "green" | "orange" | "red" | "grey" | "blue" }> = {
+  const lifecycleMap: Record<
+    string,
+    { text: string; color: "green" | "orange" | "red" | "grey" | "blue" }
+  > = {
     pending: { text: "待审核", color: "orange" },
     active: { text: "运营中", color: "green" },
     rejected: { text: "已驳回", color: "red" },
     disabled: { text: "已禁用", color: "grey" },
     expired: { text: "已到期", color: "blue" },
+  };
+  const sourceMap: Record<
+    string,
+    { text: string; color: "blue" | "green" | "grey" | "orange" }
+  > = {
+    platform: { text: "平台后台", color: "blue" },
+    miniapp: { text: "小程序", color: "green" },
+    import: { text: "导入", color: "grey" },
+    api: { text: "开放接口", color: "orange" },
   };
 
   const getTenantActions = (record: any): TenantAction[] => {
@@ -86,7 +98,7 @@ export default function TenantListPage() {
           label: "管理菜单",
           icon: <IconSetting />,
           onClick: () => handleMenu(record),
-        }
+        },
       );
     }
 
@@ -195,6 +207,31 @@ export default function TenantListPage() {
       width: 250,
     },
     {
+      title: "来源",
+      dataIndex: "tenantSource",
+      valueType: "select",
+      width: 120,
+      valueEnum: {
+        platform: { text: "平台后台", color: "blue" },
+        miniapp: { text: "小程序", color: "green" },
+        import: { text: "导入", color: "grey" },
+        api: { text: "开放接口", color: "orange" },
+      },
+      fieldProps: {
+        optionList: [
+          { label: "全部", value: "all" },
+          { label: "平台后台", value: "platform" },
+          { label: "小程序", value: "miniapp" },
+          { label: "导入", value: "import" },
+          { label: "开放接口", value: "api" },
+        ],
+      },
+      render: (_, record) => {
+        const source = sourceMap[record.tenantSource || "platform"];
+        return source ? <Tag color={source.color}>{source.text}</Tag> : "-";
+      },
+    },
+    {
       title: "行业",
       dataIndex: "industryName",
       valueType: "text",
@@ -206,7 +243,9 @@ export default function TenantListPage() {
           return record.industryName;
         }
         if (record.industryCode) {
-          return industryNameMap.get(record.industryCode) || record.industryCode;
+          return (
+            industryNameMap.get(record.industryCode) || record.industryCode
+          );
         }
         return "-";
       },
@@ -246,7 +285,11 @@ export default function TenantListPage() {
         expired: { text: "已到期", color: "blue" },
       },
       render: (_, record) => {
-        const config = lifecycleMap[record.lifecycleStatus || (record.isApproved === 1 ? "active" : "pending")];
+        const config =
+          lifecycleMap[
+            record.lifecycleStatus ||
+              (record.isApproved === 1 ? "active" : "pending")
+          ];
         return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
@@ -328,7 +371,10 @@ export default function TenantListPage() {
           <div style={{ marginBottom: 8 }}>选择后会直接影响租户登录状态。</div>
           <select
             id="tenant-lifecycle-select"
-            defaultValue={record.lifecycleStatus || (record.isApproved === 1 ? "active" : "pending")}
+            defaultValue={
+              record.lifecycleStatus ||
+              (record.isApproved === 1 ? "active" : "pending")
+            }
             style={{ width: "100%", height: 32 }}
           >
             <option value="pending">待审核</option>
@@ -340,9 +386,13 @@ export default function TenantListPage() {
         </div>
       ),
       onOk: async () => {
-        const select = document.getElementById("tenant-lifecycle-select") as HTMLSelectElement | null;
+        const select = document.getElementById(
+          "tenant-lifecycle-select",
+        ) as HTMLSelectElement | null;
         const lifecycleStatus = select?.value as any;
-        await AdminPlatformAPI.updateTenantLifecycle(record.id, { lifecycleStatus });
+        await AdminPlatformAPI.updateTenantLifecycle(record.id, {
+          lifecycleStatus,
+        });
         Toast.success("生命周期已更新");
         tableRef.current?.reload();
       },
@@ -373,7 +423,9 @@ export default function TenantListPage() {
         <div>
           <div>审核通过后，租户【{record.name}】的管理员账号可以登录系统。</div>
           <div style={{ marginTop: 8, color: "var(--semi-color-text-2)" }}>
-            {record.email ? `系统会发送审核通过邮件至：${record.email}` : "该租户未填写邮箱，不会发送邮件通知。"}
+            {record.email
+              ? `系统会发送审核通过邮件至：${record.email}`
+              : "该租户未填写邮箱，不会发送邮件通知。"}
           </div>
         </div>
       ),
@@ -413,13 +465,17 @@ export default function TenantListPage() {
             }}
           />
           <div style={{ marginTop: 8, color: "var(--semi-color-text-2)" }}>
-            {record.email ? `系统会发送审核驳回邮件至：${record.email}` : "该租户未填写邮箱，不会发送邮件通知。"}
+            {record.email
+              ? `系统会发送审核驳回邮件至：${record.email}`
+              : "该租户未填写邮箱，不会发送邮件通知。"}
           </div>
         </div>
       ),
       onOk: async () => {
         try {
-          const textarea = document.getElementById("tenant-reject-remark") as HTMLTextAreaElement | null;
+          const textarea = document.getElementById(
+            "tenant-reject-remark",
+          ) as HTMLTextAreaElement | null;
           const auditRemark = textarea?.value?.trim() || "入驻申请未通过审核";
           await AdminPlatformAPI.updateTenantLifecycle(record.id, {
             lifecycleStatus: "rejected",

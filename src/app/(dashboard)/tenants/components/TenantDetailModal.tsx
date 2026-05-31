@@ -35,7 +35,10 @@ export default function TenantDetailModal({
       {tenantData?.isActive === 1 ? "启用" : "禁用"}
     </Tag>
   );
-  const lifecycleMap: Record<string, { text: string; color: "green" | "orange" | "red" | "grey" | "blue" }> = {
+  const lifecycleMap: Record<
+    string,
+    { text: string; color: "green" | "orange" | "red" | "grey" | "blue" }
+  > = {
     pending: { text: "待审核", color: "orange" },
     active: { text: "运营中", color: "green" },
     rejected: { text: "已驳回", color: "red" },
@@ -43,6 +46,16 @@ export default function TenantDetailModal({
     expired: { text: "已到期", color: "blue" },
   };
   const lifecycle = lifecycleMap[tenantData?.lifecycleStatus || "pending"];
+  const sourceMap: Record<
+    string,
+    { text: string; color: "blue" | "green" | "grey" | "orange" }
+  > = {
+    platform: { text: "平台后台", color: "blue" },
+    miniapp: { text: "小程序", color: "green" },
+    import: { text: "导入", color: "grey" },
+    api: { text: "开放接口", color: "orange" },
+  };
+  const source = sourceMap[tenantData?.tenantSource || "platform"];
 
   return (
     <Modal
@@ -53,7 +66,11 @@ export default function TenantDetailModal({
       footer={null}
     >
       {loading ? (
-        <Skeleton placeholder={<Skeleton.Paragraph rows={8} />} loading active />
+        <Skeleton
+          placeholder={<Skeleton.Paragraph rows={8} />}
+          loading
+          active
+        />
       ) : (
         <div>
           <Descriptions
@@ -63,8 +80,20 @@ export default function TenantDetailModal({
               { key: "企业编码", value: tenantData?.code || "-" },
               { key: "企业名称", value: tenantData?.name || "-" },
               {
+                key: "来源",
+                value: source ? (
+                  <Tag color={source.color}>{source.text}</Tag>
+                ) : (
+                  "-"
+                ),
+              },
+              {
                 key: "生命周期",
-                value: lifecycle ? <Tag color={lifecycle.color}>{lifecycle.text}</Tag> : "-",
+                value: lifecycle ? (
+                  <Tag color={lifecycle.color}>{lifecycle.text}</Tag>
+                ) : (
+                  "-"
+                ),
               },
               { key: "状态", value: statusTag },
             ]}
@@ -101,7 +130,10 @@ export default function TenantDetailModal({
               },
               { key: "联系人", value: tenantData?.contactPerson || "-" },
               { key: "联系电话", value: tenantData?.contactPhone || "-" },
-              { key: "工厂地址", value: tenantData?.factoryAddress || tenantData?.address || "-" },
+              {
+                key: "工厂地址",
+                value: tenantData?.factoryAddress || tenantData?.address || "-",
+              },
               { key: "成立日期", value: tenantData?.foundDate || "-" },
               { key: "员工人数", value: tenantData?.staffCount || "-" },
               { key: "主要产品", value: tenantData?.mainProducts || "-" },
@@ -136,10 +168,22 @@ export default function TenantDetailModal({
             align="left"
             row
             data={[
-              { key: "营业执照号", value: tenantData?.businessLicenseNo || "-" },
-              { key: "营业执照有效期", value: tenantData?.businessLicenseExpire || "-" },
-              { key: "资质证书编号", value: tenantData?.qualificationNo || "-" },
-              { key: "资质证书有效期", value: tenantData?.qualificationExpire || "-" },
+              {
+                key: "营业执照号",
+                value: tenantData?.businessLicenseNo || "-",
+              },
+              {
+                key: "营业执照有效期",
+                value: tenantData?.businessLicenseExpire || "-",
+              },
+              {
+                key: "资质证书编号",
+                value: tenantData?.qualificationNo || "-",
+              },
+              {
+                key: "资质证书有效期",
+                value: tenantData?.qualificationExpire || "-",
+              },
             ]}
             style={{ marginBottom: 16 }}
           />
@@ -154,7 +198,10 @@ export default function TenantDetailModal({
               { key: "联系邮箱", value: tenantData?.email || "-" },
               { key: "传真", value: tenantData?.fax || "-" },
               { key: "官网", value: tenantData?.website || "-" },
-              { key: "公司注册地址", value: tenantData?.registerAddress || "-" },
+              {
+                key: "公司注册地址",
+                value: tenantData?.registerAddress || "-",
+              },
               { key: "备注", value: tenantData?.remark || "-" },
             ]}
           />
@@ -163,9 +210,24 @@ export default function TenantDetailModal({
             align="left"
             row
             data={[
-              { key: "创建时间", value: tenantData?.createdAt ? new Date(tenantData.createdAt).toLocaleString("zh-CN") : "-" },
-              { key: "更新时间", value: tenantData?.updatedAt ? new Date(tenantData.updatedAt).toLocaleString("zh-CN") : "-" },
-              { key: "审核时间", value: tenantData?.approvedAt ? new Date(tenantData.approvedAt).toLocaleString("zh-CN") : "-" },
+              {
+                key: "创建时间",
+                value: tenantData?.createdAt
+                  ? new Date(tenantData.createdAt).toLocaleString("zh-CN")
+                  : "-",
+              },
+              {
+                key: "更新时间",
+                value: tenantData?.updatedAt
+                  ? new Date(tenantData.updatedAt).toLocaleString("zh-CN")
+                  : "-",
+              },
+              {
+                key: "审核时间",
+                value: tenantData?.approvedAt
+                  ? new Date(tenantData.approvedAt).toLocaleString("zh-CN")
+                  : "-",
+              },
               { key: "审核备注", value: tenantData?.auditRemark || "-" },
               { key: "禁用原因", value: tenantData?.disabledReason || "-" },
             ]}

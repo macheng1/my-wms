@@ -1,5 +1,14 @@
 import request from "@/utils/request";
-import type { MiniappMember, QueryMiniappMemberParams } from "./types";
+import type {
+  MiniappBanner,
+  MiniappCategory,
+  MiniappMember,
+  QueryMiniappBannerParams,
+  QueryMiniappCategoryParams,
+  QueryMiniappMemberParams,
+  SaveMiniappBannerParams,
+  SaveMiniappCategoryParams,
+} from "./types";
 
 const normalizeListParams = (params: QueryMiniappMemberParams) => ({
   ...params,
@@ -26,6 +35,49 @@ const MiniappAPI = {
 
   updateMemberRemark: (id: string, remark?: string) =>
     request.post<MiniappMember>(`/miniapp/members/${id}/remark`, { remark }),
+
+  getCategories: (params: QueryMiniappCategoryParams) =>
+    request.get<{
+      list: MiniappCategory[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>("/miniapp/categories", {
+      params: {
+        ...params,
+        isActive: params.isActive === "all" ? undefined : params.isActive,
+      },
+    }),
+
+  saveCategory: (data: SaveMiniappCategoryParams) =>
+    request.post<MiniappCategory>("/miniapp/categories/save", data),
+
+  updateCategoryStatus: (id: string, isActive: number) =>
+    request.post(`/miniapp/categories/${id}/status`, { isActive }),
+
+  deleteCategory: (id: string) =>
+    request.post(`/miniapp/categories/${id}/delete`),
+
+  getBanners: (params: QueryMiniappBannerParams) =>
+    request.get<{
+      list: MiniappBanner[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>("/miniapp/banners", {
+      params: {
+        ...params,
+        isActive: params.isActive === "all" ? undefined : params.isActive,
+      },
+    }),
+
+  saveBanner: (data: SaveMiniappBannerParams) =>
+    request.post<MiniappBanner>("/miniapp/banners/save", data),
+
+  updateBannerStatus: (id: string, isActive: number) =>
+    request.post(`/miniapp/banners/${id}/status`, { isActive }),
+
+  deleteBanner: (id: string) => request.post(`/miniapp/banners/${id}/delete`),
 };
 
 export default MiniappAPI;

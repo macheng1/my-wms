@@ -1,9 +1,12 @@
 /**
  * 注册/申请租户参数
  */
+export type TenantSource = "platform" | "miniapp" | "import" | "api";
+
 export interface RegisterParams {
   code?: string; // 企业唯一编码（如不填将自动生成）
   name: string; // 企业全称
+  tenantSource?: TenantSource; // 租户来源
   smsCode: string; // 手机验证码
   contactPhone: string; // 联系电话（需验证）
   adminUser: string; // 初始管理员账号
@@ -45,6 +48,7 @@ export interface TenantListParams {
   pageSize?: number;
   code?: string;
   name?: string;
+  tenantSource?: TenantSource | "all";
   lifecycleStatus?: "pending" | "active" | "rejected" | "disabled" | "expired";
   isActive?: number | string;
 }
@@ -67,6 +71,7 @@ export interface TenantItem {
   id: string;
   code: string;
   name: string;
+  tenantSource?: TenantSource;
   industryCode?: string;
   industryName?: string;
   contactPerson?: string;
@@ -118,6 +123,7 @@ export interface TenantBasicInfo {
   id: string;
   code: string;
   name: string;
+  tenantSource?: TenantSource;
   isActive: number;
   isApproved?: number;
   lifecycleStatus?: "pending" | "active" | "rejected" | "disabled" | "expired";
@@ -200,6 +206,7 @@ export interface TenantDetailRaw {
   id: string;
   code: string;
   name: string;
+  tenantSource?: TenantSource;
   industryCode?: string;
   industryName?: string;
   contactPerson?: string;
@@ -274,6 +281,7 @@ export function transformTenantDetail(raw: TenantDetailRaw): TenantDetailData {
       id: raw.id,
       code: raw.code,
       name: raw.name,
+      tenantSource: raw.tenantSource,
       isActive: raw.isActive,
       isApproved: raw.isApproved,
       lifecycleStatus: raw.lifecycleStatus,
@@ -329,7 +337,9 @@ export function transformTenantDetail(raw: TenantDetailRaw): TenantDetailData {
 /**
  * 将分组结构转换为扁平结构（用于提交更新）
  */
-export function flattenTenantDetail(data: Partial<TenantDetailData>): Partial<TenantDetailRaw> {
+export function flattenTenantDetail(
+  data: Partial<TenantDetailData>,
+): Partial<TenantDetailRaw> {
   const result: Partial<TenantDetailRaw> = {};
   const rawData = data as Partial<TenantDetailRaw>;
 

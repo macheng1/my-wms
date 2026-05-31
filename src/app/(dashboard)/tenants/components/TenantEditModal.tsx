@@ -22,6 +22,12 @@ export default function TenantEditModal({
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const industryOptions = getIndustryOptions();
+  const sourceOptions = [
+    { label: "平台后台", value: "platform" },
+    { label: "小程序", value: "miniapp" },
+    { label: "导入", value: "import" },
+    { label: "开放接口", value: "api" },
+  ];
 
   useEffect(() => {
     if (visible && data?.id) {
@@ -97,6 +103,13 @@ export default function TenantEditModal({
               placeholder="请输入企业编码"
               disabled
               style={{ marginBottom: 12 }}
+            />
+            <Form.Select
+              field="tenantSource"
+              label="租户来源"
+              placeholder="请选择租户来源"
+              optionList={sourceOptions}
+              style={{ marginBottom: 12, width: "100%" }}
             />
             <Form.Input
               field="contactPerson"
