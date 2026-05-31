@@ -49,6 +49,9 @@ export default function CategoryEditModal({
       name: data?.name || "",
       iconUrl: imageToFileList(data?.iconUrl),
       linkUrl: data?.linkUrl || "",
+      templateFields: data?.templateFields
+        ? JSON.stringify(data.templateFields, null, 2)
+        : "",
     });
   }, [visible, data, formApi]);
 
@@ -65,6 +68,7 @@ export default function CategoryEditModal({
         sortOrder: data?.sortOrder || 0,
         isActive: data?.isActive ?? 1,
         description: data?.description || "",
+        templateFields: values.templateFields || "",
       };
 
       setSaving(true);
@@ -116,6 +120,12 @@ export default function CategoryEditModal({
           field="linkUrl"
           label="跳转 URL"
           placeholder="不填则默认进入该分类的信息列表"
+        />
+        <Form.TextArea
+          field="templateFields"
+          label="发布字段"
+          rows={8}
+          placeholder={'JSON 数组，例如：\\n[{"field":"material","label":"材质","type":"text","required":true},{"field":"quantity","label":"数量","type":"number"}]'}
         />
       </Form>
     </Modal>

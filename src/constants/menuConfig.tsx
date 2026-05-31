@@ -97,6 +97,7 @@ const MENU_ICON_BY_CODE: Record<string, React.ReactNode> = {
   "platform:miniapp": <IconPhoneStroked />,
   "platform:miniapp:category:list": <IconAppCenter />,
   "platform:miniapp:banner:list": <IconImage />,
+  "platform:miniapp:post:list": <IconList />,
   "platform:miniapp:member:list": <IconPhoneStroked />,
   "tenant:dashboard": <IconHome />,
   "tenant:base": <IconAppCenter />,
@@ -357,6 +358,12 @@ export const MENU_CONFIG: MenuItem[] = [
         itemKey: "/miniapp/banners",
         text: "轮播图管理",
         code: "platform:miniapp:banner:list",
+        menuType: "super_admin",
+      },
+      {
+        itemKey: "/miniapp/posts",
+        text: "信息管理",
+        code: "platform:miniapp:post:list",
         menuType: "super_admin",
       },
       {

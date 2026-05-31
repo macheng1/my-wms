@@ -37,10 +37,20 @@ export interface MiniappCategory {
   iconUrl?: string | null;
   linkUrl?: string | null;
   description?: string | null;
+  templateFields?: MiniappPostTemplateField[] | null;
   sortOrder: number;
   isActive: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface MiniappPostTemplateField {
+  field: string;
+  label: string;
+  type?: "text" | "textarea" | "number" | "select" | "date" | "region";
+  required?: boolean;
+  options?: Array<{ label: string; value: string } | string>;
+  placeholder?: string;
 }
 
 export interface QueryMiniappCategoryParams {
@@ -57,8 +67,43 @@ export interface SaveMiniappCategoryParams {
   iconUrl?: string;
   linkUrl?: string;
   description?: string;
+  templateFields?: MiniappPostTemplateField[] | string;
   sortOrder?: number;
   isActive?: number;
+}
+
+export type MiniappPostStatus = "pending" | "published" | "rejected" | "offline";
+
+export interface MiniappPost {
+  id: string;
+  categoryId: string;
+  categoriesName?: string;
+  memberId?: string | null;
+  tenantId?: string | null;
+  title?: string | null;
+  phone?: string | null;
+  content: string;
+  structuredData?: Record<string, any> | null;
+  region?: string | null;
+  imgList?: string[] | string | null;
+  viewNum: number;
+  status: MiniappPostStatus;
+  auditRemark?: string | null;
+  nickName?: string;
+  headPic?: string;
+  isEnterpriseNo?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface QueryMiniappPostParams {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+  categoryId?: string;
+  status?: MiniappPostStatus | "all";
+  region?: string;
+  certifiedOnly?: string | number | boolean;
 }
 
 export type MiniappBannerLinkType =

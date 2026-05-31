@@ -3,9 +3,12 @@ import type {
   MiniappBanner,
   MiniappCategory,
   MiniappMember,
+  MiniappPost,
+  MiniappPostStatus,
   QueryMiniappBannerParams,
   QueryMiniappCategoryParams,
   QueryMiniappMemberParams,
+  QueryMiniappPostParams,
   SaveMiniappBannerParams,
   SaveMiniappCategoryParams,
 } from "./types";
@@ -78,6 +81,29 @@ const MiniappAPI = {
     request.post(`/miniapp/banners/${id}/status`, { isActive }),
 
   deleteBanner: (id: string) => request.post(`/miniapp/banners/${id}/delete`),
+
+  getPosts: (params: QueryMiniappPostParams) =>
+    request.get<{
+      list: MiniappPost[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>("/miniapp/posts/admin/list", {
+      params: {
+        ...params,
+        status: params.status === "all" ? undefined : params.status,
+      },
+    }),
+
+  updatePostStatus: (
+    id: string,
+    status: MiniappPostStatus,
+    auditRemark?: string,
+  ) =>
+    request.post<MiniappPost>(`/miniapp/posts/${id}/status`, {
+      status,
+      auditRemark,
+    }),
 };
 
 export default MiniappAPI;
