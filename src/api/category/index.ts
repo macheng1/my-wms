@@ -11,6 +11,18 @@ import {
  * 负责产品分类定义及属性绑定关系维护
  */
 const CategoryApi = {
+  /** 类目下拉 */
+  getCategorySelect: (params?: { keyword?: string; isActive?: 1 | 0 }) =>
+    request.get<Array<{
+      label: string;
+      value: string;
+      id: string;
+      name: string;
+      code: string;
+      isActive: 1 | 0;
+      tenantId: string | null;
+    }>>("categories/select", { params }),
+
   /** * 分页查询类目
    * 后端默认按 createdAt: ASC 排序，确保列表稳定性
    */

@@ -9,10 +9,12 @@ import {
   Typography,
   Space,
   Card,
+  Select,
 } from "@douyinfe/semi-ui-19";
 import { IconInfoCircle, IconDownload } from "@douyinfe/semi-icons";
 
 const { Text, Title, Paragraph } = Typography;
+
 interface ImportModalProps {
   visible: boolean;
   loading?: boolean;
@@ -162,18 +164,14 @@ export default function ImportModal({
             </div>
           </Card>
           {templateOptions.length > 0 && (
-            <select
+            <Select
               value={templateOption}
-              onChange={(event) => setTemplateOption(event.target.value)}
-              className="mt-3 w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
-            >
-              <option value="">{templateOptionPlaceholder}</option>
-              {templateOptions.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setTemplateOption(String(value || ""))}
+              optionList={templateOptions}
+              placeholder={templateOptionPlaceholder}
+              style={{ marginTop: 12, width: "100%" }}
+              showClear
+            />
           )}
         </div>
 

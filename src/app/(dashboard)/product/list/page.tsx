@@ -30,8 +30,8 @@ export default function ProductListPage() {
 
   // 拉取类目下拉
   React.useEffect(() => {
-    CategoryApi.getCategoryPage({ page: 1, pageSize: 100 }).then((res) => {
-      const list = res.data?.list || [];
+    CategoryApi.getCategorySelect({ isActive: 1 }).then((res) => {
+      const list = res.data || [];
       const options = list.map((item) => ({
         label: item.name,
         value: item.id,
