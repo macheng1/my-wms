@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { Button, Modal, Space, Tag, Toast, Typography } from "@douyinfe/semi-ui-19";
 import { IconRefresh } from "@douyinfe/semi-icons";
+import dayjs from "dayjs";
 import MiniappAPI from "@/api/miniapp";
 import type { MiniappPost, MiniappPostStatus } from "@/api/miniapp/types";
 import ProDataTable, {
@@ -98,7 +99,13 @@ export default function MiniappPostsPage() {
     { title: "手机号", dataIndex: "phone", hideInSearch: true, width: 130 },
     { title: "地区", dataIndex: "region", valueType: "text", width: 140 },
     { title: "浏览", dataIndex: "viewNum", hideInSearch: true, width: 80 },
-    { title: "发布时间", dataIndex: "createdAt", hideInSearch: true, width: 180 },
+    {
+      title: "发布时间",
+      dataIndex: "createdAt",
+      hideInSearch: true,
+      width: 180,
+      render: (value) => value ? dayjs(value as string).format("YYYY-MM-DD HH:mm:ss") : "-",
+    },
     {
       title: "操作",
       dataIndex: "option",
@@ -135,7 +142,7 @@ export default function MiniappPostsPage() {
         api={MiniappAPI.getPosts}
         columns={columns}
         rowKey="id"
-        initialValues={{ status: "pending" }}
+        initialValues={{ status: "all" }}
         toolBarRender={() => (
           <Button icon={<IconRefresh />} onClick={() => tableRef.current?.reload()}>
             刷新

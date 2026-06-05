@@ -6,7 +6,7 @@ import ProDataTable, {
 } from "@/components/ProDataTable";
 import SpecEditModal from "./components/SpecEditModal";
 import SpecBatchModal from "./components/SpecBatchModal";
-import { Switch, Button, Modal, Toast, Tag, Tabs } from "@douyinfe/semi-ui-19";
+import { Switch, Button, Modal, Toast, Tabs } from "@douyinfe/semi-ui-19";
 import { IconDelete } from "@douyinfe/semi-icons";
 import OptionApi from "@/api/spec";
 import { useRef, useState, useEffect } from "react";
@@ -43,13 +43,6 @@ const SpecPage = () => {
 
   // 表格列定义
   const columns: ProColumnType[] = [
-    {
-      title: "来源",
-      dataIndex: "tenantId",
-      hideInSearch: true,
-      render: (tenantId: string | null) =>
-        tenantId ? null : <Tag color="green">标准模板</Tag>,
-    },
     {
       title: "规格值",
       dataIndex: "value",

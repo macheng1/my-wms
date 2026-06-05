@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useMemo } from "react";
 import dayjs from "dayjs";
-import { Button, Space, Modal, Toast, Tag, Tabs } from "@douyinfe/semi-ui-19";
+import { Button, Space, Modal, Toast, Tabs } from "@douyinfe/semi-ui-19";
 import {
   IconPlus,
   IconEdit2,
@@ -68,14 +68,6 @@ export default function CategoryListPage() {
   // 列定义
   const columns: ProColumnType<ICategory>[] = useMemo(
     () => [
-      {
-        title: "来源",
-        dataIndex: "tenantId",
-        hideInSearch: true,
-        width: 100,
-        render: (tenantId) =>
-          tenantId ? null : <Tag color="green">标准模板</Tag>,
-      },
       {
         title: "类目名称",
         dataIndex: "name",

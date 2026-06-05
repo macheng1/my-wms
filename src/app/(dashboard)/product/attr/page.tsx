@@ -5,7 +5,7 @@ import ProDataTable, {
 } from "@/components/ProDataTable";
 import AttributeEditModal from "./components/AttributeEditModal";
 import ImportModal from "@/components/ImportModal";
-import { Switch, Button, Modal, Toast, Tag, Tabs } from "@douyinfe/semi-ui-19";
+import { Switch, Button, Modal, Toast, Tabs } from "@douyinfe/semi-ui-19";
 import { IconDelete } from "@douyinfe/semi-icons";
 import AttributeAPI from "@/api/attributes";
 import { useRef, useState } from "react";
@@ -34,13 +34,6 @@ const AttributePage = () => {
 
   // 表格列定义
   const columns: ProColumnType[] = [
-    {
-      title: "来源",
-      dataIndex: "tenantId",
-      hideInSearch: true,
-      render: (tenantId: string | null) =>
-        tenantId ? null : <Tag color="green">标准模板</Tag>,
-    },
     { title: "属性编码", dataIndex: "code" },
     { title: "属性名称", dataIndex: "name", hideInSearch: true },
 
