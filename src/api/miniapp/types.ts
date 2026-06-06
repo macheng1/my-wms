@@ -89,9 +89,13 @@ export interface MiniappPost {
   viewNum: number;
   status: MiniappPostStatus;
   auditRemark?: string | null;
+  auditedById?: string | null;
+  auditedByName?: string | null;
+  auditedAt?: string | null;
   nickName?: string;
   headPic?: string;
   isEnterpriseNo?: string;
+  templateFields?: MiniappPostTemplateField[] | null;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
         headers: {
           'Authorization': `Bearer ${token}`,
           'cookie': cookieHeader,
+          'x-source-type': 'admin-web',
         },
         signal: abortController.signal,
       })

@@ -4,6 +4,7 @@ import Cookies from "js-cookie";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 const APP_ENV = process.env.NEXT_PUBLIC_APP_ENV || "local";
+const SOURCE_TYPE = "admin-web";
 
 // 业务错误码白名单：这些 code 不会触发错误提示和 reject。
 // 默认业务异常需要 reject，否则调用方会把错误响应当成功数据继续执行。
@@ -37,6 +38,7 @@ request.interceptors.request.use(
     // 添加 x-trace-id 请求头
     if (config.headers) {
       config.headers["x-trace-id"] = generateTraceId();
+      config.headers["x-source-type"] = SOURCE_TYPE;
     }
 
     if (APP_ENV === "local" || APP_ENV === "dev") {

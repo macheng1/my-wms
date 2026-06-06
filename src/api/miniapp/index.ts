@@ -95,6 +95,8 @@ const MiniappAPI = {
       },
     }),
 
+  getPostDetail: (id: string) => request.get<MiniappPost>(`/miniapp/posts/admin/${id}`),
+
   updatePostStatus: (
     id: string,
     status: MiniappPostStatus,
