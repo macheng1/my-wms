@@ -75,7 +75,7 @@ export default function InventoryListPage() {
       width: 120,
     },
     {
-      title: "库存数量",
+      title: "总库存",
       dataIndex: "quantity",
       valueType: "digit",
       hideInSearch: true,
@@ -84,6 +84,30 @@ export default function InventoryListPage() {
         <Text strong style={{ fontSize: 16 }}>
           {record.quantityDisplay ||
             `${text.toLocaleString()} ${record.unitSymbol || ""}`}
+        </Text>
+      ),
+    },
+    {
+      title: "锁定库存",
+      dataIndex: "lockedQuantity",
+      valueType: "digit",
+      hideInSearch: true,
+      width: 120,
+      render: (_: number, record: any) => (
+        <Text type={Number(record.lockedQuantity || 0) > 0 ? "warning" : "secondary"}>
+          {record.lockedQuantityDisplay || `0 ${record.unitSymbol || ""}`}
+        </Text>
+      ),
+    },
+    {
+      title: "可预购库存",
+      dataIndex: "availableQuantity",
+      valueType: "digit",
+      hideInSearch: true,
+      width: 130,
+      render: (_: number, record: any) => (
+        <Text strong style={{ fontSize: 16, color: Number(record.availableQuantity || 0) <= 0 ? "#d54941" : "#2e7d32" }}>
+          {record.availableQuantityDisplay || `0 ${record.unitSymbol || ""}`}
         </Text>
       ),
     },

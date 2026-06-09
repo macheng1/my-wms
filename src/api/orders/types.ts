@@ -14,6 +14,7 @@ export enum OrderStatus {
   PENDING_REVIEW = "PENDING_REVIEW",
   REJECTED = "REJECTED",
   CONFIRMED = "CONFIRMED",
+  PROCESSING = "PROCESSING",
   STOCK_LOCKED = "STOCK_LOCKED",
   OUT_OF_STOCK = "OUT_OF_STOCK",
   PENDING_SCHEDULE = "PENDING_SCHEDULE",
@@ -47,6 +48,8 @@ export interface OrderRecord {
   customerName?: string | null;
   customerPhone?: string | null;
   customerEmail?: string | null;
+  customerAddress?: string | null;
+  miniappMemberId?: string | null;
   totalAmount: number;
   remark?: string | null;
   reviewRemark?: string | null;
@@ -80,6 +83,7 @@ export interface SaveOrder {
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
+  customerAddress?: string;
   totalAmount?: number;
   remark?: string;
   expectedDeliveryDate?: string;

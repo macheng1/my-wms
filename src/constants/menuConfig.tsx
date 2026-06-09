@@ -294,14 +294,14 @@ export const MENU_CONFIG: MenuItem[] = [
   },
   {
     itemKey: "/orders",
-    text: "订单管理",
+    text: "订购管理",
     icon: <IconList />,
     code: "tenant:order",
     menuType: "tenant",
     items: [
       {
         itemKey: "/orders",
-        text: "订单列表",
+        text: "订购列表",
         code: "tenant:order:list",
       },
     ],

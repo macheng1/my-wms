@@ -8,7 +8,11 @@ export interface IProduct {
   /** 自动生成的 SKU 编码 */
   code: string;
   categoryId: string;
+  unitId: string;
   unit?: string;
+  unitCode?: string;
+  unitName?: string;
+  unitSymbol?: string;
   /** * 动态规格数据 (MySQL JSON)
    * 结构如: { "ATTR_CZ": "304", "ATTR_ZJ": "1.5" }
    */
@@ -38,6 +42,7 @@ export interface ISaveProduct {
   /** 如果不传，后端将根据类目+规格自动生成 */
   code?: string;
   categoryId: string;
+  unitId: string;
   unit?: string;
   /** 必填：需包含该类目绑定的所有属性值 */
   specs: Record<string, any>;

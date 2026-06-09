@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Modal, Form, Toast, Spin } from "@douyinfe/semi-ui-19";
 import ProductApi from "@/api/product";
 import CategoryApi from "@/api/category";
+import UnitApi from "@/api/unit";
 
 // 💡 引入 FormApi 类型
 import { FormApi } from "@douyinfe/semi-ui-19/lib/es/form";
@@ -22,6 +23,7 @@ export default function ProductEditModal({
 }: any) {
   const [loading, setLoading] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<any>([]);
+  const [unitOptions, setUnitOptions] = useState<any>([]);
   const [formApi, setFormApi] = useState<FormApi | null>(null);
   const [dynamicAttributes, setDynamicAttributes] = useState<any[]>([]);
   const [attrLoading, setAttrLoading] = useState(false);
@@ -32,6 +34,16 @@ export default function ProductEditModal({
     setCategoryOptions(
       (res.data?.list || []).map((item: any) => ({
         label: item.name,
+        value: String(item.id),
+      }))
+    );
+  }, []);
+
+  const loadUnits = useCallback(async () => {
+    const res = await UnitApi.getActiveUnits();
+    setUnitOptions(
+      (res.data || []).map((item: any) => ({
+        label: `${item.name}${item.symbol ? `（${item.symbol}）` : ""}`,
         value: String(item.id),
       }))
     );
@@ -66,8 +78,8 @@ export default function ProductEditModal({
         setDynamicAttributes([]);
         formApi.reset();
 
-        // 加载类目列表
-        await loadCategories();
+        // 加载基础下拉
+        await Promise.all([loadCategories(), loadUnits()]);
 
         if (data?.id) {
           // 编辑模式：先加载产品详情，再加载对应类目的属性
@@ -109,7 +121,7 @@ export default function ProductEditModal({
         }
       })();
     }
-  }, [visible, data?.id, formApi, handleCategoryChange, loadCategories]);
+  }, [visible, data?.id, formApi, handleCategoryChange, loadCategories, loadUnits]);
 
   /**
    * 💡 核心优化：手动处理提交逻辑，绕过缺失的 submit() 方法
@@ -194,6 +206,15 @@ export default function ProductEditModal({
               formApi?.setValue("dynamicAttrs", {});
               await handleCategoryChange(v as string);
             }}
+          />
+          <Form.Select
+            field="unitId"
+            label="库存主单位"
+            style={{ width: "100%" }}
+            placeholder="请选择库存主单位"
+            optionList={unitOptions}
+            filter
+            rules={[{ required: true, message: "请选择库存主单位" }]}
           />
         </Section>
 

@@ -38,7 +38,9 @@ export default function AdjustModal({
 
   // 加载单位选项和库位选项
   useEffect(() => {
-    UnitApi.getActiveUnits(data?.unit?.category).then((res) => {
+    if (!visible) return;
+
+    UnitApi.getActiveUnits(data?.unitCategory).then((res) => {
       const options = (res.data || []).map((item: any) => ({
         label: `${item.name} (${item.code})`,
         value: item.code,
@@ -49,7 +51,7 @@ export default function AdjustModal({
     LocationApi.getLocationSelect().then((res) => {
       setLocationOptions(res.data || []);
     });
-  }, [data?.unit?.category]);
+  }, [visible, data?.unitCategory]);
 
   // 关闭时清空表单
   const handleClose = () => {
@@ -103,7 +105,7 @@ export default function AdjustModal({
           labelPosition="left"
           labelWidth={120}
           initValues={{
-            unitCode: data.unit?.code,
+            unitCode: data.unitCode,
             locationId: data.locationId,
           }}
         >
@@ -116,7 +118,7 @@ export default function AdjustModal({
               borderRadius: "8px",
             }}
           >
-            <Text strong>当前库存：</Text>
+            <Text strong>当前总库存：</Text>
             <Text
               strong
               style={{
@@ -125,7 +127,11 @@ export default function AdjustModal({
                 color: data.quantity <= 0 ? "red" : "green",
               }}
             >
-              {data.quantity?.toLocaleString()} {data.unit?.symbol || data.unit?.code}
+              {data.quantity?.toLocaleString()} {data.unitSymbol || data.unit?.symbol || data.unit?.code}
+            </Text>
+            <Text style={{ marginLeft: 16 }}>可预购：</Text>
+            <Text strong style={{ color: Number(data.availableQuantity || 0) <= 0 ? "red" : "green" }}>
+              {data.availableQuantityDisplay || `${data.availableQuantity || 0} ${data.unitSymbol || ""}`}
             </Text>
             <br />
             <Text type="tertiary" size="small">

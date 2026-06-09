@@ -7,7 +7,16 @@ export interface IInventory {
   sku: string;
   productName: string;
   quantity: number;
+  quantityDisplay?: string;
+  lockedQuantity?: number;
+  lockedQuantityDisplay?: string;
+  availableQuantity?: number;
+  availableQuantityDisplay?: string;
   unitId: string;
+  unitName?: string;
+  unitCode?: string;
+  unitCategory?: string;
+  unitSymbol?: string;
   unit?: {
     id: string;
     name: string;
@@ -18,6 +27,7 @@ export interface IInventory {
   multiUnitQty?: Record<string, number>;
   safetyStock?: number;
   isLowStock?: boolean;
+  stockStatus?: "OUT_OF_STOCK" | "LOW_STOCK" | "IN_STOCK";
   createdAt: string;
   updatedAt: string;
 }
@@ -85,4 +95,5 @@ export interface IQueryInventory {
   categoryId?: string;
   location?: string;
   isLowStock?: boolean;
+  stockStatus?: "OUT_OF_STOCK" | "LOW_STOCK" | "IN_STOCK";
 }

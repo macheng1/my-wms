@@ -42,6 +42,7 @@ const statusMap: Record<OrderStatus, { text: string; color: string }> = {
   [OrderStatus.PENDING_REVIEW]: { text: "待审核", color: "orange" },
   [OrderStatus.REJECTED]: { text: "已驳回", color: "red" },
   [OrderStatus.CONFIRMED]: { text: "已确认", color: "blue" },
+  [OrderStatus.PROCESSING]: { text: "处理中", color: "purple" },
   [OrderStatus.STOCK_LOCKED]: { text: "已锁库", color: "blue" },
   [OrderStatus.OUT_OF_STOCK]: { text: "库存不足", color: "red" },
   [OrderStatus.PENDING_SCHEDULE]: { text: "待排期", color: "orange" },
@@ -58,26 +59,36 @@ const nextStatusMap: Record<OrderType, Partial<Record<OrderStatus, OrderStatus[]
   [OrderType.STANDARD]: {
     [OrderStatus.PENDING_CONFIRM]: [
       OrderStatus.CONFIRMED,
+      OrderStatus.REJECTED,
       OrderStatus.OUT_OF_STOCK,
       OrderStatus.CANCELLED,
     ],
     [OrderStatus.CONFIRMED]: [
+      OrderStatus.PROCESSING,
       OrderStatus.STOCK_LOCKED,
       OrderStatus.PENDING_SHIPMENT,
       OrderStatus.OUT_OF_STOCK,
       OrderStatus.CANCELLED,
     ],
+    [OrderStatus.PROCESSING]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
     [OrderStatus.STOCK_LOCKED]: [OrderStatus.PENDING_SHIPMENT, OrderStatus.CANCELLED],
     [OrderStatus.OUT_OF_STOCK]: [OrderStatus.PENDING_SCHEDULE, OrderStatus.CANCELLED],
     [OrderStatus.PENDING_SHIPMENT]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
     [OrderStatus.SHIPPED]: [OrderStatus.COMPLETED],
   },
   [OrderType.CUSTOM]: {
+    [OrderStatus.PENDING_CONFIRM]: [
+      OrderStatus.PENDING_REVIEW,
+      OrderStatus.REJECTED,
+      OrderStatus.CANCELLED,
+    ],
     [OrderStatus.PENDING_REVIEW]: [
       OrderStatus.PENDING_SCHEDULE,
       OrderStatus.REJECTED,
       OrderStatus.CANCELLED,
     ],
+    [OrderStatus.CONFIRMED]: [OrderStatus.PROCESSING, OrderStatus.PENDING_SCHEDULE, OrderStatus.CANCELLED],
+    [OrderStatus.PROCESSING]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
     [OrderStatus.PENDING_SCHEDULE]: [OrderStatus.SCHEDULED, OrderStatus.CANCELLED],
     [OrderStatus.SCHEDULED]: [OrderStatus.PRODUCING, OrderStatus.CANCELLED],
     [OrderStatus.PRODUCING]: [OrderStatus.PRODUCED, OrderStatus.CANCELLED],
@@ -89,6 +100,33 @@ const nextStatusMap: Record<OrderType, Partial<Record<OrderStatus, OrderStatus[]
 
 const enumToValueEnum = (map: Record<string, { text: string; color?: string }>) =>
   Object.fromEntries(Object.entries(map).map(([value, item]) => [value, item]));
+
+const actionTextMap: Partial<Record<OrderStatus, string>> = {
+  [OrderStatus.PENDING_REVIEW]: "转审核",
+  [OrderStatus.REJECTED]: "驳回",
+  [OrderStatus.CONFIRMED]: "确认",
+  [OrderStatus.PROCESSING]: "处理",
+  [OrderStatus.STOCK_LOCKED]: "锁库",
+  [OrderStatus.OUT_OF_STOCK]: "缺货",
+  [OrderStatus.PENDING_SCHEDULE]: "排期",
+  [OrderStatus.SCHEDULED]: "已排期",
+  [OrderStatus.PRODUCING]: "生产",
+  [OrderStatus.PRODUCED]: "生产完成",
+  [OrderStatus.PENDING_SHIPMENT]: "待发货",
+  [OrderStatus.SHIPPED]: "发货",
+  [OrderStatus.COMPLETED]: "完成",
+  [OrderStatus.CANCELLED]: "取消",
+};
+
+const needFlowFormStatuses = new Set<OrderStatus>([
+  OrderStatus.SCHEDULED,
+]);
+
+const dangerStatuses = new Set<OrderStatus>([
+  OrderStatus.REJECTED,
+  OrderStatus.CANCELLED,
+  OrderStatus.OUT_OF_STOCK,
+]);
 
 export default function OrdersPage() {
   const tableRef = useRef<ProDataTableRef>(null);
@@ -167,22 +205,37 @@ export default function OrdersPage() {
       title: "操作",
       dataIndex: "action",
       hideInSearch: true,
-      width: 260,
-      render: (_: unknown, record) => (
-        <Space>
+      width: 360,
+      render: (_: unknown, record) => {
+        const nextStatuses = getNextStatuses(record);
+        return (
+        <Space wrap>
           <Button theme="borderless" onClick={() => openLogs(record)}>
             日志
           </Button>
-          <Button
-            theme="borderless"
-            disabled={!canFlow || getNextStatuses(record).length === 0}
-            onClick={() => {
-              setCurrentOrder(record);
-              setFlowVisible(true);
-            }}
-          >
-            流转
-          </Button>
+          {nextStatuses.slice(0, 3).map((status) => (
+            <Button
+              key={status}
+              theme="borderless"
+              type={dangerStatuses.has(status) ? "danger" : "primary"}
+              disabled={!canFlow}
+              onClick={() => handleQuickFlow(record, status)}
+            >
+              {actionTextMap[status] || statusMap[status]?.text || status}
+            </Button>
+          ))}
+          {nextStatuses.length > 3 && (
+            <Button
+              theme="borderless"
+              disabled={!canFlow}
+              onClick={() => {
+                setCurrentOrder(record);
+                setFlowVisible(true);
+              }}
+            >
+              更多
+            </Button>
+          )}
           <Button
             theme="borderless"
             disabled={!canUpdate}
@@ -202,7 +255,8 @@ export default function OrdersPage() {
             删除
           </Button>
         </Space>
-      ),
+        );
+      },
     },
   ];
 
@@ -273,22 +327,59 @@ export default function OrdersPage() {
     }
   }
 
+  async function doFlow(order: OrderRecord, status: OrderStatus, extra?: {
+    remark?: string;
+    scheduledStartDate?: string;
+    scheduledEndDate?: string;
+  }) {
+    await OrderApi.updateOrderStatus(order.id, {
+      status,
+      remark: extra?.remark,
+      scheduledStartDate: extra?.scheduledStartDate,
+      scheduledEndDate: extra?.scheduledEndDate,
+    });
+    Toast.success("流转成功");
+    tableRef.current?.reload();
+  }
+
+  function handleQuickFlow(order: OrderRecord, status: OrderStatus) {
+    if (needFlowFormStatuses.has(status)) {
+      setCurrentOrder(order);
+      setFlowVisible(true);
+      return;
+    }
+
+    const actionText = actionTextMap[status] || statusMap[status]?.text || status;
+    if (dangerStatuses.has(status) || status === OrderStatus.COMPLETED) {
+      Modal.confirm({
+        title: `${actionText}订购单「${order.orderNumber}」？`,
+        content: status === OrderStatus.CANCELLED || status === OrderStatus.REJECTED
+          ? "该操作会释放小程序订购单已锁定库存。"
+          : "请确认订单状态流转无误。",
+        onOk: () => doFlow(order, status),
+      });
+      return;
+    }
+
+    doFlow(order, status);
+  }
+
   return (
     <>
       <ProDataTable
         ref={tableRef}
-        title="订单管理"
+        title="订购管理"
         api={OrderApi.getOrderPage}
         columns={columns}
         toolBarRender={() => (
           <Button icon={<IconPlus />} theme="solid" disabled={!canCreate} onClick={openCreate}>
-            新增订单
+            新增订购单
           </Button>
         )}
       />
 
       <Modal
-        title={currentOrder ? "编辑订单" : "新增订单"}
+        title={currentOrder ? "编辑订购单" : "新增订购单"}
         visible={editVisible}
         onCancel={() => setEditVisible(false)}
         footer={null}
@@ -330,6 +421,7 @@ export default function OrdersPage() {
           <Form.Input field="customerName" label="客户名称" placeholder="请输入客户名称" />
           <Form.Input field="customerPhone" label="联系电话" placeholder="请输入联系电话" />
           <Form.Input field="customerEmail" label="邮箱" placeholder="请输入邮箱" />
+          <Form.Input field="customerAddress" label="地址" placeholder="请输入地址" />
           <Form.InputNumber field="totalAmount" label="订单金额" min={0} style={{ width: "100%" }} />
           <Form.DatePicker field="expectedDeliveryDate" label="期望交期" style={{ width: "100%" }} />
           <Form.TextArea field="remark" label="备注" rows={3} />
