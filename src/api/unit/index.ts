@@ -26,7 +26,9 @@ const UnitApi = {
    * 获取启用的单位列表
    */
   getActiveUnits: async (category?: string) => {
-    const res = await request.get<IUnit[]>("units/active");
+    const res = await request.get<IUnit[]>("units/active", {
+      params: category ? { category } : undefined,
+    });
     if (category) {
       res.data = (res.data || []).filter((item) => item.category === category);
     }

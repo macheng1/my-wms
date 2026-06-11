@@ -23,6 +23,8 @@ const TRANSACTION_TYPE_OPTIONS = [
   { label: "领料出库", value: TransactionType.OUTBOUND_MATERIAL },
   { label: "调拨出库", value: TransactionType.OUTBOUND_TRANSFER },
   { label: "报废出库", value: TransactionType.OUTBOUND_SCRAP },
+  { label: "订购锁库", value: TransactionType.STOCK_LOCK },
+  { label: "订购释放", value: TransactionType.STOCK_RELEASE },
   { label: "盘盈", value: TransactionType.ADJUSTMENT_IN },
   { label: "盘亏", value: TransactionType.ADJUSTMENT_OUT },
 ];
@@ -48,6 +50,8 @@ export default function TransactionsPage() {
     [TransactionType.OUTBOUND_MATERIAL]: "领料出库",
     [TransactionType.OUTBOUND_TRANSFER]: "调拨出库",
     [TransactionType.OUTBOUND_SCRAP]: "报废出库",
+    [TransactionType.STOCK_LOCK]: "订购锁库",
+    [TransactionType.STOCK_RELEASE]: "订购释放",
     [TransactionType.ADJUSTMENT_IN]: "盘盈",
     [TransactionType.ADJUSTMENT_OUT]: "盘亏",
   };
@@ -74,6 +78,8 @@ export default function TransactionsPage() {
       };
       return colorMap[type] || "red";
     }
+    if (type === TransactionType.STOCK_LOCK) return "orange";
+    if (type === TransactionType.STOCK_RELEASE) return "teal";
     // 调整类型用橙色
     return "orange";
   };
@@ -116,10 +122,11 @@ export default function TransactionsPage() {
       hideInSearch: true,
       render: (text: number, record: any) => {
         const isInbound = record.typeDirection == "INBOUND";
+        const unitText = record.unitSymbol || record.unitName || "";
         return (
           <Text strong style={{ color: isInbound ? "green" : "red" }}>
             {isInbound ? "+" : "-"}
-            {text} {record.unitName || record.unitName}
+            {text} {unitText}
           </Text>
         );
       },
@@ -130,7 +137,7 @@ export default function TransactionsPage() {
       valueType: "digit",
       hideInSearch: true,
       render: (text: number, record: any) =>
-        `${text} ${record.unitName || record.unitName}`,
+        `${text} ${record.unitSymbol || record.unitName || ""}`,
     },
     {
       title: "变动后",
@@ -138,7 +145,7 @@ export default function TransactionsPage() {
       valueType: "digit",
       hideInSearch: true,
       render: (text: number, record: any) =>
-        `${text} ${record.unitName || record.unitName}`,
+        `${text} ${record.unitSymbol || record.unitName || ""}`,
     },
     {
       title: "单据号",

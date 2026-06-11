@@ -73,6 +73,7 @@ export interface IAvailableOutboundProduct {
   sku: string;
   productName: string;
   quantity: number;
+  unitCode?: string;
   unitName: string;
   unitSymbol: string;
 }

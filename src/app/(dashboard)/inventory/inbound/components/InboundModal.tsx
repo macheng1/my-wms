@@ -120,6 +120,7 @@ export default function InboundModal({
           sku: values.sku,
           quantity: values.quantity,
           unitCode: values.unitCode,
+          convertedQuantity: values.convertedQuantity,
           locationId: values.locationId,
           notifyUserIds, // 通知当前用户
         });
@@ -191,6 +192,20 @@ export default function InboundModal({
           value={text}
           optionList={unitOptions}
           onChange={(value) => handleUpdateItem(index, "unitCode", value)}
+          style={{ width: "100%" }}
+        />
+      ),
+    },
+    {
+      title: "折合库存数量",
+      dataIndex: "convertedQuantity",
+      width: 150,
+      render: (text: number, _record: IInboundItem, index: number) => (
+        <InputNumber
+          placeholder="跨单位时填写"
+          value={text}
+          min={0}
+          onChange={(value) => handleUpdateItem(index, "convertedQuantity", value || undefined)}
           style={{ width: "100%" }}
         />
       ),
@@ -279,6 +294,13 @@ export default function InboundModal({
                 placeholder="请选择单位"
                 optionList={unitOptions}
                 rules={[{ required: true, message: "请选择单位" }]}
+              />
+              <Form.InputNumber
+                field="convertedQuantity"
+                label="折合库存数量"
+                placeholder="称重/跨分类入库时填写，例如 100kg 折合 40支"
+                min={0}
+                style={{ width: "100%" }}
               />
               <Form.Select
                 field="locationId"

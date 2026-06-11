@@ -16,6 +16,7 @@ export interface IInboundItem {
   sku: string;
   quantity: number;
   unitCode: string;
+  convertedQuantity?: number;
   locationId?: string;
 }
 
@@ -26,6 +27,7 @@ export interface IInboundRequest {
   sku?: string;
   quantity: number;
   unitCode: string;
+  convertedQuantity?: number;
   orderNo?: string;
   locationId?: string;
   type: InboundType;
