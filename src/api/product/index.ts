@@ -39,6 +39,12 @@ const ProductApi = {
     request.get<IProduct>("products/detail", { params: { id } }),
 
   /**
+   * 按产品条形码查询产品
+   */
+  getProductByBarcode: (barcode: string) =>
+    request.get<IProduct>(`products/barcode/${encodeURIComponent(barcode)}`),
+
+  /**
    * 新增产品
    * 后端会执行 SKU 自动生成逻辑
    */

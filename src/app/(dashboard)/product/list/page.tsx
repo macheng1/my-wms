@@ -2,12 +2,14 @@
 
 import React, { useState, useRef, useMemo } from "react";
 import dayjs from "dayjs";
+import JsBarcode from "jsbarcode";
 import {
   Button,
   Space,
   Modal,
   Toast,
   Switch,
+  Typography,
 } from "@douyinfe/semi-ui-19";
 import { IconPlus, IconEdit2, IconDelete } from "@douyinfe/semi-icons";
 import ProductApi from "@/api/product";
@@ -19,6 +21,50 @@ import ProDataTable, {
 import ProductEditModal from "./components/ProductEditModal";
 import ImportModal from "@/components/ImportModal";
 import CommonImage from "@/components/CommonImage";
+
+function BarcodeCell({ value }: { value?: string | null }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const barcode = value?.trim();
+
+  React.useEffect(() => {
+    if (!barcode || !svgRef.current) return;
+    try {
+      JsBarcode(svgRef.current, barcode, {
+        format: "CODE128",
+        width: 1,
+        height: 30,
+        margin: 0,
+        displayValue: false,
+      });
+    } catch (error) {
+      console.warn("条形码渲染失败:", error);
+    }
+  }, [barcode]);
+
+  if (!barcode) return "-";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <svg
+        ref={svgRef}
+        style={{
+          width: 132,
+          height: 30,
+          background: "#fff",
+          borderRadius: 2,
+        }}
+      />
+      <Typography.Text
+        code
+        copyable
+        ellipsis={{ showTooltip: true }}
+        style={{ maxWidth: 140, fontSize: 12 }}
+      >
+        {barcode}
+      </Typography.Text>
+    </div>
+  );
+}
 
 export default function ProductListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
@@ -123,6 +169,16 @@ export default function ProductListPage() {
         title: "SKU编码",
         dataIndex: "code",
         valueType: "text",
+      },
+      {
+        title: "条形码",
+        dataIndex: "barcode",
+        valueType: "text",
+        width: 180,
+        render: (value: string, record: any) => {
+          const barcode = value || record.code;
+          return <BarcodeCell value={barcode} />;
+        },
       },
       {
         title: "产品名称",

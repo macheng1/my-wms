@@ -7,6 +7,8 @@ export interface IProduct {
   name: string;
   /** 自动生成的 SKU 编码 */
   code: string;
+  /** 产品条形码，默认与 SKU 一致 */
+  barcode?: string | null;
   categoryId: string;
   unitId: string;
   unit?: string;
@@ -41,6 +43,8 @@ export interface ISaveProduct {
   name: string;
   /** 如果不传，后端将根据类目+规格自动生成 */
   code?: string;
+  /** 如果不传，后端默认等于 SKU 编码 */
+  barcode?: string;
   categoryId: string;
   unitId: string;
   unit?: string;
@@ -81,6 +85,8 @@ export interface IProductSelectOption {
   name: string;
   /** 产品编码/SKU */
   code: string;
+  /** 产品条形码 */
+  barcode?: string | null;
 }
 
 /**

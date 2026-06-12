@@ -189,6 +189,11 @@ export default function ProductEditModal({
             disabled
           />
           <Form.Input
+            field="barcode"
+            label="条形码"
+            placeholder="新增时默认等于 SKU 编码"
+          />
+          <Form.Input
             field="name"
             label="产品名称"
             placeholder="请输入产品名称"
