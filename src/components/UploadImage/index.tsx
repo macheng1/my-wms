@@ -21,7 +21,10 @@ const UploadImage = ({
   uploadExtraData,
   mediaType = "image",
 }: any) => {
-  const accept = mediaType === "media" ? "image/*,video/*" : "image/*";
+  const accept =
+    mediaType === "document"
+      ? ".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx"
+      : ".jpg,.jpeg,.png,.gif,.webp";
 
   const handleCustomRequest = async ({
     file,
