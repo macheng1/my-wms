@@ -59,12 +59,6 @@ export default function PlatformTemplateUnitsPage() {
       render: (value: string) => <Tag>{categoryMap[value] || value}</Tag>,
     },
     { title: "符号", dataIndex: "symbol", hideInSearch: true, render: (value: string) => value || "-" },
-    {
-      title: "换算比例",
-      dataIndex: "baseRatio",
-      hideInSearch: true,
-      render: (value: number, record) => `${value} (基准: ${record.baseUnitCode})`,
-    },
     { title: "排序", dataIndex: "sortOrder", hideInSearch: true },
     {
       title: "状态",

@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Modal, Form, Toast, Spin } from "@douyinfe/semi-ui-19";
+import { Modal, Form, Toast, Spin, Space, Tag, Typography } from "@douyinfe/semi-ui-19";
 import ProductApi from "@/api/product";
 import CategoryApi from "@/api/category";
 import UnitApi from "@/api/unit";
+import { IUnit, IUnitConversion } from "@/api/unit/types";
 
 // 💡 引入 FormApi 类型
 import { FormApi } from "@douyinfe/semi-ui-19/lib/es/form";
 import UploadImage from "@/components/UploadImage";
 
 const { Section } = Form;
+const { Text } = Typography;
 
 const getAttrLabel = (attr: any) =>
   attr.unit ? `${attr.name}（${attr.unit}）` : attr.name;
@@ -24,9 +26,14 @@ export default function ProductEditModal({
   const [loading, setLoading] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<any>([]);
   const [unitOptions, setUnitOptions] = useState<any>([]);
+  const [units, setUnits] = useState<IUnit[]>([]);
   const [formApi, setFormApi] = useState<FormApi | null>(null);
   const [dynamicAttributes, setDynamicAttributes] = useState<any[]>([]);
   const [attrLoading, setAttrLoading] = useState(false);
+  const [selectedUnitId, setSelectedUnitId] = useState<string>();
+  const [unitConversions, setUnitConversions] = useState<IUnitConversion[]>([]);
+  const [unitChangeLockedReason, setUnitChangeLockedReason] = useState<string | null>(null);
+  const [stockSummary, setStockSummary] = useState<any>(null);
 
   // 加载类目列表
   const loadCategories = useCallback(async () => {
@@ -41,13 +48,31 @@ export default function ProductEditModal({
 
   const loadUnits = useCallback(async () => {
     const res = await UnitApi.getActiveUnits();
+    const list = res.data || [];
+    setUnits(list);
     setUnitOptions(
-      (res.data || []).map((item: any) => ({
+      list.map((item: any) => ({
         label: `${item.name}${item.symbol ? `（${item.symbol}）` : ""}`,
         value: String(item.id),
       }))
     );
   }, []);
+
+  const loadUnitConversions = useCallback(async (unitId?: string, unitList?: IUnit[]) => {
+    const sourceUnits = unitList || units;
+    const unit = sourceUnits.find((item) => String(item.id) === String(unitId));
+    if (!unit?.code) {
+      setUnitConversions([]);
+      return;
+    }
+
+    try {
+      const res = await UnitApi.getConversions(unit.code);
+      setUnitConversions(res.data || []);
+    } catch {
+      setUnitConversions([]);
+    }
+  }, [units]);
 
   // 类目联动逻辑
   const handleCategoryChange = useCallback(async (categoryId: string) => {
@@ -67,6 +92,10 @@ export default function ProductEditModal({
   const handleClose = () => {
     formApi?.reset();
     setDynamicAttributes([]);
+    setSelectedUnitId(undefined);
+    setUnitConversions([]);
+    setUnitChangeLockedReason(null);
+    setStockSummary(null);
     onClose();
   };
 
@@ -76,10 +105,20 @@ export default function ProductEditModal({
       (async () => {
         // 先清空旧数据，避免切换商品时残留
         setDynamicAttributes([]);
+        setUnitChangeLockedReason(null);
+        setStockSummary(null);
         formApi.reset();
 
         // 加载基础下拉
-        await Promise.all([loadCategories(), loadUnits()]);
+        const [, unitRes] = await Promise.all([loadCategories(), UnitApi.getActiveUnits()]);
+        const unitList = unitRes.data || [];
+        setUnits(unitList);
+        setUnitOptions(
+          unitList.map((item: any) => ({
+            label: `${item.name}${item.symbol ? `（${item.symbol}）` : ""}`,
+            value: String(item.id),
+          }))
+        );
 
         if (data?.id) {
           // 编辑模式：先加载产品详情，再加载对应类目的属性
@@ -115,13 +154,30 @@ export default function ProductEditModal({
             dynamicAttrs: normalizedSpecs,
             images: formattedImages,
           });
+          setSelectedUnitId(String(product.unitId));
+          setUnitChangeLockedReason(product.unitChangeLockedReason || null);
+          setStockSummary(product.stockSummary || null);
+          if (Array.isArray(product.conversionRules)) {
+            setUnitConversions(product.conversionRules);
+          } else {
+            await loadUnitConversions(String(product.unitId), unitList);
+          }
         } else {
           // 新增模式：重置表单
           formApi.setValues({ isActive: true, images: [] });
+          setSelectedUnitId(undefined);
+          setUnitConversions([]);
+          setUnitChangeLockedReason(null);
+          setStockSummary(null);
         }
       })();
     }
-  }, [visible, data?.id, formApi, handleCategoryChange, loadCategories, loadUnits]);
+  }, [visible, data?.id, formApi, handleCategoryChange, loadCategories, loadUnitConversions]);
+
+  const selectedUnit = units.find((item) => String(item.id) === String(selectedUnitId));
+  const unitByCode = new Map(units.map((item) => [item.code, item]));
+  const unitSelectDisabled = Boolean(data?.id && unitChangeLockedReason);
+  const stockUnitText = stockSummary?.unitSymbol || stockSummary?.unitName || selectedUnit?.symbol || selectedUnit?.name || "";
 
   /**
    * 💡 核心优化：手动处理提交逻辑，绕过缺失的 submit() 方法
@@ -219,8 +275,50 @@ export default function ProductEditModal({
             placeholder="请选择库存主单位"
             optionList={unitOptions}
             filter
+            disabled={unitSelectDisabled}
             rules={[{ required: true, message: "请选择库存主单位" }]}
+            onChange={async (value) => {
+              if (unitSelectDisabled) return;
+              const unitId = String(value || "");
+              setSelectedUnitId(unitId);
+              await loadUnitConversions(unitId);
+            }}
           />
+          {unitChangeLockedReason && (
+            <div style={{ marginLeft: 120, marginTop: -8, marginBottom: 12 }}>
+              <Text type="warning">{unitChangeLockedReason}</Text>
+              {stockSummary && (
+                <div style={{ marginTop: 4 }}>
+                  <Text type="tertiary">
+                    当前库存：{stockSummary.quantity || 0}{stockUnitText}
+                    ，锁定：{stockSummary.lockedQuantity || 0}{stockUnitText}
+                    ，可用：{stockSummary.availableQuantity || 0}{stockUnitText}
+                  </Text>
+                </div>
+              )}
+            </div>
+          )}
+          {selectedUnitId && (
+            <div style={{ marginLeft: 120, marginTop: -8, marginBottom: 12 }}>
+              {unitConversions.length > 0 ? (
+                <Space wrap>
+                  <Text type="secondary">已维护入库换算：</Text>
+                  {unitConversions.map((rule) => {
+                    const fromUnit = unitByCode.get(rule.fromUnitCode);
+                    return (
+                      <Tag key={rule.id || `${rule.fromUnitCode}-${rule.toUnitCode}`} color="blue">
+                        1{fromUnit?.symbol || fromUnit?.name || rule.fromUnitCode}={rule.ratio}{selectedUnit?.symbol || selectedUnit?.name || selectedUnit?.code}
+                      </Tag>
+                    );
+                  })}
+                </Space>
+              ) : (
+                <Text type="tertiary">
+                  该库存主单位暂无换算规则，入库时只能选择{selectedUnit?.name || "当前单位"}。
+                </Text>
+              )}
+            </div>
+          )}
         </Section>
 
         {dynamicAttributes.length > 0 && (

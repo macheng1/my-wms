@@ -41,7 +41,7 @@ export default function PlatformTemplateUnitModal({
         .catch(() => Toast.error("获取详情失败"));
     } else {
       formApi.reset();
-      formApi.setValues({ isActive: 1, sortOrder: 0, baseRatio: 1 });
+      formApi.setValues({ isActive: 1, sortOrder: 0 });
     }
   }, [visible, data?.id, formApi]);
 
@@ -81,20 +81,6 @@ export default function PlatformTemplateUnitModal({
           optionList={CATEGORY_OPTIONS}
           style={{ width: "100%" }}
           rules={[{ required: true, message: "请选择单位分类" }]}
-        />
-        <Form.InputNumber
-          field="baseRatio"
-          label="换算比例"
-          min={0}
-          precision={2}
-          style={{ width: "100%" }}
-          rules={[{ required: true, message: "请输入换算比例" }]}
-        />
-        <Form.Input
-          field="baseUnitCode"
-          label="基准单位编码"
-          placeholder="请输入基准单位编码"
-          rules={[{ required: true, message: "请输入基准单位编码" }]}
         />
         <Form.Input field="symbol" label="显示符号" placeholder="请输入显示符号" />
         <Form.InputNumber field="sortOrder" label="排序" min={0} style={{ width: "100%" }} />

@@ -3,17 +3,7 @@
 import { useState, useEffect } from "react";
 import { Modal, Form, Toast } from "@douyinfe/semi-ui-19";
 import UnitApi from "@/api/unit";
-import { UnitCategory, IUnit } from "@/api/unit/types";
-
-// 单位分类选项
-const CATEGORY_OPTIONS = [
-  { label: "计数单位", value: UnitCategory.COUNT },
-  { label: "重量单位", value: UnitCategory.WEIGHT },
-  { label: "长度单位", value: UnitCategory.LENGTH },
-  { label: "体积单位", value: UnitCategory.VOLUME },
-  { label: "面积单位", value: UnitCategory.AREA },
-  { label: "时间单位", value: UnitCategory.TIME },
-];
+import { IUnit } from "@/api/unit/types";
 
 interface UnitEditModalProps {
   visible: boolean;
@@ -52,7 +42,7 @@ export default function UnitEditModal({
       } else {
         // 新增时重置并设置默认值
         formApi.reset();
-        formApi.setValues({ isActive: 1, sortOrder: 0, baseRatio: 1 });
+        formApi.setValues({ isActive: 1, sortOrder: 0 });
       }
     }
   }, [visible, data?.id, formApi]);
@@ -62,12 +52,13 @@ export default function UnitEditModal({
     if (!formApi) return;
     try {
       const values = await formApi.validate();
+      const payload = { ...values, category: values.category || "COUNT" };
 
       if (data?.id) {
-        await UnitApi.updateUnit({ ...values, id: data.id } as any);
+        await UnitApi.updateUnit({ ...payload, id: data.id } as any);
         Toast.success("更新成功");
       } else {
-        await UnitApi.saveUnit(values as any);
+        await UnitApi.saveUnit(payload as any);
         Toast.success("创建成功");
       }
 
@@ -91,6 +82,7 @@ export default function UnitEditModal({
           label="单位编码"
           placeholder="请输入单位编码，如：kg"
           disabled={!!data}
+          rules={[{ required: true, message: "请输入单位编码" }]}
         />
         <Form.Input
           field="name"
@@ -99,29 +91,6 @@ export default function UnitEditModal({
           rules={[{ required: true, message: "请输入单位名称" }]}
         />
 
-        <Form.Select
-          field="category"
-          label="单位分类"
-          placeholder="请选择单位分类"
-          optionList={CATEGORY_OPTIONS}
-          rules={[{ required: true, message: "请选择单位分类" }]}
-        />
-        <Form.InputNumber
-          field="baseRatio"
-          label="换算比例"
-          placeholder="请输入换算比例"
-          rules={[{ required: true, message: "请输入换算比例" }]}
-          min={0}
-          precision={2}
-          extraText="相对于基准单位的倍数，如1kg=1000g，则kg的换算比例为1000"
-        />
-        <Form.Input
-          field="baseUnitCode"
-          label="基准单位编码"
-          placeholder="请输入基准单位编码，如：g"
-          rules={[{ required: true, message: "请输入基准单位编码" }]}
-          extraText="同分类下最小单位的编码"
-        />
         <Form.Input
           field="symbol"
           label="显示符号"

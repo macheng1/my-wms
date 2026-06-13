@@ -1,5 +1,5 @@
 import request from "@/utils/request";
-import { IUnit, ISaveUnit, IQueryUnit } from "./types";
+import { IUnit, ISaveUnit, IQueryUnit, IUnitConversion } from "./types";
 
 /**
  * 单位管理 (Unit) API 服务
@@ -36,12 +36,6 @@ const UnitApi = {
   },
 
   /**
-   * 按分类获取单位
-   */
-  getUnitsByCategory: (category: string) =>
-    request.get<IUnit[]>("units", { params: { category } }),
-
-  /**
    * 获取单位详情 (POST)
    */
   getUnitDetail: (id: string) => request.post<IUnit>("units/detail", { id }),
@@ -66,6 +60,14 @@ const UnitApi = {
    * 删除单位
    */
   deleteUnit: (id: string) => request.post("units/delete", { id }),
+
+  getConversions: (toUnitCode: string) =>
+    request.get<IUnitConversion[]>("units/conversions", { params: { toUnitCode } }),
+
+  saveConversions: (
+    toUnitCode: string,
+    items: Array<{ fromUnitCode: string; ratio: number }>,
+  ) => request.post<IUnitConversion[]>("units/conversions/save", { toUnitCode, items }),
 };
 
 export default UnitApi;

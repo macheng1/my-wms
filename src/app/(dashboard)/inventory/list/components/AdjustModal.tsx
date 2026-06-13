@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Modal, Form, Toast, Radio, Typography } from "@douyinfe/semi-ui-19";
 import { IconPlus, IconMinus } from "@douyinfe/semi-icons";
 import InventoryApi from "@/api/inventory";
-import UnitApi from "@/api/unit";
 import LocationApi from "@/api/location";
 
 const { Text } = Typography;
@@ -33,25 +32,16 @@ export default function AdjustModal({
   onSuccess,
 }: AdjustModalProps) {
   const [formApi, setFormApi] = useState<any>(null);
-  const [unitOptions, setUnitOptions] = useState<any[]>([]);
   const [locationOptions, setLocationOptions] = useState<any[]>([]);
 
-  // 加载单位选项和库位选项
+  // 加载库位选项
   useEffect(() => {
     if (!visible) return;
-
-    UnitApi.getActiveUnits(data?.unitCategory).then((res) => {
-      const options = (res.data || []).map((item: any) => ({
-        label: `${item.name} (${item.code})`,
-        value: item.code,
-      }));
-      setUnitOptions(options);
-    });
 
     LocationApi.getLocationSelect().then((res) => {
       setLocationOptions(res.data || []);
     });
-  }, [visible, data?.unitCategory]);
+  }, [visible]);
 
   // 关闭时清空表单
   const handleClose = () => {
@@ -76,7 +66,7 @@ export default function AdjustModal({
       await InventoryApi.adjust({
         sku: data.sku,
         quantity: adjustQty,
-        unitCode: values.unitCode,
+        unitCode: data.unitCode,
         reason: values.reason,
         remark: values.remark,
         locationId: values.locationId,
@@ -159,21 +149,12 @@ export default function AdjustModal({
           {/* 调整数量 */}
           <Form.InputNumber
             field="adjustQty"
-            label="调整数量"
+            label={`调整数量(${data.unitSymbol || data.unitName || data.unitCode || ""})`}
             placeholder="请输入调整数量"
             rules={[{ required: true, message: "请输入调整数量" }]}
             min={0}
             precision={0}
             style={{ width: "100%" }}
-          />
-
-          {/* 单位 */}
-          <Form.Select
-            field="unitCode"
-            label="单位"
-            placeholder="请选择单位"
-            optionList={unitOptions}
-            rules={[{ required: true, message: "请选择单位" }]}
           />
 
           {/* 调整原因 */}

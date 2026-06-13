@@ -15,6 +15,27 @@ export interface IProduct {
   unitCode?: string;
   unitName?: string;
   unitSymbol?: string;
+  stockSummary?: {
+    inventoryRows: number;
+    transactionRows: number;
+    quantity: number;
+    lockedQuantity: number;
+    availableQuantity: number;
+    unitId?: string | null;
+    unitCode?: string | null;
+    unitName?: string | null;
+    unitSymbol?: string | null;
+  };
+  canChangeUnit?: boolean;
+  unitChangeLockedReason?: string | null;
+  conversionRules?: Array<{
+    id?: string;
+    fromUnitCode: string;
+    fromUnitName?: string;
+    fromUnitSymbol?: string;
+    toUnitCode: string;
+    ratio: number;
+  }>;
   /** * 动态规格数据 (MySQL JSON)
    * 结构如: { "ATTR_CZ": "304", "ATTR_ZJ": "1.5" }
    */
@@ -87,6 +108,11 @@ export interface IProductSelectOption {
   code: string;
   /** 产品条形码 */
   barcode?: string | null;
+  /** 产品库存单位 */
+  unitCode?: string | null;
+  unitName?: string | null;
+  unitSymbol?: string | null;
+  unitCategory?: string | null;
 }
 
 /**

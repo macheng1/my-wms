@@ -125,8 +125,7 @@ export default function TransactionsPage() {
         const unitText = record.unitSymbol || record.unitName || "";
         return (
           <Text strong style={{ color: isInbound ? "green" : "red" }}>
-            {isInbound ? "+" : "-"}
-            {text} {unitText}
+            {record.quantityDisplay || `${isInbound ? "+" : "-"}${text} ${unitText}`}
           </Text>
         );
       },
@@ -137,7 +136,7 @@ export default function TransactionsPage() {
       valueType: "digit",
       hideInSearch: true,
       render: (text: number, record: any) =>
-        `${text} ${record.unitSymbol || record.unitName || ""}`,
+        record.beforeQtyDisplay || `${text} ${record.unitSymbol || record.unitName || ""}`,
     },
     {
       title: "变动后",
@@ -145,7 +144,7 @@ export default function TransactionsPage() {
       valueType: "digit",
       hideInSearch: true,
       render: (text: number, record: any) =>
-        `${text} ${record.unitSymbol || record.unitName || ""}`,
+        record.afterQtyDisplay || `${text} ${record.unitSymbol || record.unitName || ""}`,
     },
     {
       title: "单据号",

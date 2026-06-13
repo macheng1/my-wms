@@ -96,7 +96,7 @@ export default function OutboundPage() {
       hideInSearch: true,
       render: (text: number, record: any) => (
         <Text strong style={{ color: "red" }}>
-          {text} {record.unitName}
+          {record.quantityDisplay || `${text} ${record.unitSymbol || record.unitName || ""}`}
         </Text>
       ),
     },
@@ -105,7 +105,8 @@ export default function OutboundPage() {
       dataIndex: "afterQty",
       valueType: "digit",
       hideInSearch: true,
-      render: (text: number, record: any) => `${text} ${record.unitName}`,
+      render: (text: number, record: any) =>
+        record.afterQtyDisplay || `${text} ${record.unitSymbol || record.unitName || ""}`,
     },
     {
       title: "单据号",

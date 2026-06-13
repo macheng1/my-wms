@@ -193,8 +193,6 @@ export interface PlatformTemplateUnit {
   name: string;
   code: string;
   category: "COUNT" | "WEIGHT" | "LENGTH" | "VOLUME" | "AREA" | "TIME";
-  baseRatio: number;
-  baseUnitCode: string;
   symbol?: string | null;
   description?: string | null;
   isActive: number;

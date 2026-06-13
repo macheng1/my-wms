@@ -19,12 +19,18 @@ export interface IUnit {
   name: string;
   code: string;
   category: UnitCategory;
-  baseRatio: number;
-  baseUnitCode: string;
   symbol?: string;
   description?: string;
   isActive: 1 | 0;
   sortOrder: number;
+  conversionRules?: Array<{
+    id: string;
+    fromUnitCode: string;
+    toUnitCode: string;
+    ratio: number;
+    fromUnitName?: string;
+    fromUnitSymbol?: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,13 +42,22 @@ export interface ISaveUnit {
   id?: string;
   name: string;
   code?: string;
-  category: UnitCategory;
-  baseRatio: number;
-  baseUnitCode: string;
+  category?: UnitCategory;
   symbol?: string;
   description?: string;
   isActive?: 1 | 0;
   sortOrder?: number;
+}
+
+/**
+ * 单位换算关系
+ */
+export interface IUnitConversion {
+  id?: string;
+  fromUnitCode: string;
+  toUnitCode: string;
+  ratio: number;
+  fromUnit?: IUnit | null;
 }
 
 /**

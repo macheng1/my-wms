@@ -8,7 +8,6 @@ import {
   Toast,
   Switch,
   Tag,
-  Tabs,
 } from "@douyinfe/semi-ui-19";
 import { IconPlus, IconEdit2, IconDelete } from "@douyinfe/semi-icons";
 import ProDataTable, {
@@ -16,51 +15,18 @@ import ProDataTable, {
   ProDataTableRef,
 } from "@/components/ProDataTable";
 import UnitApi from "@/api/unit";
-import { UnitCategory, IUnit } from "@/api/unit/types";
+import { IUnit } from "@/api/unit/types";
 import UnitEditModal from "./components/UnitEditModal";
-
-// 单位分类选项
-const CATEGORY_OPTIONS = [
-  { label: "计数单位", value: UnitCategory.COUNT },
-  { label: "重量单位", value: UnitCategory.WEIGHT },
-  { label: "长度单位", value: UnitCategory.LENGTH },
-  { label: "体积单位", value: UnitCategory.VOLUME },
-  { label: "面积单位", value: UnitCategory.AREA },
-  { label: "时间单位", value: UnitCategory.TIME },
-];
-
-// Tab 面板配置
-const TAB_PANES = [
-  { tabKey: "all", tab: "全部" },
-  { tabKey: UnitCategory.COUNT, tab: "计数单位" },
-  { tabKey: UnitCategory.WEIGHT, tab: "重量单位" },
-  { tabKey: UnitCategory.LENGTH, tab: "长度单位" },
-  { tabKey: UnitCategory.VOLUME, tab: "体积单位" },
-  { tabKey: UnitCategory.AREA, tab: "面积单位" },
-  { tabKey: UnitCategory.TIME, tab: "时间单位" },
-];
+import UnitConversionModal from "./components/UnitConversionModal";
 
 export default function UnitListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isConversionVisible, setIsConversionVisible] = useState(false);
   const [currentUnit, setCurrentUnit] = useState<IUnit | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("all");
-  const [activeScope, setActiveScope] = useState<"all" | "standard" | "custom">("all");
 
   const fetchList = (params: any) => {
-    const category = activeTab === "all" ? undefined : activeTab;
-    const templateScope = activeScope === "all" ? undefined : activeScope;
-    return UnitApi.getUnitPage({ ...params, category: category as any, templateScope });
-  };
-
-  // 单位分类映射
-  const categoryMap: Record<string, string> = {
-    [UnitCategory.COUNT]: "计数单位",
-    [UnitCategory.WEIGHT]: "重量单位",
-    [UnitCategory.LENGTH]: "长度单位",
-    [UnitCategory.VOLUME]: "体积单位",
-    [UnitCategory.AREA]: "面积单位",
-    [UnitCategory.TIME]: "时间单位",
+    return UnitApi.getUnitPage(params);
   };
 
   // 切换状态
@@ -102,14 +68,6 @@ export default function UnitListPage() {
   // 列定义
   const columns: ProColumnType<any>[] = [
     {
-      title: "来源",
-      dataIndex: "tenantId",
-      hideInSearch: true,
-      width: 100,
-      render: (tenantId: string | null) =>
-        tenantId ? null : <Tag color="green">标准模板</Tag>,
-    },
-    {
       title: "单位名称",
       dataIndex: "name",
       valueType: "text",
@@ -122,16 +80,6 @@ export default function UnitListPage() {
       width: 120,
     },
     {
-      title: "分类",
-      dataIndex: "category",
-      valueType: "select",
-      valueEnum: CATEGORY_OPTIONS.reduce((acc, opt) => {
-        acc[opt.value] = { text: opt.label };
-        return acc;
-      }, {} as any),
-      render: (category: string) => <Tag>{categoryMap[category] || category}</Tag>,
-    },
-    {
       title: "符号",
       dataIndex: "symbol",
       valueType: "text",
@@ -140,12 +88,24 @@ export default function UnitListPage() {
       render: (text: string) => text || "-",
     },
     {
-      title: "换算比例",
-      dataIndex: "baseRatio",
-      valueType: "digit",
+      title: "换算规则",
+      dataIndex: "conversionRules",
       hideInSearch: true,
-      width: 120,
-      render: (text: number, record: IUnit) => `${text} (基准: ${record.baseUnitCode})`,
+      width: 260,
+      render: (_: unknown, record: IUnit) => {
+        const rules = record.conversionRules || [];
+        if (rules.length === 0) return "-";
+
+        return (
+          <Space wrap>
+            {rules.map((rule) => (
+              <Tag key={rule.id || `${rule.fromUnitCode}-${rule.toUnitCode}`} color="blue">
+                1{rule.fromUnitSymbol || rule.fromUnitName || rule.fromUnitCode}={rule.ratio}{record.symbol || record.name}
+              </Tag>
+            ))}
+          </Space>
+        );
+      },
     },
     {
       title: "排序",
@@ -174,33 +134,46 @@ export default function UnitListPage() {
       title: "操作",
       dataIndex: "option",
       hideInSearch: true,
-      width: 150,
+      width: 240,
       render: (_: any, record: IUnit) => {
         const isStandard = !record.tenantId;
-        if (isStandard) return null;
 
         return (
           <Space>
+            {!isStandard && (
+              <Button
+                icon={<IconEdit2 />}
+                theme="light"
+                size="small"
+                onClick={() => {
+                  setCurrentUnit(record);
+                  setIsModalVisible(true);
+                }}
+              >
+                编辑
+              </Button>
+            )}
             <Button
-              icon={<IconEdit2 />}
               theme="light"
               size="small"
               onClick={() => {
                 setCurrentUnit(record);
-                setIsModalVisible(true);
+                setIsConversionVisible(true);
               }}
             >
-              编辑
+              换算设置
             </Button>
-            <Button
-              icon={<IconDelete />}
-              theme="light"
-              type="danger"
-              size="small"
-              onClick={() => handleDelete(record.id)}
-            >
-              删除
-            </Button>
+            {!isStandard && (
+              <Button
+                icon={<IconDelete />}
+                theme="light"
+                type="danger"
+                size="small"
+                onClick={() => handleDelete(record.id)}
+              >
+                删除
+              </Button>
+            )}
           </Space>
         );
       },
@@ -209,30 +182,7 @@ export default function UnitListPage() {
 
   return (
     <div style={{ padding: "4px" }}>
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-        <Tabs
-          activeKey={activeTab}
-          onChange={(key) => {
-            setActiveTab(key as string);
-          }}
-          type="line"
-        >
-          {TAB_PANES.map((pane) => (
-            <Tabs.TabPane key={pane.tabKey} tab={pane.tab} itemKey={pane.tabKey} />
-          ))}
-        </Tabs>
-        <Tabs
-          activeKey={activeScope}
-          onChange={(key) => setActiveScope(key as "all" | "standard" | "custom")}
-          type="line"
-        >
-          <Tabs.TabPane itemKey="all" tab="全部" />
-          <Tabs.TabPane itemKey="standard" tab="标准模板" />
-          <Tabs.TabPane itemKey="custom" tab="租户自建" />
-        </Tabs>
-      </div>
       <ProDataTable
-        key={`${activeTab}-${activeScope}`}
         ref={tableRef}
         title="单位管理"
         api={fetchList}
@@ -260,6 +210,16 @@ export default function UnitListPage() {
         onClose={() => setIsModalVisible(false)}
         onSuccess={() => {
           setIsModalVisible(false);
+          tableRef.current?.reload();
+        }}
+      />
+
+      <UnitConversionModal
+        visible={isConversionVisible}
+        data={currentUnit}
+        onClose={() => setIsConversionVisible(false)}
+        onSuccess={() => {
+          setIsConversionVisible(false);
           tableRef.current?.reload();
         }}
       />

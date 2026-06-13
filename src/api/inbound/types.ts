@@ -15,8 +15,7 @@ export enum InboundType {
 export interface IInboundItem {
   sku: string;
   quantity: number;
-  unitCode: string;
-  convertedQuantity?: number;
+  unitCode?: string;
   locationId?: string;
 }
 
@@ -26,8 +25,7 @@ export interface IInboundItem {
 export interface IInboundRequest {
   sku?: string;
   quantity: number;
-  unitCode: string;
-  convertedQuantity?: number;
+  unitCode?: string;
   orderNo?: string;
   locationId?: string;
   type: InboundType;
@@ -58,8 +56,6 @@ export interface IUnitInfo {
   code: string;
   name: string;
   category: string;
-  baseRatio: number;
-  baseUnitCode: string;
   symbol: string;
 }
 

@@ -56,8 +56,6 @@ export interface IUnitInfo {
   code: string;
   name: string;
   category: string;
-  baseRatio: number;
-  baseUnitCode: string;
   symbol: string;
 }
 

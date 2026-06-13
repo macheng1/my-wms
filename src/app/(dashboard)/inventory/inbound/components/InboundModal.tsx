@@ -10,6 +10,7 @@ import {
   Table,
   Button,
   Card,
+  Typography,
 } from "@douyinfe/semi-ui-19";
 import { IconPlus, IconDelete } from "@douyinfe/semi-icons";
 import { FormApi } from "@douyinfe/semi-ui-19/lib/es/form";
@@ -19,6 +20,8 @@ import UnitApi from "@/api/unit";
 import ProductApi from "@/api/product";
 import LocationApi from "@/api/location";
 import { useUserStore } from "@/store/useUserStore";
+
+const { Text } = Typography;
 
 // 入库类型选项
 const INBOUND_TYPE_OPTIONS = [
@@ -47,21 +50,21 @@ export default function InboundModal({
   const [unitOptions, setUnitOptions] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
   const [locationOptions, setLocationOptions] = useState<any[]>([]);
+  const [selectedSku, setSelectedSku] = useState<string>();
+  const [selectedUnitCode, setSelectedUnitCode] = useState<string>();
+  const [selectedQuantity, setSelectedQuantity] = useState<number>(0);
+  const [conversionMap, setConversionMap] = useState<Record<string, any[]>>({});
   const [items, setItems] = useState<IInboundItem[]>([
-    { sku: "", quantity: 0, unitCode: "", locationId: "" },
+    { sku: "", quantity: 0, locationId: "" },
   ]);
 
   // 获取当前用户信息
   const userInfo = useUserStore((state) => state.userInfo);
 
-  // 加载单位选项、产品选项和库位选项
+  // 加载产品选项和库位选项
   useEffect(() => {
     UnitApi.getActiveUnits().then((res) => {
-      const options = (res.data || []).map((item: any) => ({
-        label: `${item.name} (${item.code})`,
-        value: item.code,
-      }));
-      setUnitOptions(options);
+      setUnitOptions(res.data || []);
     });
 
     ProductApi.getProductSelect().then((res) => {
@@ -76,13 +79,29 @@ export default function InboundModal({
   // 关闭时重置
   const handleClose = () => {
     formApi?.reset();
-    setItems([{ sku: "", quantity: 0, unitCode: "", locationId: "" }]);
+    setSelectedSku(undefined);
+    setSelectedUnitCode(undefined);
+    setSelectedQuantity(0);
+    setItems([{ sku: "", quantity: 0, locationId: "" }]);
     onClose();
   };
 
   // 添加产品行
   const handleAddItem = () => {
-    setItems([...items, { sku: "", quantity: 0, unitCode: "", locationId: "" }]);
+    setItems([...items, { sku: "", quantity: 0, locationId: "" }]);
+  };
+
+  const loadConversions = async (toUnitCode?: string) => {
+    if (!toUnitCode || conversionMap[toUnitCode]) return;
+    try {
+      const res = await UnitApi.getConversions(toUnitCode);
+      setConversionMap((prev) => ({
+        ...prev,
+        [toUnitCode]: res.data || [],
+      }));
+    } catch {
+      Toast.error("加载单位换算关系失败");
+    }
   };
 
   // 删除产品行
@@ -99,7 +118,76 @@ export default function InboundModal({
   ) => {
     const newItems = [...items];
     newItems[index][field] = value;
+    if (field === "sku") {
+      const selectedProduct = productOptions.find((item) => item.value === value);
+      newItems[index].unitCode = selectedProduct?.unitCode || undefined;
+      loadConversions(selectedProduct?.unitCode);
+    }
+    if (field === "unitCode" && !value) {
+      const selectedProduct = productOptions.find((item) => item.value === newItems[index].sku);
+      newItems[index].unitCode = selectedProduct?.unitCode || undefined;
+    }
     setItems(newItems);
+  };
+
+  const getProduct = (sku: string) =>
+    productOptions.find((item) => item.value === sku);
+
+  const getProductUnitCode = (sku: string) =>
+    getProduct(sku)?.unitCode || undefined;
+
+  const getUnit = (unitCode?: string) =>
+    unitOptions.find((item) => item.code === unitCode || item.value === unitCode);
+
+  const getProductUnitText = (sku: string) => {
+    const product = getProduct(sku);
+    return product?.unitSymbol || product?.unitName || product?.unitCode || "-";
+  };
+
+  const getConvertibleUnitOptions = (sku: string) => {
+    const product = getProduct(sku);
+    if (!product?.unitCode) return [];
+
+    const productUnitOption = unitOptions
+      .filter((unit) => unit.code === product.unitCode)
+      .map((unit) => ({
+        label: `${unit.name} (${unit.symbol || unit.code})`,
+        value: unit.code,
+      }));
+
+    const directConversionOptions = (conversionMap[product.unitCode] || [])
+      .map((conversion) => getUnit(conversion.fromUnitCode))
+      .filter(Boolean)
+      .map((unit) => ({
+        label: `${unit.name} (${unit.symbol || unit.code})`,
+        value: unit.code,
+      }));
+
+    const allOptions = [...productUnitOption, ...directConversionOptions];
+    return allOptions.filter(
+      (option, index) => allOptions.findIndex((item) => item.value === option.value) === index,
+    );
+  };
+
+  const convertToProductUnit = (quantity: number, unitCode: string | undefined, sku: string) => {
+    const product = getProduct(sku);
+    if (!product?.unitCode || !unitCode || unitCode === product.unitCode) return Number(quantity || 0);
+
+    const directConversion = (conversionMap[product.unitCode] || []).find(
+      (conversion) => conversion.fromUnitCode === unitCode,
+    );
+    if (directConversion) {
+      const converted = Number(quantity || 0) * Number(directConversion.ratio || 1);
+      return Math.round(converted * 100) / 100;
+    }
+
+    return 0;
+  };
+
+  const renderConvertedText = (quantity: number, unitCode: string | undefined, sku: string) => {
+    if (!sku) return "-";
+    const converted = convertToProductUnit(quantity, unitCode || getProductUnitCode(sku), sku);
+    return `${converted || 0} ${getProductUnitText(sku)}`;
   };
 
   // 提交
@@ -119,8 +207,7 @@ export default function InboundModal({
           remark: values.remark,
           sku: values.sku,
           quantity: values.quantity,
-          unitCode: values.unitCode,
-          convertedQuantity: values.convertedQuantity,
+          unitCode: values.unitCode || selectedUnitCode || getProductUnitCode(values.sku),
           locationId: values.locationId,
           notifyUserIds, // 通知当前用户
         });
@@ -135,7 +222,10 @@ export default function InboundModal({
           type: values.type,
           orderNo: values.orderNo,
           remark: values.remark,
-          items,
+          items: items.map((item) => ({
+            ...item,
+            unitCode: item.unitCode || getProductUnitCode(item.sku),
+          })),
           notifyUserIds, // 通知当前用户
         });
         Toast.success("批量入库成功");
@@ -183,31 +273,28 @@ export default function InboundModal({
       ),
     },
     {
-      title: "单位",
+      title: "入库单位",
       dataIndex: "unitCode",
       width: 150,
-      render: (text: string, _record: IInboundItem, index: number) => (
+      render: (text: string, record: IInboundItem, index: number) => (
         <Select
-          placeholder="选择单位"
+          placeholder="请选择单位"
           value={text}
-          optionList={unitOptions}
+          optionList={getConvertibleUnitOptions(record.sku)}
           onChange={(value) => handleUpdateItem(index, "unitCode", value)}
           style={{ width: "100%" }}
+          disabled={!record.sku}
         />
       ),
     },
     {
-      title: "折合库存数量",
-      dataIndex: "convertedQuantity",
-      width: 150,
-      render: (text: number, _record: IInboundItem, index: number) => (
-        <InputNumber
-          placeholder="跨单位时填写"
-          value={text}
-          min={0}
-          onChange={(value) => handleUpdateItem(index, "convertedQuantity", value || undefined)}
-          style={{ width: "100%" }}
-        />
+      title: "折合库存",
+      dataIndex: "convertedStock",
+      width: 120,
+      render: (_text: string, record: IInboundItem) => (
+        <Text type="secondary">
+          {renderConvertedText(record.quantity, record.unitCode, record.sku)}
+        </Text>
       ),
     },
     {
@@ -280,6 +367,14 @@ export default function InboundModal({
                 optionList={productOptions}
                 rules={[{ required: true, message: "请选择产品" }]}
                 showClear
+                onChange={(value) => {
+                  const sku = value as string | undefined;
+                  const unitCode = sku ? getProductUnitCode(sku) : undefined;
+                  setSelectedSku(sku);
+                  setSelectedUnitCode(unitCode);
+                  formApi?.setValue("unitCode", unitCode);
+                  loadConversions(unitCode);
+                }}
               />
               <Form.InputNumber
                 field="quantity"
@@ -287,21 +382,22 @@ export default function InboundModal({
                 placeholder="请输入数量"
                 rules={[{ required: true, message: "请输入数量" }]}
                 min={0}
+                onChange={(value) => setSelectedQuantity(Number(value || 0))}
               />
               <Form.Select
                 field="unitCode"
-                label="单位"
-                placeholder="请选择单位"
-                optionList={unitOptions}
-                rules={[{ required: true, message: "请选择单位" }]}
+                label="入库单位"
+                placeholder="请选择入库单位"
+                optionList={getConvertibleUnitOptions(selectedSku || "")}
+                rules={[{ required: true, message: "请选择入库单位" }]}
+                disabled={!selectedSku}
+                onChange={(value) => setSelectedUnitCode(value as string | undefined)}
               />
-              <Form.InputNumber
-                field="convertedQuantity"
-                label="折合库存数量"
-                placeholder="称重/跨分类入库时填写，例如 100kg 折合 40支"
-                min={0}
-                style={{ width: "100%" }}
-              />
+              <div style={{ marginLeft: 100, marginBottom: 16 }}>
+                <Text type="tertiary">
+                  折合库存：{renderConvertedText(selectedQuantity, selectedUnitCode, selectedSku || "")}
+                </Text>
+              </div>
               <Form.Select
                 field="locationId"
                 label="库位"

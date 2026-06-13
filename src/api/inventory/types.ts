@@ -24,7 +24,6 @@ export interface IInventory {
     symbol?: string;
   };
   location?: string;
-  multiUnitQty?: Record<string, number>;
   safetyStock?: number;
   isLowStock?: boolean;
   stockStatus?: "OUT_OF_STOCK" | "LOW_STOCK" | "IN_STOCK";
@@ -38,7 +37,7 @@ export interface IInventory {
 export interface IAdjustRequest {
   sku: string;
   quantity: number; // 正数增加，负数减少
-  unitCode: string;
+  unitCode?: string;
   reason: string; // 调整原因
   remark?: string; // 可选备注
   locationId?: string; // 可选库位ID
@@ -57,8 +56,6 @@ export interface IAdjustResponse {
     code: string;
     name: string;
     category: string;
-    baseRatio: number;
-    baseUnitCode: string;
     symbol: string;
   };
   transactionId: string;

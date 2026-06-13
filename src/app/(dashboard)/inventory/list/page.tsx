@@ -17,27 +17,6 @@ export default function InventoryListPage() {
   const [adjustVisible, setAdjustVisible] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<any>(null);
 
-  // 格式化多单位库存展示
-  const renderMultiUnitQty = (
-    multiUnitQty:
-      | Record<
-          string,
-          { quantity: number; name: string; symbol: string; display: string }
-        >
-      | undefined,
-  ) => {
-    if (!multiUnitQty || Object.keys(multiUnitQty).length === 0) return "-";
-    return (
-      <Space wrap>
-        {Object.entries(multiUnitQty).map(([unit, qty]) => (
-          <Tag key={unit} color="blue">
-            {qty.display}
-          </Tag>
-        ))}
-      </Space>
-    );
-  };
-
   // 库存状态渲染
   const renderStockStatus = (record: any) => {
     const statusInfo = record.stockStatusInfo;
@@ -110,12 +89,6 @@ export default function InventoryListPage() {
           {record.availableQuantityDisplay || `0 ${record.unitSymbol || ""}`}
         </Text>
       ),
-    },
-    {
-      title: "多单位库存",
-      dataIndex: "multiUnitQty",
-      hideInSearch: true,
-      render: renderMultiUnitQty,
     },
     {
       title: "安全库存",

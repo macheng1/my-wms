@@ -261,7 +261,11 @@ export default function OrdersPage() {
   ];
 
   function getNextStatuses(order: OrderRecord) {
-    return nextStatusMap[order.orderType]?.[order.status] || [];
+    const next = nextStatusMap[order.orderType]?.[order.status] || [];
+    if (order.source === OrderSource.MINIAPP) {
+      return next.filter((status) => status !== OrderStatus.OUT_OF_STOCK);
+    }
+    return next;
   }
 
   function openCreate() {
