@@ -119,14 +119,16 @@ export async function GET(request: NextRequest) {
                 }
               }
             } catch (error) {
+              if (isClosed || (error as Error).name === 'AbortError') {
+                console.log('[SSE Proxy] Read loop stopped');
+                return;
+              }
               console.error('[SSE Proxy] Read loop error:', error);
-              if (!isClosed) {
-                isClosed = true;
-                try {
-                  controller.error(error);
-                } catch {
-                  // 忽略已关闭错误
-                }
+              isClosed = true;
+              try {
+                controller.error(error);
+              } catch {
+                // 忽略已关闭错误
               }
             }
           }
