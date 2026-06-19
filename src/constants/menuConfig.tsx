@@ -255,6 +255,11 @@ export const MENU_CONFIG: MenuItem[] = [
         text: "库位管理",
         code: "tenant:location:list",
       },
+      {
+        itemKey: "/warehouse/ptl",
+        text: "货位灯",
+        code: "tenant:ptl",
+      },
     ],
   },
   // 库存管理

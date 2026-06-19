@@ -74,6 +74,16 @@ export interface LocationVisualItem extends Location {
   totalQuantity: number;
   hasStock: boolean;
   matched: boolean;
+  ptl?: {
+    bound: boolean;
+    bindingId?: string;
+    controllerId?: string;
+    controllerCode?: string;
+    controllerName?: string;
+    controllerStatus?: "ONLINE" | "OFFLINE" | "ERROR" | "MAINTENANCE" | "DISABLED";
+    ledIndex?: number;
+    defaultColor?: string;
+  };
 }
 
 export interface LocationVisualMapResponse {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Modal, Form, Toast, Spin, Space, Tag, Typography } from "@douyinfe/semi-ui-19";
 import ProductApi from "@/api/product";
 import CategoryApi from "@/api/category";
@@ -34,6 +34,11 @@ export default function ProductEditModal({
   const [unitConversions, setUnitConversions] = useState<IUnitConversion[]>([]);
   const [unitChangeLockedReason, setUnitChangeLockedReason] = useState<string | null>(null);
   const [stockSummary, setStockSummary] = useState<any>(null);
+  const unitsRef = useRef<IUnit[]>([]);
+
+  useEffect(() => {
+    unitsRef.current = units;
+  }, [units]);
 
   // 加载类目列表
   const loadCategories = useCallback(async () => {
@@ -49,6 +54,7 @@ export default function ProductEditModal({
   const loadUnits = useCallback(async () => {
     const res = await UnitApi.getActiveUnits();
     const list = res.data || [];
+    unitsRef.current = list;
     setUnits(list);
     setUnitOptions(
       list.map((item: any) => ({
@@ -59,7 +65,7 @@ export default function ProductEditModal({
   }, []);
 
   const loadUnitConversions = useCallback(async (unitId?: string, unitList?: IUnit[]) => {
-    const sourceUnits = unitList || units;
+    const sourceUnits = unitList || unitsRef.current;
     const unit = sourceUnits.find((item) => String(item.id) === String(unitId));
     if (!unit?.code) {
       setUnitConversions([]);
@@ -72,7 +78,7 @@ export default function ProductEditModal({
     } catch {
       setUnitConversions([]);
     }
-  }, [units]);
+  }, []);
 
   // 类目联动逻辑
   const handleCategoryChange = useCallback(async (categoryId: string) => {
@@ -112,6 +118,7 @@ export default function ProductEditModal({
         // 加载基础下拉
         const [, unitRes] = await Promise.all([loadCategories(), UnitApi.getActiveUnits()]);
         const unitList = unitRes.data || [];
+        unitsRef.current = unitList;
         setUnits(unitList);
         setUnitOptions(
           unitList.map((item: any) => ({
