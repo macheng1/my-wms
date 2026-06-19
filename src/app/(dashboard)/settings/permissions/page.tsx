@@ -8,6 +8,11 @@ import PlatformMenuLayout from "../platform-menus/components/PlatformMenuLayout"
 
 type MenuRow = PlatformMenu & { depth?: number };
 
+const compareMenu = (a: MenuRow, b: MenuRow) =>
+  Number(a.sortOrder || 0) - Number(b.sortOrder || 0) ||
+  new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime() ||
+  Number(a.id) - Number(b.id);
+
 const normalizeMenus = (menus: TenantMenu[] = []): PlatformMenu[] =>
   menus.map((menu) => ({
     ...menu,
@@ -20,6 +25,7 @@ const normalizeMenus = (menus: TenantMenu[] = []): PlatformMenu[] =>
     sortOrder: Number(menu.sortOrder || 0),
     isHidden: Number(menu.isHidden || 0),
     isActive: Number(menu.isActive ?? 1),
+    createdAt: menu.createdAt,
     children: menu.children?.length ? normalizeMenus(menu.children) : undefined,
   }));
 
@@ -76,11 +82,7 @@ export default function TenantPermissionsPage() {
       map.get(parentId)?.push(menu);
     });
     map.forEach((items) => {
-      items.sort(
-        (a, b) =>
-          Number(a.sortOrder || 0) - Number(b.sortOrder || 0) ||
-          Number(a.id) - Number(b.id),
-      );
+      items.sort(compareMenu);
     });
     return map;
   }, [flatMenus]);

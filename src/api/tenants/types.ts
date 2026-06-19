@@ -104,6 +104,7 @@ export interface TenantMenu {
   sortOrder?: number;
   isHidden?: number;
   isActive?: number;
+  createdAt?: string;
   children?: TenantMenu[];
 }
 

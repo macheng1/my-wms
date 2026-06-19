@@ -32,8 +32,15 @@ const buildDeptTree = (list: DeptItem[]): DeptTreeItem[] => {
     }
   });
 
+  const createdAtAsc = (a?: string, b?: string) =>
+    new Date(a || 0).getTime() - new Date(b || 0).getTime();
+
   const sortTree = (nodes: DeptTreeItem[]) => {
-    nodes.sort((a, b) => (a.orderNum || 0) - (b.orderNum || 0));
+    nodes.sort(
+      (a, b) =>
+        (a.orderNum || 0) - (b.orderNum || 0) ||
+        createdAtAsc(a.createdAt, b.createdAt),
+    );
     nodes.forEach((node) => {
       if (node.children?.length) {
         sortTree(node.children);

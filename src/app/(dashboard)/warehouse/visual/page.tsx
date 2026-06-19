@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type * as ThreeTypes from "three";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
   Empty,
@@ -64,21 +63,21 @@ const sortCode = (a?: string, b?: string) =>
   });
 
 // 库存健康色，与物理货位灯底色一致（绿=正常 / 黄=告急 / 红=归零）
-const STOCK_HEX: Record<"green" | "yellow" | "red", number> = {
-  green: 0x22c55e,
-  yellow: 0xf59e0b,
-  red: 0xef4444,
+const STOCK_COLOR: Record<"green" | "yellow" | "red", string> = {
+  green: "#22c55e",
+  yellow: "#f59e0b",
+  red: "#ef4444",
 };
 
 const getLocationColor = (location: LocationVisualItem, selected: boolean, active: boolean) => {
-  if (active) return 0xfacc15;
-  if (selected) return 0x38bdf8;
-  if (location.matched) return 0xfb923c;
-  if (location.status === LocationStatus.DISABLED) return 0x6b7280;
-  if (location.status === LocationStatus.LOCKED) return 0xef4444;
-  if (location.stockColor) return STOCK_HEX[location.stockColor]; // 有货库位按库存健康上色
-  if (location.ptl?.bound) return 0x94a3b8; // 绑了灯的空库位
-  return 0x10b981; // 普通空库位
+  if (active) return "#facc15";
+  if (selected) return "#38bdf8";
+  if (location.matched) return "#fb923c";
+  if (location.status === LocationStatus.DISABLED) return "#6b7280";
+  if (location.status === LocationStatus.LOCKED) return "#ef4444";
+  if (location.stockColor) return STOCK_COLOR[location.stockColor];
+  if (location.ptl?.bound) return "#94a3b8";
+  return "#10b981";
 };
 
 export default function WarehouseVisualPage() {
@@ -266,7 +265,7 @@ export default function WarehouseVisualPage() {
               <Title heading={3} style={{ margin: 0, color: "#f8fafc" }}>
                 仓库可视化大屏
               </Title>
-              <Text style={{ color: "#93c5fd" }}>3D 库位、库存热度与货位灯在线状态</Text>
+              <Text style={{ color: "#93c5fd" }}>二维库位看板、库存数量与货位灯在线状态</Text>
             </div>
             <Space wrap>
               <Select
@@ -293,14 +292,14 @@ export default function WarehouseVisualPage() {
               />
               <Input
                 prefix={<IconSearch />}
-                placeholder="SKU / 产品名称"
+                placeholder="SKU / 产品名称 / 条码"
                 value={keyword}
                 style={{ width: 220 }}
                 onChange={setKeyword}
                 onEnterPress={onSearch}
               />
               <Button icon={<IconSearch />} theme="solid" onClick={onSearch}>
-                定位
+                搜索
               </Button>
               <Button icon={<IconRefresh />} onClick={resetFilters}>
                 重置
@@ -330,17 +329,18 @@ export default function WarehouseVisualPage() {
                 position: "relative",
                 height: "calc(100vh - 284px)",
                 minHeight: 560,
-                overflow: "hidden",
+                overflow: "auto",
                 border: "1px solid rgba(125, 211, 252, 0.22)",
                 background: "rgba(7, 17, 31, 0.72)",
               }}
             >
               {data?.locations.length ? (
-                <WarehouseScene
+                <WarehouseBoard
                   locations={data.locations}
                   selectedId={selectedLocation?.id}
                   activeTaskByLocation={activeTaskByLocation}
                   onSelect={setSelectedLocation}
+                  searchKeyword={searchKeyword}
                 />
               ) : (
                 <div style={{ height: "100%", display: "grid", placeItems: "center" }}>
@@ -350,7 +350,6 @@ export default function WarehouseVisualPage() {
                   />
                 </div>
               )}
-              <Legend />
             </section>
           </Spin>
         </main>
@@ -384,366 +383,226 @@ export default function WarehouseVisualPage() {
   );
 }
 
-function WarehouseScene({
+function WarehouseBoard({
   locations,
   selectedId,
   activeTaskByLocation,
   onSelect,
+  searchKeyword,
 }: {
   locations: LocationVisualItem[];
   selectedId?: string;
   activeTaskByLocation: Record<string, string>;
   onSelect: (location: LocationVisualItem) => void;
+  searchKeyword?: string;
 }) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const locationsRef = useRef(locations);
-  const selectedRef = useRef(selectedId);
-  const activeRef = useRef(activeTaskByLocation);
-  const onSelectRef = useRef(onSelect);
+  const groups = useMemo(() => groupByShelf(locations), [locations]);
 
-  useEffect(() => {
-    locationsRef.current = locations;
-    selectedRef.current = selectedId;
-    activeRef.current = activeTaskByLocation;
-    onSelectRef.current = onSelect;
-  }, [activeTaskByLocation, locations, onSelect, selectedId]);
+  return (
+    <div style={{ padding: 16, minWidth: 760 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
+        <div>
+          <Title heading={5} style={{ margin: 0, color: "#e0f2fe" }}>
+            {searchKeyword ? "搜索结果库位" : "全部库位二维看板"}
+          </Title>
+          <Text size="small" style={{ color: "#93c5fd" }}>
+            共 {locations.length} 个库位，按货架 / 层位 / 位号排列
+          </Text>
+        </div>
+        <Legend inline />
+      </div>
 
-  useEffect(() => {
-    let disposed = false;
-    let cleanup: (() => void) | undefined;
+      <div style={{ display: "grid", gap: 16 }}>
+        {groups.map((group) => (
+          <ShelfGrid
+            key={`${group.warehouse}-${group.area}-${group.shelf}`}
+            group={group}
+            selectedId={selectedId}
+            activeTaskByLocation={activeTaskByLocation}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
-    const init = async () => {
-      const container = containerRef.current;
-      if (!container) return;
+function ShelfGrid({
+  group,
+  selectedId,
+  activeTaskByLocation,
+  onSelect,
+}: {
+  group: ReturnType<typeof groupByShelf>[number];
+  selectedId?: string;
+  activeTaskByLocation: Record<string, string>;
+  onSelect: (location: LocationVisualItem) => void;
+}) {
+  const reversedLevels = [...group.levels].reverse();
 
-      const THREE = await import("three");
-      const { OrbitControls } = await import("three/examples/jsm/controls/OrbitControls.js");
-      if (disposed || !containerRef.current) return;
+  return (
+    <section
+      style={{
+        border: "1px solid rgba(125,211,252,0.18)",
+        background: "rgba(15,23,42,0.62)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "12px 14px",
+          borderBottom: "1px solid rgba(125,211,252,0.16)",
+        }}
+      >
+        <div>
+          <Text strong style={{ color: "#f8fafc" }}>
+            {group.warehouse} / {group.area} / 货架 {group.shelf}
+          </Text>
+          <div>
+            <Text size="small" style={{ color: "#93c5fd" }}>
+              {group.locations.length} 个库位 · {group.locations.filter((item) => item.hasStock).length} 个有货
+            </Text>
+          </div>
+        </div>
+        <Text size="small" style={{ color: "#7dd3fc" }}>
+          {group.levels.length} 层 · {group.positions.length} 位
+        </Text>
+      </div>
 
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x08121f);
-      scene.fog = new THREE.Fog(0x08121f, 28, 88);
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `56px repeat(${group.positions.length}, minmax(118px, 1fr))`,
+          gap: 8,
+          padding: 12,
+          overflowX: "auto",
+        }}
+      >
+        <div />
+        {group.positions.map((position) => (
+          <Text key={position} size="small" style={{ color: "#7dd3fc", textAlign: "center" }}>
+            位 {position}
+          </Text>
+        ))}
 
-      const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 240);
-      camera.position.set(22, 22, 30);
-
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      container.appendChild(renderer.domElement);
-
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
-      controls.maxPolarAngle = Math.PI * 0.46;
-      controls.minDistance = 16;
-      controls.maxDistance = 70;
-      controls.target.set(0, 4, 0);
-
-      const ambient = new THREE.HemisphereLight(0xdbeafe, 0x07111f, 1.5);
-      scene.add(ambient);
-      const key = new THREE.DirectionalLight(0xffffff, 2.1);
-      key.position.set(18, 30, 14);
-      key.castShadow = true;
-      key.shadow.mapSize.set(2048, 2048);
-      scene.add(key);
-      const sideLight = new THREE.PointLight(0x38bdf8, 2.2, 58);
-      sideLight.position.set(-18, 8, 18);
-      scene.add(sideLight);
-
-      const floor = new THREE.Mesh(
-        new THREE.PlaneGeometry(120, 80),
-        new THREE.MeshStandardMaterial({
-          color: 0x0f172a,
-          metalness: 0.15,
-          roughness: 0.7,
-        }),
-      );
-      floor.rotation.x = -Math.PI / 2;
-      floor.receiveShadow = true;
-      scene.add(floor);
-
-      const grid = new THREE.GridHelper(120, 48, 0x1d4ed8, 0x1f2937);
-      grid.position.y = 0.012;
-      scene.add(grid);
-
-      const raycaster = new THREE.Raycaster();
-      const pointer = new THREE.Vector2();
-      const clickable: Array<ThreeTypes.Mesh & { userData: { locationId?: string } }> = [];
-      const root = new THREE.Group();
-      scene.add(root);
-
-      const boxGeometry = new THREE.BoxGeometry(1.72, 0.62, 1.12);
-      const edgeGeometry = new THREE.EdgesGeometry(boxGeometry);
-      const railMaterial = new THREE.MeshStandardMaterial({
-        color: 0x334155,
-        metalness: 0.72,
-        roughness: 0.32,
-      });
-      const railGeometry = new THREE.BoxGeometry(0.12, 0.14, 1.4);
-
-      // 每次重建时创建的材质/几何体（区别于上面复用的共享几何体），重建前需 dispose 释放 GPU 资源
-      let buildDisposables: Array<{ dispose: () => void }> = [];
-      const disposeBuild = () => {
-        buildDisposables.forEach((item) => item.dispose());
-        buildDisposables = [];
-      };
-
-      // 货位数量标签：canvas 贴图做成 sprite，永远朝向相机，直接把库存数量显示在 3D 货位上
-      const makeLabelSprite = (location: LocationVisualItem) => {
-        const dpr = 2;
-        const W = 256;
-        const H = 92;
-        const canvas = document.createElement("canvas");
-        canvas.width = W * dpr;
-        canvas.height = H * dpr;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return null;
-        ctx.scale(dpr, dpr);
-
-        const accent = location.stockColor
-          ? `#${STOCK_HEX[location.stockColor].toString(16).padStart(6, "0")}`
-          : "rgba(125,211,252,0.45)";
-
-        const r = 14;
-        const pad = 3; // 留出描边空间，避免边框被画布裁掉
-        ctx.beginPath();
-        ctx.moveTo(pad + r, pad);
-        ctx.arcTo(W - pad, pad, W - pad, H - pad, r);
-        ctx.arcTo(W - pad, H - pad, pad, H - pad, r);
-        ctx.arcTo(pad, H - pad, pad, pad, r);
-        ctx.arcTo(pad, pad, W - pad, pad, r);
-        ctx.closePath();
-        ctx.fillStyle = "rgba(8,18,31,0.9)";
-        ctx.fill();
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = accent;
-        ctx.stroke();
-
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        // 编码（自动缩字号确保完整显示）
-        let codeFont = 20;
-        ctx.fillStyle = "#cbd5e1";
-        do {
-          ctx.font = `600 ${codeFont}px -apple-system, system-ui, sans-serif`;
-          if (ctx.measureText(location.code).width <= W - 24) break;
-          codeFont -= 1;
-        } while (codeFont > 11);
-        ctx.fillText(location.code, W / 2, 28);
-
-        // 数量（大号，库存色）+ SKU 数
-        const qtyText = `${location.totalQuantity || 0}`;
-        const skuText = location.skuCount > 0 ? ` · ${location.skuCount}SKU` : "";
-        ctx.font = "700 34px -apple-system, system-ui, sans-serif";
-        const qtyWidth = ctx.measureText(qtyText).width;
-        ctx.font = "600 16px -apple-system, system-ui, sans-serif";
-        const skuWidth = ctx.measureText(skuText).width;
-        const startX = W / 2 - (qtyWidth + skuWidth) / 2;
-        ctx.textAlign = "left";
-        ctx.fillStyle = location.stockColor ? accent : "#94a3b8";
-        ctx.font = "700 34px -apple-system, system-ui, sans-serif";
-        ctx.fillText(qtyText, startX, 64);
-        if (skuText) {
-          ctx.fillStyle = "#7dd3fc";
-          ctx.font = "600 16px -apple-system, system-ui, sans-serif";
-          ctx.fillText(skuText, startX + qtyWidth, 66);
-        }
-
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.minFilter = THREE.LinearFilter;
-        const spriteMaterial = new THREE.SpriteMaterial({
-          map: texture,
-          transparent: true,
-          depthWrite: false,
-        });
-        const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.scale.set(1.46, 0.52, 1); // 贴合画布宽高比 256:92
-        buildDisposables.push(texture, spriteMaterial);
-        return sprite;
-      };
-
-      const buildScene = () => {
-        clickable.length = 0;
-        disposeBuild();
-        while (root.children.length) root.remove(root.children[0]);
-
-        const groups = groupByShelf(locationsRef.current);
-        const shelfGap = 4.2;
-        const maxPositions = Math.max(
-          1,
-          ...groups.map((group) => group.positions.length),
-        );
-        const totalWidth = (maxPositions - 1) * 2.05;
-        const totalDepth = (groups.length - 1) * shelfGap;
-
-        groups.forEach((group, shelfIndex) => {
-          const shelfRoot = new THREE.Group();
-          shelfRoot.position.set(-totalWidth / 2, 0.35, shelfIndex * shelfGap - totalDepth / 2);
-          root.add(shelfRoot);
-
-          const maxLevelY = Math.max(0, group.levels.length - 1) * 0.92;
-          const railLeft = new THREE.Mesh(railGeometry, railMaterial);
-          railLeft.scale.set(1, Math.max(8, group.levels.length * 5.4), 1);
-          railLeft.position.set(-0.98, maxLevelY / 2, 0);
-          railLeft.castShadow = true;
-          shelfRoot.add(railLeft);
-
-          const railRight = railLeft.clone();
-          railRight.position.x = (group.positions.length - 1) * 2.05 + 0.98;
-          shelfRoot.add(railRight);
-
-          group.levels.forEach((level, levelIndex) => {
-            group.positions.forEach((position, positionIndex) => {
+        {reversedLevels.map((level) => (
+          <React.Fragment key={level}>
+            <div
+              style={{
+                display: "grid",
+                placeItems: "center",
+                color: "#93c5fd",
+                fontSize: 12,
+                border: "1px solid rgba(125,211,252,0.12)",
+                background: "rgba(8,18,31,0.5)",
+              }}
+            >
+              层 {level}
+            </div>
+            {group.positions.map((position) => {
               const location = group.locationMap.get(`${level}:${position}`);
-              if (!location) return;
+              return location ? (
+                <LocationTile
+                  key={location.id}
+                  location={location}
+                  selected={selectedId === location.id}
+                  active={Boolean(activeTaskByLocation[location.id])}
+                  onSelect={() => onSelect(location)}
+                />
+              ) : (
+                <div
+                  key={`${level}:${position}`}
+                  style={{
+                    minHeight: 104,
+                    border: "1px dashed rgba(125,211,252,0.12)",
+                    background: "rgba(8,18,31,0.26)",
+                  }}
+                />
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-              const selected = selectedRef.current === location.id;
-              const active = Boolean(activeRef.current[location.id]);
-              const color = getLocationColor(location, selected, active);
-              const material = new THREE.MeshStandardMaterial({
-                color,
-                emissive: active || location.matched || selected ? color : 0x000000,
-                emissiveIntensity: active ? 0.48 : selected || location.matched ? 0.24 : 0.08,
-                roughness: 0.46,
-                metalness: 0.18,
-              });
-              buildDisposables.push(material);
-              const box = new THREE.Mesh(boxGeometry, material) as ThreeTypes.Mesh & {
-                userData: { locationId?: string };
-              };
-              box.position.set(positionIndex * 2.05, levelIndex * 0.92 + 0.4, 0);
-              box.castShadow = true;
-              box.receiveShadow = true;
-              box.userData.locationId = location.id;
-              shelfRoot.add(box);
-              clickable.push(box);
+function LocationTile({
+  location,
+  selected,
+  active,
+  onSelect,
+}: {
+  location: LocationVisualItem;
+  selected: boolean;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  const accent = getLocationColor(location, selected, active);
+  const topStock = location.stockItems[0];
 
-              const edgeMaterial = new THREE.LineBasicMaterial({
-                color: selected ? 0xffffff : location.ptl?.bound ? 0xbae6fd : 0x1e293b,
-                transparent: true,
-                opacity: selected ? 0.95 : 0.55,
-              });
-              buildDisposables.push(edgeMaterial);
-              const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
-              edges.position.copy(box.position);
-              shelfRoot.add(edges);
+  return (
+    <button
+      onClick={onSelect}
+      style={{
+        minHeight: 104,
+        padding: 10,
+        textAlign: "left",
+        cursor: "pointer",
+        border: `1px solid ${selected ? "#e0f2fe" : accent}`,
+        background: active
+          ? "rgba(250,204,21,0.18)"
+          : selected
+            ? "rgba(56,189,248,0.18)"
+            : "rgba(15,23,42,0.76)",
+        boxShadow: active || selected ? `0 0 18px ${accent}55` : "none",
+        display: "grid",
+        gridTemplateRows: "auto 1fr auto",
+        gap: 6,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+        <Text strong style={{ color: "#f8fafc", fontSize: 13 }} ellipsis={{ showTooltip: true }}>
+          {location.code}
+        </Text>
+        <span
+          style={{
+            width: 9,
+            height: 9,
+            marginTop: 4,
+            borderRadius: "50%",
+            background: accent,
+            boxShadow: `0 0 10px ${accent}`,
+            flexShrink: 0,
+          }}
+        />
+      </div>
 
-              if (location.ptl?.bound) {
-                // LED 小球模拟真实灯：在线时显示库存底色（空库位暗灰=灯灭），离线橙色
-                const online = location.ptl.controllerStatus === "ONLINE";
-                const ledHex = !online
-                  ? 0xf97316
-                  : location.stockColor
-                    ? STOCK_HEX[location.stockColor]
-                    : 0x475569;
-                const ledGeometry = new THREE.SphereGeometry(0.12, 16, 12);
-                const ledMaterial = new THREE.MeshStandardMaterial({
-                  color: ledHex,
-                  emissive: ledHex,
-                  emissiveIntensity: online && location.stockColor ? 0.85 : 0.4,
-                });
-                buildDisposables.push(ledGeometry, ledMaterial);
-                const led = new THREE.Mesh(ledGeometry, ledMaterial);
-                led.position.set(box.position.x + 0.62, box.position.y + 0.18, box.position.z + 0.62);
-                shelfRoot.add(led);
-              }
+      <div>
+        <div style={{ color: accent, fontSize: 24, fontWeight: 800, lineHeight: "28px" }}>
+          {location.totalQuantity || 0}
+        </div>
+        <Text size="small" style={{ color: "#93c5fd" }} ellipsis={{ showTooltip: true }}>
+          {topStock ? `${topStock.productName} / ${topStock.sku}` : stockStateText(location)}
+        </Text>
+      </div>
 
-              // 数量标签：漂浮在货位正上方，朝向相机（斜视也不会盖住货位）
-              const label = makeLabelSprite(location);
-              if (label) {
-                label.position.set(box.position.x, box.position.y + 0.62, box.position.z);
-                label.renderOrder = 2;
-                shelfRoot.add(label);
-              }
-            });
-          });
-        });
-      };
-
-      const resize = () => {
-        const rect = container.getBoundingClientRect();
-        renderer.setSize(rect.width, rect.height, false);
-        camera.aspect = rect.width / Math.max(rect.height, 1);
-        camera.updateProjectionMatrix();
-      };
-
-      const onPointerMove = (event: PointerEvent) => {
-        const rect = renderer.domElement.getBoundingClientRect();
-        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        raycaster.setFromCamera(pointer, camera);
-        const hit = raycaster.intersectObjects(clickable, false)[0];
-        renderer.domElement.style.cursor = hit ? "pointer" : "grab";
-      };
-
-      const onClick = (event: MouseEvent) => {
-        const rect = renderer.domElement.getBoundingClientRect();
-        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        raycaster.setFromCamera(pointer, camera);
-        const hit = raycaster.intersectObjects(clickable, false)[0];
-        const id = hit?.object.userData.locationId;
-        const location = locationsRef.current.find((item) => item.id === id);
-        if (location) onSelectRef.current(location);
-      };
-
-      buildScene();
-      resize();
-      const observer = new ResizeObserver(resize);
-      observer.observe(container);
-      renderer.domElement.addEventListener("pointermove", onPointerMove);
-      renderer.domElement.addEventListener("click", onClick);
-
-      let frame = 0;
-      const animate = () => {
-        if (disposed) return;
-        frame = requestAnimationFrame(animate);
-        controls.update();
-        root.children.forEach((shelf, index) => {
-          shelf.position.y = Math.sin(Date.now() * 0.0007 + index) * 0.025;
-        });
-        renderer.render(scene, camera);
-      };
-      animate();
-
-      cleanup = () => {
-        cancelAnimationFrame(frame);
-        observer.disconnect();
-        renderer.domElement.removeEventListener("pointermove", onPointerMove);
-        renderer.domElement.removeEventListener("click", onClick);
-        controls.dispose();
-        renderer.dispose();
-        disposeBuild();
-        boxGeometry.dispose();
-        edgeGeometry.dispose();
-        railGeometry.dispose();
-        railMaterial.dispose();
-        floor.geometry.dispose();
-        if (renderer.domElement.parentElement) renderer.domElement.parentElement.removeChild(renderer.domElement);
-      };
-
-      const refresh = () => buildScene();
-      (container as any).__refreshWarehouseScene = refresh;
-    };
-
-    init();
-
-    return () => {
-      disposed = true;
-      cleanup?.();
-    };
-  }, []);
-
-  useEffect(() => {
-    const container = containerRef.current as (HTMLDivElement & {
-      __refreshWarehouseScene?: () => void;
-    }) | null;
-    container?.__refreshWarehouseScene?.();
-  }, [activeTaskByLocation, locations, selectedId]);
-
-  return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+        <Text size="small" style={{ color: "#cbd5e1" }}>
+          {location.skuCount} SKU
+        </Text>
+        <Text size="small" style={{ color: location.ptl?.bound ? "#7dd3fc" : "#64748b" }}>
+          {location.ptl?.bound
+            ? location.ptl.controllerStatus === "ONLINE"
+              ? "灯在线"
+              : "灯离线"
+            : "未绑灯"}
+        </Text>
+      </div>
+    </button>
+  );
 }
 
 function stockDotHex(location: LocationVisualItem) {
@@ -763,7 +622,13 @@ function LocationList({
   const sorted = useMemo(
     () =>
       [...locations].sort(
-        (a, b) => (b.totalQuantity || 0) - (a.totalQuantity || 0) || sortCode(a.code, b.code),
+        (a, b) =>
+          sortCode(a.warehouse, b.warehouse) ||
+          sortCode(a.area, b.area) ||
+          sortCode(a.shelf, b.shelf) ||
+          sortCode(a.level, b.level) ||
+          sortCode(a.position, b.position) ||
+          new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime(),
       ),
     [locations],
   );
@@ -995,7 +860,7 @@ function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Legend() {
+function Legend({ inline = false }: { inline?: boolean }) {
   const items = [
     ["#22c55e", "库存正常"],
     ["#f59e0b", "库存告急"],
@@ -1008,10 +873,11 @@ function Legend() {
   return (
     <div
       style={{
-        position: "absolute",
-        left: 18,
-        bottom: 18,
+        position: inline ? "static" : "absolute",
+        left: inline ? undefined : 18,
+        bottom: inline ? undefined : 18,
         display: "flex",
+        flexWrap: "wrap",
         gap: 12,
         padding: "10px 12px",
         background: "rgba(8, 18, 31, 0.82)",
@@ -1042,20 +908,37 @@ function groupByShelf(locations: LocationVisualItem[]) {
   const groups = new Map<string, LocationVisualItem[]>();
 
   locations.forEach((location) => {
-    const key = location.shelf || "00";
+    const key = `${location.warehouse || "-"}:${location.area || "-"}:${location.shelf || "00"}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(location);
   });
 
   return Array.from(groups.entries())
-    .sort(([a], [b]) => sortCode(a, b))
-    .map(([shelf, list]) => {
+    .sort(([, aList], [, bList]) => {
+      const a = aList[0];
+      const b = bList[0];
+      return (
+        sortCode(a?.warehouse, b?.warehouse) ||
+        sortCode(a?.area, b?.area) ||
+        sortCode(a?.shelf, b?.shelf)
+      );
+    })
+    .map(([, list]) => {
+      const first = list[0];
       const levels = Array.from(new Set(list.map((location) => location.level || "00"))).sort(sortCode);
       const positions = Array.from(new Set(list.map((location) => location.position || "00"))).sort(sortCode);
       const locationMap = new Map(
         list.map((location) => [`${location.level || "00"}:${location.position || "00"}`, location]),
       );
 
-      return { shelf, levels, positions, locationMap };
+      return {
+        warehouse: first?.warehouse || "-",
+        area: first?.area || "-",
+        shelf: first?.shelf || "00",
+        levels,
+        positions,
+        locations: list,
+        locationMap,
+      };
     });
 }

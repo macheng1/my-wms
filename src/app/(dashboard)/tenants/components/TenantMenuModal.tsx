@@ -13,12 +13,16 @@ type MenuTreeNode = {
   children?: MenuTreeNode[];
 };
 
+const createdAtAsc = (a?: string, b?: string) =>
+  new Date(a || 0).getTime() - new Date(b || 0).getTime();
+
+const compareMenu = (a: TenantMenu, b: TenantMenu) =>
+  Number(a.sortOrder || 0) - Number(b.sortOrder || 0) ||
+  createdAtAsc(a.createdAt, b.createdAt) ||
+  Number(a.id) - Number(b.id);
+
 const toTreeData = (list: TenantMenu[] = []): MenuTreeNode[] => {
-  const sortedList = [...list].sort(
-    (a, b) =>
-      Number(a.sortOrder || 0) - Number(b.sortOrder || 0) ||
-      Number(a.id) - Number(b.id),
-  );
+  const sortedList = [...list].sort(compareMenu);
 
   return sortedList.map((menu) => ({
     label: menu.name,
@@ -44,11 +48,7 @@ const buildTreeByParentId = (list: TenantMenu[] = []): TenantMenu[] => {
   });
 
   childMap.forEach((children, parentId) => {
-    children.sort(
-      (a, b) =>
-        Number(a.sortOrder || 0) - Number(b.sortOrder || 0) ||
-        Number(a.id) - Number(b.id),
-    );
+    children.sort(compareMenu);
 
     const parent = nodeMap.get(parentId);
     if (parent) {

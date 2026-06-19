@@ -15,6 +15,14 @@ export default function PlatformMenusPage() {
   const [currentMenu, setCurrentMenu] = useState<PlatformMenu | null>(null);
   const [defaultParentId, setDefaultParentId] = useState(0);
 
+  const compareMenu = useCallback(
+    (a: PlatformMenu, b: PlatformMenu) =>
+      Number(a.sortOrder || 0) - Number(b.sortOrder || 0) ||
+      new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime() ||
+      Number(a.id) - Number(b.id),
+    [],
+  );
+
   const menuById = useMemo(() => {
     const map = new Map<number, PlatformMenu>();
     menus.forEach((menu) => map.set(Number(menu.id), menu));
@@ -25,8 +33,8 @@ export default function PlatformMenusPage() {
     () =>
       menus
         .filter((menu) => Number(menu.parentId || 0) === 0 && menu.type !== "BUTTON")
-        .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || Number(a.id) - Number(b.id)),
-    [menus],
+        .sort(compareMenu),
+    [compareMenu, menus],
   );
 
   const childMap = useMemo(() => {
@@ -37,10 +45,10 @@ export default function PlatformMenusPage() {
       map.get(parentId)?.push(menu);
     });
     map.forEach((items) => {
-      items.sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || Number(a.id) - Number(b.id));
+      items.sort(compareMenu);
     });
     return map;
-  }, [menus]);
+  }, [compareMenu, menus]);
 
   const selectedTop = selectedTopId ? menuById.get(selectedTopId) || null : null;
 
