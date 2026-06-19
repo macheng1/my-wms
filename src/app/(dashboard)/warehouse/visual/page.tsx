@@ -45,10 +45,30 @@ const controllerStatusText: Record<string, string> = {
   DISABLED: "停用",
 };
 
+const stockStateText = (location: LocationVisualItem) => {
+  switch (location.stockColor) {
+    case "red":
+      return "已归零";
+    case "yellow":
+      return "库存告急";
+    case "green":
+      return "正常";
+    default:
+      return "空库位";
+  }
+};
+
 const sortCode = (a?: string, b?: string) =>
   String(a || "00").localeCompare(String(b || "00"), undefined, {
     numeric: true,
   });
+
+// 库存健康色，与物理货位灯底色一致（绿=正常 / 黄=告急 / 红=归零）
+const STOCK_HEX: Record<"green" | "yellow" | "red", number> = {
+  green: 0x22c55e,
+  yellow: 0xf59e0b,
+  red: 0xef4444,
+};
 
 const getLocationColor = (location: LocationVisualItem, selected: boolean, active: boolean) => {
   if (active) return 0xfacc15;
@@ -56,10 +76,9 @@ const getLocationColor = (location: LocationVisualItem, selected: boolean, activ
   if (location.matched) return 0xfb923c;
   if (location.status === LocationStatus.DISABLED) return 0x6b7280;
   if (location.status === LocationStatus.LOCKED) return 0xef4444;
-  if (location.ptl?.bound && location.ptl.controllerStatus === "ONLINE") return 0x22c55e;
-  if (location.ptl?.bound) return 0x94a3b8;
-  if (location.hasStock) return 0x2563eb;
-  return 0x10b981;
+  if (location.stockColor) return STOCK_HEX[location.stockColor]; // 有货库位按库存健康上色
+  if (location.ptl?.bound) return 0x94a3b8; // 绑了灯的空库位
+  return 0x10b981; // 普通空库位
 };
 
 export default function WarehouseVisualPage() {
@@ -83,13 +102,14 @@ export default function WarehouseVisualPage() {
       const nextData = res.data;
       setData(nextData);
 
-      if (selectedLocation && !nextData.locations.some((item) => item.id === selectedLocation.id)) {
-        setSelectedLocation(null);
-      }
+      // 用函数式更新清理已消失的选中项，避免把 selectedLocation 放进依赖导致每次选中都重新拉地图
+      setSelectedLocation((prev) =>
+        prev && !nextData.locations.some((item) => item.id === prev.id) ? null : prev,
+      );
     } finally {
       setLoading(false);
     }
-  }, [area, searchKeyword, selectedLocation, warehouse]);
+  }, [area, searchKeyword, warehouse]);
 
   useEffect(() => {
     fetchMap();
@@ -148,16 +168,16 @@ export default function WarehouseVisualPage() {
 
         await PtlApi.calibrate(location.ptl.controllerId, {
           ledIndex: location.ptl.ledIndex,
-          color: location.ptl.defaultColor || "yellow",
+          color: "blue",
           duration: 8,
         });
         Toast.success(`库位 ${location.code} 已发送定位点灯指令`);
         return;
       }
 
+      // 不传 color，沿用后端"找货=蓝色闪烁"约定，确认/熄灯后自动恢复库存底色
       const res = await PtlApi.lightUp({
         locationIds: [location.id],
-        color: location.ptl.defaultColor || "yellow",
         ttlSeconds: 90,
       });
       setActiveTaskByLocation((prev) => ({ ...prev, [location.id]: res.data.taskId }));
@@ -353,9 +373,9 @@ export default function WarehouseVisualPage() {
               onConfirm={() => confirmLocation(selectedLocation)}
             />
           ) : (
-            <Empty
-              title="选择一个库位"
-              description="点击 3D 货架上的库位查看库存、PTL 绑定与点灯操作"
+            <LocationList
+              locations={data?.locations || []}
+              onSelect={setSelectedLocation}
             />
           )}
         </aside>
@@ -463,8 +483,90 @@ function WarehouseScene({
       });
       const railGeometry = new THREE.BoxGeometry(0.12, 0.14, 1.4);
 
+      // 每次重建时创建的材质/几何体（区别于上面复用的共享几何体），重建前需 dispose 释放 GPU 资源
+      let buildDisposables: Array<{ dispose: () => void }> = [];
+      const disposeBuild = () => {
+        buildDisposables.forEach((item) => item.dispose());
+        buildDisposables = [];
+      };
+
+      // 货位数量标签：canvas 贴图做成 sprite，永远朝向相机，直接把库存数量显示在 3D 货位上
+      const makeLabelSprite = (location: LocationVisualItem) => {
+        const dpr = 2;
+        const W = 256;
+        const H = 92;
+        const canvas = document.createElement("canvas");
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+        ctx.scale(dpr, dpr);
+
+        const accent = location.stockColor
+          ? `#${STOCK_HEX[location.stockColor].toString(16).padStart(6, "0")}`
+          : "rgba(125,211,252,0.45)";
+
+        const r = 14;
+        const pad = 3; // 留出描边空间，避免边框被画布裁掉
+        ctx.beginPath();
+        ctx.moveTo(pad + r, pad);
+        ctx.arcTo(W - pad, pad, W - pad, H - pad, r);
+        ctx.arcTo(W - pad, H - pad, pad, H - pad, r);
+        ctx.arcTo(pad, H - pad, pad, pad, r);
+        ctx.arcTo(pad, pad, W - pad, pad, r);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(8,18,31,0.9)";
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = accent;
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        // 编码（自动缩字号确保完整显示）
+        let codeFont = 20;
+        ctx.fillStyle = "#cbd5e1";
+        do {
+          ctx.font = `600 ${codeFont}px -apple-system, system-ui, sans-serif`;
+          if (ctx.measureText(location.code).width <= W - 24) break;
+          codeFont -= 1;
+        } while (codeFont > 11);
+        ctx.fillText(location.code, W / 2, 28);
+
+        // 数量（大号，库存色）+ SKU 数
+        const qtyText = `${location.totalQuantity || 0}`;
+        const skuText = location.skuCount > 0 ? ` · ${location.skuCount}SKU` : "";
+        ctx.font = "700 34px -apple-system, system-ui, sans-serif";
+        const qtyWidth = ctx.measureText(qtyText).width;
+        ctx.font = "600 16px -apple-system, system-ui, sans-serif";
+        const skuWidth = ctx.measureText(skuText).width;
+        const startX = W / 2 - (qtyWidth + skuWidth) / 2;
+        ctx.textAlign = "left";
+        ctx.fillStyle = location.stockColor ? accent : "#94a3b8";
+        ctx.font = "700 34px -apple-system, system-ui, sans-serif";
+        ctx.fillText(qtyText, startX, 64);
+        if (skuText) {
+          ctx.fillStyle = "#7dd3fc";
+          ctx.font = "600 16px -apple-system, system-ui, sans-serif";
+          ctx.fillText(skuText, startX + qtyWidth, 66);
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+        const spriteMaterial = new THREE.SpriteMaterial({
+          map: texture,
+          transparent: true,
+          depthWrite: false,
+        });
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(1.46, 0.52, 1); // 贴合画布宽高比 256:92
+        buildDisposables.push(texture, spriteMaterial);
+        return sprite;
+      };
+
       const buildScene = () => {
         clickable.length = 0;
+        disposeBuild();
         while (root.children.length) root.remove(root.children[0]);
 
         const groups = groupByShelf(locationsRef.current);
@@ -507,6 +609,7 @@ function WarehouseScene({
                 roughness: 0.46,
                 metalness: 0.18,
               });
+              buildDisposables.push(material);
               const box = new THREE.Mesh(boxGeometry, material) as ThreeTypes.Mesh & {
                 userData: { locationId?: string };
               };
@@ -517,28 +620,42 @@ function WarehouseScene({
               shelfRoot.add(box);
               clickable.push(box);
 
-              const edges = new THREE.LineSegments(
-                edgeGeometry,
-                new THREE.LineBasicMaterial({
-                  color: selected ? 0xffffff : location.ptl?.bound ? 0xbae6fd : 0x1e293b,
-                  transparent: true,
-                  opacity: selected ? 0.95 : 0.55,
-                }),
-              );
+              const edgeMaterial = new THREE.LineBasicMaterial({
+                color: selected ? 0xffffff : location.ptl?.bound ? 0xbae6fd : 0x1e293b,
+                transparent: true,
+                opacity: selected ? 0.95 : 0.55,
+              });
+              buildDisposables.push(edgeMaterial);
+              const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
               edges.position.copy(box.position);
               shelfRoot.add(edges);
 
               if (location.ptl?.bound) {
-                const led = new THREE.Mesh(
-                  new THREE.SphereGeometry(0.12, 16, 12),
-                  new THREE.MeshStandardMaterial({
-                    color: location.ptl.controllerStatus === "ONLINE" ? 0x34d399 : 0xf97316,
-                    emissive: location.ptl.controllerStatus === "ONLINE" ? 0x22c55e : 0xea580c,
-                    emissiveIntensity: 0.8,
-                  }),
-                );
+                // LED 小球模拟真实灯：在线时显示库存底色（空库位暗灰=灯灭），离线橙色
+                const online = location.ptl.controllerStatus === "ONLINE";
+                const ledHex = !online
+                  ? 0xf97316
+                  : location.stockColor
+                    ? STOCK_HEX[location.stockColor]
+                    : 0x475569;
+                const ledGeometry = new THREE.SphereGeometry(0.12, 16, 12);
+                const ledMaterial = new THREE.MeshStandardMaterial({
+                  color: ledHex,
+                  emissive: ledHex,
+                  emissiveIntensity: online && location.stockColor ? 0.85 : 0.4,
+                });
+                buildDisposables.push(ledGeometry, ledMaterial);
+                const led = new THREE.Mesh(ledGeometry, ledMaterial);
                 led.position.set(box.position.x + 0.62, box.position.y + 0.18, box.position.z + 0.62);
                 shelfRoot.add(led);
+              }
+
+              // 数量标签：漂浮在货位正上方，朝向相机（斜视也不会盖住货位）
+              const label = makeLabelSprite(location);
+              if (label) {
+                label.position.set(box.position.x, box.position.y + 0.62, box.position.z);
+                label.renderOrder = 2;
+                shelfRoot.add(label);
               }
             });
           });
@@ -598,9 +715,11 @@ function WarehouseScene({
         renderer.domElement.removeEventListener("click", onClick);
         controls.dispose();
         renderer.dispose();
+        disposeBuild();
         boxGeometry.dispose();
         edgeGeometry.dispose();
         railGeometry.dispose();
+        railMaterial.dispose();
         floor.geometry.dispose();
         if (renderer.domElement.parentElement) renderer.domElement.parentElement.removeChild(renderer.domElement);
       };
@@ -625,6 +744,104 @@ function WarehouseScene({
   }, [activeTaskByLocation, locations, selectedId]);
 
   return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
+}
+
+function stockDotHex(location: LocationVisualItem) {
+  if (location.stockColor === "green") return "#22c55e";
+  if (location.stockColor === "yellow") return "#f59e0b";
+  if (location.stockColor === "red") return "#ef4444";
+  return "#475569";
+}
+
+function LocationList({
+  locations,
+  onSelect,
+}: {
+  locations: LocationVisualItem[];
+  onSelect: (location: LocationVisualItem) => void;
+}) {
+  const sorted = useMemo(
+    () =>
+      [...locations].sort(
+        (a, b) => (b.totalQuantity || 0) - (a.totalQuantity || 0) || sortCode(a.code, b.code),
+      ),
+    [locations],
+  );
+
+  if (!locations.length) {
+    return <Empty title="暂无库位数据" description="可先到库位管理创建库位" />;
+  }
+
+  const occupied = locations.filter((item) => item.hasStock).length;
+
+  return (
+    <div>
+      <Title heading={6} style={{ margin: "0 0 4px", color: "#e0f2fe" }}>
+        全部库位 · {locations.length}
+      </Title>
+      <Text size="small" style={{ color: "#7dd3fc" }}>
+        有货 {occupied} · 空 {locations.length - occupied}（点击行可定位）
+      </Text>
+      <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+        {sorted.map((loc) => {
+          const dot = stockDotHex(loc);
+          return (
+            <button
+              key={loc.id}
+              onClick={() => onSelect(loc)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                width: "100%",
+                padding: "9px 11px",
+                textAlign: "left",
+                cursor: "pointer",
+                border: "1px solid rgba(125,211,252,0.16)",
+                background: "rgba(15,23,42,0.66)",
+              }}
+            >
+              <span
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                  background: dot,
+                  boxShadow: `0 0 8px ${dot}`,
+                }}
+              />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <Text strong style={{ color: "#f8fafc" }} ellipsis={{ showTooltip: true }}>
+                  {loc.code}
+                </Text>
+                <div>
+                  <Text size="small" style={{ color: "#93c5fd" }}>
+                    {stockStateText(loc)}
+                    {loc.ptl?.bound
+                      ? loc.ptl.controllerStatus === "ONLINE"
+                        ? " · 灯在线"
+                        : " · 灯离线"
+                      : ""}
+                  </Text>
+                </div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ color: "#f8fafc", fontSize: 18, fontWeight: 700 }}>
+                  {loc.totalQuantity || 0}
+                </div>
+                {loc.skuCount > 0 ? (
+                  <Text size="small" style={{ color: "#7dd3fc" }}>
+                    {loc.skuCount} SKU
+                  </Text>
+                ) : null}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function LocationPanel({
@@ -667,6 +884,7 @@ function LocationPanel({
         <Info label="货架" value={location.shelf || "-"} />
         <Info label="层位" value={`${location.level || "-"} / ${location.position || "-"}`} />
         <Info label="库存" value={`${location.totalQuantity || 0}`} />
+        <Info label="库存状态" value={stockStateText(location)} />
       </div>
 
       <PanelBlock title="货位灯">
@@ -779,11 +997,12 @@ function Info({ label, value }: { label: string; value: string }) {
 
 function Legend() {
   const items = [
-    ["#22c55e", "货位灯在线"],
-    ["#2563eb", "有库存"],
+    ["#22c55e", "库存正常"],
+    ["#f59e0b", "库存告急"],
+    ["#ef4444", "归零/锁定"],
+    ["#10b981", "空库位"],
     ["#fb923c", "搜索命中"],
     ["#facc15", "点灯任务"],
-    ["#ef4444", "锁定"],
   ];
 
   return (

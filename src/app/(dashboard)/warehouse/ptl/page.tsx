@@ -1,16 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   Card,
-  Col,
   Form,
-  Input,
   Modal,
-  Row,
   Space,
-  Table,
   Tabs,
   Tag,
   Toast,
@@ -22,22 +18,17 @@ import {
   IconEdit2,
   IconPlus,
   IconRefresh,
-  IconSearch,
-  IconTickCircle,
 } from "@douyinfe/semi-icons";
 import dayjs from "dayjs";
 import LocationApi from "@/api/location";
 import PtlApi from "@/api/ptl";
-import { usePtlNotification } from "@/hooks/usePtlNotification";
 import ProDataTable, {
   ProColumnType,
   ProDataTableRef,
 } from "@/components/ProDataTable";
 import {
-  InventoryLocationBySkuItem,
   PtlController,
   PtlLocationBinding,
-  PtlPickTask,
 } from "@/api/ptl/types";
 
 const { Text, Title } = Typography;
@@ -48,47 +39,10 @@ const statusColor: Record<string, string> = {
   ERROR: "red",
   MAINTENANCE: "orange",
   DISABLED: "grey",
-  ACTIVE: "green",
-  LIGHTING: "blue",
-  PARTIAL_CONFIRMED: "orange",
-  COMPLETED: "green",
-  CANCELLED: "grey",
-  EXPIRED: "red",
-  FAILED: "red",
-  CONFIRMED: "green",
-  PENDING: "blue",
-  SKIPPED: "grey",
-};
-
-const taskStatusText: Record<string, string> = {
-  CREATED: "已创建",
-  LIGHTING: "点灯中",
-  ACTIVE: "已亮灯",
-  PARTIAL_CONFIRMED: "部分确认",
-  COMPLETED: "已完成",
-  CANCELLED: "已取消",
-  EXPIRED: "已超时",
-  FAILED: "失败",
-};
-
-const itemStatusText: Record<string, string> = {
-  PENDING: "待点灯",
-  LIGHTING: "点灯中",
-  ACTIVE: "已亮灯",
-  CONFIRMED: "已找到",
-  CANCELLED: "已取消",
-  EXPIRED: "已超时",
-  FAILED: "失败",
-  SKIPPED: "跳过",
 };
 
 export default function PtlPage() {
-  const [sku, setSku] = useState("");
-  const [locationRows, setLocationRows] = useState<InventoryLocationBySkuItem[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [activeTask, setActiveTask] = useState<PtlPickTask | null>(null);
   const [controllers, setControllers] = useState<PtlController[]>([]);
-  const [bindings, setBindings] = useState<PtlLocationBinding[]>([]);
   const [locationOptions, setLocationOptions] = useState<any[]>([]);
   const [controllerModalVisible, setControllerModalVisible] = useState(false);
   const [bindingModalVisible, setBindingModalVisible] = useState(false);
@@ -106,7 +60,7 @@ export default function PtlPage() {
 
   const loadBindings = async () => {
     const res = await PtlApi.getBindings();
-    setBindings(res.data || []);
+    return res.data || [];
   };
 
   const loadLocationOptions = async (keyword?: string) => {
@@ -163,7 +117,6 @@ export default function PtlPage() {
       const deviceMatched = !params.deviceId || item.deviceId === params.deviceId;
       return locationMatched && deviceMatched;
     });
-    setBindings(list);
     return {
       data: {
         list: paginate(list, params.page, params.pageSize),
@@ -174,16 +127,6 @@ export default function PtlPage() {
     };
   };
 
-  useEffect(() => {
-    refreshManageData();
-  }, []);
-
-  // 重新拉取当前任务（确认/状态变化后刷新）
-  const refreshActiveTask = useCallback(async (taskId: string) => {
-    const res = await PtlApi.getTask(taskId);
-    setActiveTask(res.data);
-  }, []);
-
   // 控制器在线状态轮询：心跳会动态改 ONLINE/OFFLINE，定时刷新让管理端看到变化
   useEffect(() => {
     const timer = setInterval(() => {
@@ -191,24 +134,6 @@ export default function PtlPage() {
     }, 15000);
     return () => clearInterval(timer);
   }, []);
-
-  // 当前任务 id 引用，供 SSE 回调读取最新值（避免闭包过期）
-  const activeTaskIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    activeTaskIdRef.current = activeTask?.id || null;
-  }, [activeTask]);
-
-  // 监听 PTL 确认事件（硬件按钮 / 其他端确认）→ 实时刷新当前任务
-  const onPtlConfirmed = useCallback(
-    (payload: { taskId: string; locationCode: string }) => {
-      if (payload.taskId && payload.taskId === activeTaskIdRef.current) {
-        refreshActiveTask(payload.taskId).catch(() => {});
-        Toast.success(`库位 ${payload.locationCode} 已确认`);
-      }
-    },
-    [refreshActiveTask],
-  );
-  usePtlNotification({ onConfirmed: onPtlConfirmed });
 
   useEffect(() => {
     if (!controllerModalVisible || !controllerFormApi) return;
@@ -245,60 +170,6 @@ export default function PtlPage() {
       bindingFormApi.setValues({ defaultColor: "blue", enabled: true });
     }
   }, [bindingModalVisible, currentBinding, bindingFormApi]);
-
-  const searchSku = async () => {
-    if (!sku.trim()) {
-      Toast.warning("请输入 SKU");
-      return;
-    }
-    setSearching(true);
-    try {
-      const res = await PtlApi.getInventoryLocations({
-        sku: sku.trim(),
-        onlyAvailable: true,
-      });
-      setLocationRows(res.data?.locations || []);
-      setActiveTask(null);
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const lightUp = async (locationIds?: string[]) => {
-    const payloadSku = sku.trim();
-    if (!payloadSku && !locationIds?.length) {
-      Toast.warning("请先查询 SKU");
-      return;
-    }
-    const res = await PtlApi.lightUp({
-      sku: locationIds?.length ? undefined : payloadSku,
-      locationIds,
-      ttlSeconds: 600,
-      color: "blue",
-    });
-    setActiveTask(res.data.task);
-    Toast.success(res.data.reused ? "已复用未完成任务" : "点灯任务已创建");
-  };
-
-  const lightOff = async () => {
-    if (!activeTask) return;
-    await PtlApi.lightOff(activeTask.id);
-    const res = await PtlApi.getTask(activeTask.id);
-    setActiveTask(res.data);
-    Toast.success("已发送灭灯指令");
-  };
-
-  const confirmItem = async (locationCode: string) => {
-    if (!activeTask) return;
-    await PtlApi.confirm({
-      taskId: activeTask.id,
-      locationCode,
-      skuOrBarcode: activeTask.sku,
-    });
-    const res = await PtlApi.getTask(activeTask.id);
-    setActiveTask(res.data);
-    Toast.success("已确认库位");
-  };
 
   const saveController = async () => {
     if (!controllerFormApi) return;
@@ -391,118 +262,6 @@ export default function PtlPage() {
       })),
     [controllers],
   );
-
-  const locationColumns = [
-    {
-      title: "库位",
-      dataIndex: "locationCode",
-      width: 170,
-      render: (_: string, record: InventoryLocationBySkuItem) => (
-        <Space vertical spacing={0}>
-          <Text strong>{record.locationCode}</Text>
-          <Text type="tertiary" size="small">
-            {record.locationName}
-          </Text>
-        </Space>
-      ),
-    },
-    {
-      title: "可用量",
-      dataIndex: "availableQuantity",
-      width: 110,
-      render: (value: number, record: InventoryLocationBySkuItem) =>
-        `${value} ${record.unitSymbol || record.unitName || ""}`,
-    },
-    {
-      title: "批次/效期",
-      dataIndex: "batchNo",
-      width: 160,
-      render: (_: string, record: InventoryLocationBySkuItem) => (
-        <Space vertical spacing={0}>
-          <Text>{record.batchNo || "-"}</Text>
-          <Text type="tertiary" size="small">
-            {record.expiryDate ? dayjs(record.expiryDate).format("YYYY-MM-DD") : "-"}
-          </Text>
-        </Space>
-      ),
-    },
-    {
-      title: "货位灯",
-      dataIndex: "ptl",
-      width: 220,
-      render: (_: any, record: InventoryLocationBySkuItem) =>
-        record.ptl.bound ? (
-          <Space>
-            <Tag color={statusColor[record.ptl.controllerStatus || "OFFLINE"] as any}>
-              {record.ptl.controllerStatus || "未知"}
-            </Tag>
-            <Text>{record.ptl.controllerCode}</Text>
-            <Text type="tertiary">#{record.ptl.ledIndex}</Text>
-          </Space>
-        ) : (
-          <Tag color="grey">未绑定</Tag>
-        ),
-    },
-    {
-      title: "操作",
-      dataIndex: "option",
-      width: 130,
-      render: (_: any, record: InventoryLocationBySkuItem) => (
-        <Button
-          icon={<IconBolt />}
-          size="small"
-          theme="light"
-          disabled={!record.ptl.bound || record.ptl.controllerStatus !== "ONLINE"}
-          onClick={() => lightUp([record.locationId])}
-        >
-          点亮
-        </Button>
-      ),
-    },
-  ];
-
-  const taskItemColumns = [
-    {
-      title: "库位",
-      dataIndex: "locationCode",
-      width: 170,
-    },
-    {
-      title: "灯序号",
-      dataIndex: "ledIndex",
-      width: 90,
-      render: (value: number) => (value ?? "-"),
-    },
-    {
-      title: "状态",
-      dataIndex: "status",
-      width: 120,
-      render: (status: string) => (
-        <Tag color={statusColor[status] as any}>{itemStatusText[status] || status}</Tag>
-      ),
-    },
-    {
-      title: "错误",
-      dataIndex: "errorMessage",
-      render: (value: string) => value || "-",
-    },
-    {
-      title: "操作",
-      dataIndex: "option",
-      width: 120,
-      render: (_: any, record: any) => (
-        <Button
-          icon={<IconTickCircle />}
-          size="small"
-          theme="light"
-          disabled={record.status !== "ACTIVE"}
-          onClick={() => confirmItem(record.locationCode)}
-        >
-          确认
-        </Button>
-      ),
-    },
-  ];
 
   const controllerColumns: ProColumnType<PtlController>[] = [
     { title: "编码", dataIndex: "code", valueType: "text", width: 140 },
@@ -659,79 +418,8 @@ export default function PtlPage() {
           <Title heading={4} style={{ margin: 0 }}>
             货位灯
           </Title>
-          <Text type="tertiary">按 SKU 找货、维护控制器和库位灯绑定</Text>
+          <Text type="tertiary">维护控制器和库位灯绑定</Text>
         </div>
-
-        <Row gutter={12}>
-          <Col span={15}>
-            <Card bodyStyle={{ padding: 16 }}>
-              <Space vertical spacing="medium" style={{ width: "100%" }}>
-                <Space>
-                  <Input
-                    prefix={<IconSearch />}
-                    placeholder="扫描或输入 SKU"
-                    value={sku}
-                    onChange={setSku}
-                    onEnterPress={searchSku}
-                    style={{ width: 320 }}
-                  />
-                  <Button icon={<IconSearch />} type="primary" loading={searching} onClick={searchSku}>
-                    查询
-                  </Button>
-                  <Button icon={<IconBolt />} theme="light" onClick={() => lightUp()}>
-                    一键亮灯
-                  </Button>
-                </Space>
-                <Table
-                  rowKey="inventoryLocationId"
-                  columns={locationColumns}
-                  dataSource={locationRows}
-                  pagination={false}
-                  size="small"
-                  empty="暂无库位库存"
-                />
-              </Space>
-            </Card>
-          </Col>
-
-          <Col span={9}>
-            <Card bodyStyle={{ padding: 16 }}>
-              <Space vertical spacing="medium" style={{ width: "100%" }}>
-                <Space style={{ justifyContent: "space-between", width: "100%" }}>
-                  <Text strong>当前任务</Text>
-                  {activeTask ? (
-                    <Button size="small" theme="light" onClick={lightOff}>
-                      灭灯
-                    </Button>
-                  ) : null}
-                </Space>
-                {activeTask ? (
-                  <>
-                    <Space>
-                      <Tag color={statusColor[activeTask.status] as any}>
-                        {taskStatusText[activeTask.status] || activeTask.status}
-                      </Tag>
-                      <Text>{activeTask.taskNo || activeTask.id}</Text>
-                    </Space>
-                    <Text type="tertiary">
-                      {activeTask.sku} · {activeTask.confirmedLocations}/{activeTask.totalLocations}
-                      已确认
-                    </Text>
-                    <Table
-                      rowKey="id"
-                      columns={taskItemColumns}
-                      dataSource={activeTask.items || []}
-                      pagination={false}
-                      size="small"
-                    />
-                  </>
-                ) : (
-                  <Text type="tertiary">查询 SKU 后可创建点灯任务</Text>
-                )}
-              </Space>
-            </Card>
-          </Col>
-        </Row>
 
         <Card bodyStyle={{ padding: 16 }}>
           <Tabs

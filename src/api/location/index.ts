@@ -9,7 +9,6 @@ import {
   LocationSelectOption,
   LocationSelectParams,
   LocationStockOption,
-  LocationLightTask,
   LocationVisualMapParams,
   LocationVisualMapResponse,
 } from "./types";
@@ -79,18 +78,6 @@ const LocationApi = {
     request.get<LocationStockOption[]>("locations/stock-options", {
       params: { sku },
     }),
-
-  /**
-   * 库位亮灯找货
-   */
-  lightOn: (id: string, data?: { duration?: number; color?: string }) =>
-    request.post<LocationLightTask>(`locations/${id}/light-on`, data || {}),
-
-  /**
-   * 库位熄灯
-   */
-  lightOff: (id: string) =>
-    request.post<LocationLightTask>(`locations/${id}/light-off`, {}),
 };
 
 export default LocationApi;

@@ -74,6 +74,8 @@ export interface LocationVisualItem extends Location {
   totalQuantity: number;
   hasStock: boolean;
   matched: boolean;
+  /** 库存健康色：green 正常 / yellow 告急 / red 归零 / null 空库位（与物理货位灯底色同规则） */
+  stockColor?: "green" | "yellow" | "red" | null;
   ptl?: {
     bound: boolean;
     bindingId?: string;
@@ -103,25 +105,6 @@ export interface LocationVisualMapParams {
   warehouse?: string;
   area?: string;
   keyword?: string;
-}
-
-export interface LocationLightTask {
-  id: string;
-  tenantId: string;
-  locationId: string;
-  locationCode: string;
-  deviceCode?: string;
-  deviceUrl?: string;
-  ledIndex?: number;
-  action: "ON" | "OFF";
-  status: "PENDING" | "SUCCESS" | "FAILED";
-  duration: number;
-  color: string;
-  payload?: Record<string, any>;
-  errorMessage?: string;
-  executedAt?: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 /**
