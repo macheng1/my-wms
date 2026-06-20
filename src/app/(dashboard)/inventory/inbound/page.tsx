@@ -142,6 +142,27 @@ export default function InboundPage() {
       render: (text: string) => text || "-",
     },
     {
+      title: "来源",
+      dataIndex: "source",
+      valueType: "select",
+      width: 90,
+      valueEnum: {
+        "admin-web": { text: "后台" },
+        miniapp: { text: "小程序" },
+        app: { text: "手机" },
+      },
+      fieldProps: { placeholder: "请选择来源", showClear: true },
+      render: (_: any, record: any) => record.sourceLabel || record.source || "-",
+    },
+    {
+      title: "操作人",
+      dataIndex: "operatorName",
+      valueType: "text",
+      hideInSearch: true,
+      width: 110,
+      render: (text: string) => text || "-",
+    },
+    {
       title: "入库时间",
       dataIndex: "createdAt",
       valueType: "dateTime",

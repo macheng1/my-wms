@@ -110,6 +110,22 @@ export default function InventoryListPage() {
       render: (_: any, record: any) => renderStockStatus(record),
     },
     {
+      title: "最后来源",
+      dataIndex: "lastSourceLabel",
+      valueType: "text",
+      hideInSearch: true,
+      width: 90,
+      render: (_: string, record: any) => record.lastSourceLabel || record.lastSource || "-",
+    },
+    {
+      title: "最后操作人",
+      dataIndex: "lastOperatorName",
+      valueType: "text",
+      hideInSearch: true,
+      width: 110,
+      render: (text: string) => text || "-",
+    },
+    {
       title: "操作",
       dataIndex: "option",
       hideInSearch: true,
