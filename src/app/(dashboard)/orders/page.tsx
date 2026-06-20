@@ -17,6 +17,8 @@ import ProDataTable, {
   ProDataTableRef,
 } from "@/components/ProDataTable";
 import OrderApi from "@/api/orders";
+import { printOrder } from "@/utils/printOrder";
+import { useUserStore } from "@/store/useUserStore";
 import {
   OrderFlowLog,
   OrderRecord,
@@ -145,6 +147,7 @@ export default function OrdersPage() {
   const [currentOrder, setCurrentOrder] = useState<OrderRecord | null>(null);
   const [flowLoading, setFlowLoading] = useState(false);
   const [logs, setLogs] = useState<OrderFlowLog[]>([]);
+  const tenantName = useUserStore((s) => s.userInfo?.tenantName);
   const { hasBtnAuth } = useBtnAuth();
   const canCreate = hasBtnAuth("tenant:order:create");
   const canUpdate = hasBtnAuth("tenant:order:update");
@@ -215,12 +218,16 @@ export default function OrdersPage() {
       dataIndex: "action",
       hideInSearch: true,
       width: 360,
+      fixed: "right",
       render: (_: unknown, record) => {
         const nextStatuses = getNextStatuses(record);
         return (
         <Space wrap>
           <Button theme="borderless" onClick={() => openLogs(record)}>
             日志
+          </Button>
+          <Button theme="borderless" onClick={() => handlePrint(record)}>
+            打印
           </Button>
           {nextStatuses.slice(0, 3).map((status) => (
             <Button
@@ -287,6 +294,23 @@ export default function OrdersPage() {
     const res = await OrderApi.getOrderLogs(order.id);
     setLogs(res.data || []);
     setLogsVisible(true);
+  }
+
+  async function handlePrint(order: OrderRecord) {
+    try {
+      // 列表行可能不含明细，先拉完整订单再打印
+      const res = await OrderApi.getOrderDetail(order.id);
+      const full = res.data || order;
+      printOrder(full, {
+        statusText: statusMap[full.status]?.text || full.status,
+        sourceText: sourceMap[full.source]?.text || full.source,
+        orderTypeText: typeMap[full.orderType]?.text || full.orderType,
+        // 右上角小字显示当前租户名
+        companyName: tenantName || "",
+      });
+    } catch {
+      Toast.error("获取订单详情失败，无法打印");
+    }
   }
 
   async function handleDelete(order: OrderRecord) {
