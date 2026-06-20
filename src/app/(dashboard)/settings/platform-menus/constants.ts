@@ -24,10 +24,7 @@ export const MENU_VISIBLE_OPTIONS = [
   { label: "隐藏", value: 1 },
 ];
 
-export const MENU_VISIBLE_FILTER_OPTIONS = [
-  { label: "全部", value: -1 },
-  ...MENU_VISIBLE_OPTIONS,
-];
+export const MENU_VISIBLE_FILTER_OPTIONS = [...MENU_VISIBLE_OPTIONS];
 
 export const MENU_STATUS_OPTIONS = [
   { label: "启用", value: 1 },

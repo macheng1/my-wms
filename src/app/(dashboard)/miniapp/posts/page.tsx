@@ -105,7 +105,6 @@ export default function MiniappPostsPage() {
       width: 100,
       fieldProps: {
         optionList: [
-          { label: "全部", value: "all" },
           { label: "待审核", value: "pending" },
           { label: "已发布", value: "published" },
           { label: "已驳回", value: "rejected" },
@@ -190,7 +189,7 @@ export default function MiniappPostsPage() {
         api={MiniappAPI.getPosts}
         columns={columns}
         rowKey="id"
-        initialValues={{ status: "all" }}
+        initialValues={{}}
         toolBarRender={() => (
           <Button icon={<IconRefresh />} onClick={() => tableRef.current?.reload()}>
             刷新

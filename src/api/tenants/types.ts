@@ -48,6 +48,9 @@ export interface TenantListParams {
   pageSize?: number;
   code?: string;
   name?: string;
+  contactPerson?: string;
+  contactPhone?: string;
+  email?: string;
   tenantSource?: TenantSource | "all";
   lifecycleStatus?: "pending" | "active" | "rejected" | "disabled" | "expired";
   isActive?: number | string;

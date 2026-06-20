@@ -118,7 +118,6 @@ export default function WebsiteInquiryPage() {
         },
         fieldProps: {
           optionList: [
-            { label: "全部", value: "all" },
             { label: "未读", value: "unread" },
             { label: "已读", value: "read" },
             { label: "已回复", value: "replied" },
@@ -191,7 +190,6 @@ export default function WebsiteInquiryPage() {
         columns={columns}
         rowKey="id"
         search
-        initialValues={{ status: "all" }}
         scroll={{ x: 1260 }}
       />
 

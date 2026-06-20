@@ -11,7 +11,7 @@ const { Title } = Typography;
 
 const DEFAULT_QUERY = {
   deptName: "",
-  isActive: -1,
+  isActive: undefined as number | undefined,
 };
 
 type DeptTreeItem = DeptItem & { children?: DeptTreeItem[] };
@@ -143,7 +143,6 @@ export default function DeptPage() {
       width: 100,
       fieldProps: {
         optionList: [
-          { label: "全部", value: -1 },
           { label: "正常", value: 1 },
           { label: "停用", value: 0 },
         ],

@@ -120,7 +120,6 @@ export default function MiniappMembersPage() {
         },
         fieldProps: {
           optionList: [
-            { label: "全部", value: "all" },
             { label: "微信", value: "wechat" },
             { label: "抖音/头条", value: "toutiao" },
           ],
@@ -156,7 +155,6 @@ export default function MiniappMembersPage() {
         },
         fieldProps: {
           optionList: [
-            { label: "全部", value: "all" },
             { label: "启用", value: 1 },
             { label: "禁用", value: 0 },
           ],
@@ -232,8 +230,6 @@ export default function MiniappMembersPage() {
         columns={columns}
         rowKey="id"
         initialValues={{
-          platform: "all",
-          isActive: "all",
           keyword: "",
         }}
         toolBarRender={() => (

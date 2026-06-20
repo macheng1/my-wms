@@ -100,8 +100,12 @@ const ProDataTable = forwardRef(
       childrenRecordName = "children",
       defaultExpandAllRows = true,
       expandAllRows,
+      scroll,
       ...restProps
     } = props;
+
+    // 默认按内容宽度排版：列不被拉伸（如无宽度的"操作"列自适应按钮宽度），溢出时横向滚动、fixed 列正常
+    const tableScroll = scroll ?? { x: "max-content" };
 
     const [dataSource, setDataSource] = useState<T[]>([]);
     const [loading, setLoading] = useState(false);
@@ -221,12 +225,17 @@ const ProDataTable = forwardRef(
           // 支持通过 fieldProps.optionList 传入动态选项
           if (fieldProps?.optionList) {
             return (
-              <Form.Select {...commonProps} optionList={fieldProps.optionList} />
+              <Form.Select
+                {...commonProps}
+                showClear
+                placeholder={`请选择${col.title}`}
+                optionList={fieldProps.optionList}
+              />
             );
           }
           // 兼容 valueEnum 静态选项
           return (
-            <Form.Select {...commonProps} placeholder={`请选择${col.title}`}>
+            <Form.Select {...commonProps} showClear placeholder={`请选择${col.title}`}>
               {col.valueEnum &&
                 Object.entries(col.valueEnum).map(([key, val]) => (
                   <Select.Option key={key} value={key}>
@@ -413,6 +422,7 @@ const ProDataTable = forwardRef(
 
           <Table
             {...restProps}
+            scroll={tableScroll}
             columns={processedColumns}
             dataSource={dataSource}
             loading={loading}

@@ -61,6 +61,7 @@ export default function TenantOperationLogsPage() {
         rowKey="id"
         loading={loading}
         dataSource={logs}
+        scroll={{ x: "max-content" }}
         pagination={{
           currentPage: query.page,
           pageSize: query.pageSize,

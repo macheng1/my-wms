@@ -20,7 +20,7 @@ const { Title } = Typography;
 
 const DEFAULT_QUERY = {
   position: "",
-  isActive: -1,
+  isActive: undefined as number | undefined,
 };
 
 export default function WebsiteJobsPage() {
@@ -112,7 +112,6 @@ export default function WebsiteJobsPage() {
       width: 100,
       fieldProps: {
         optionList: [
-          { label: "全部", value: -1 },
           { label: "发布中", value: 1 },
           { label: "已下架", value: 0 },
         ],

@@ -103,7 +103,6 @@ export default function MiniappBannersPage() {
       },
       fieldProps: {
         optionList: [
-          { label: "全部", value: "all" },
           { label: "启用", value: 1 },
           { label: "停用", value: 0 },
         ],
@@ -151,7 +150,7 @@ export default function MiniappBannersPage() {
         api={MiniappAPI.getBanners}
         columns={columns}
         rowKey="id"
-        initialValues={{ isActive: "all" }}
+        initialValues={{}}
         toolBarRender={() => (
           <Space>
             <Button

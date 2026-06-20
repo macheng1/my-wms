@@ -33,15 +33,15 @@ const { Text } = Typography;
 export type PlatformMenuQuery = {
   name: string;
   code: string;
-  type: string;
-  isHidden: number;
+  type?: string;
+  isHidden?: number;
 };
 
 const DEFAULT_QUERY: PlatformMenuQuery = {
   name: "",
   code: "",
-  type: "all",
-  isHidden: -1,
+  type: undefined,
+  isHidden: undefined,
 };
 
 type PlatformMenuRow = PlatformMenu & { depth?: number };
@@ -129,10 +129,7 @@ export default function PlatformMenuLayout({
         dataIndex: "type",
         valueType: "select",
         fieldProps: {
-          optionList: [
-            { label: "全部", value: "all" },
-            ...MENU_TYPE_OPTIONS,
-          ],
+          optionList: [...MENU_TYPE_OPTIONS],
         },
         render: (value: MenuType) => (
           <Tag color={MENU_TYPE_COLOR[value] || "grey"}>

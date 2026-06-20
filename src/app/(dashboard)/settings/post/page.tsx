@@ -12,7 +12,7 @@ const { Title } = Typography;
 const DEFAULT_QUERY = {
   postCode: "",
   postName: "",
-  isActive: -1,
+  isActive: undefined as number | undefined,
 };
 
 export default function PostPage() {
@@ -88,7 +88,6 @@ export default function PostPage() {
       width: 100,
       fieldProps: {
         optionList: [
-          { label: "全部", value: -1 },
           { label: "正常", value: 1 },
           { label: "停用", value: 0 },
         ],

@@ -219,7 +219,6 @@ export default function TenantListPage() {
       },
       fieldProps: {
         optionList: [
-          { label: "全部", value: "all" },
           { label: "平台后台", value: "platform" },
           { label: "小程序", value: "miniapp" },
           { label: "导入", value: "import" },
@@ -254,21 +253,18 @@ export default function TenantListPage() {
       title: "联系人",
       dataIndex: "contactPerson",
       valueType: "text",
-      hideInSearch: true,
       width: 120,
     },
     {
       title: "联系电话",
       dataIndex: "contactPhone",
       valueType: "text",
-      hideInSearch: true,
       width: 140,
     },
     {
       title: "联系邮箱",
       dataIndex: "email",
       valueType: "text",
-      hideInSearch: true,
       width: 200,
       render: (text) => text || "-",
     },
@@ -340,7 +336,6 @@ export default function TenantListPage() {
       title: "操作",
       dataIndex: "option",
       hideInSearch: true,
-      width: 260,
       fixed: "right",
       render: (_, record) => renderTenantActions(record),
     },
@@ -401,13 +396,22 @@ export default function TenantListPage() {
 
   // 删除
   const handleDelete = async (record: any) => {
+    // 运营中的租户必须先停用，避免误删在职客户（与后端校验一致）
+    const isRunning = record.lifecycleStatus === "active" || record.isActive === 1;
+    if (isRunning) {
+      Modal.warning({
+        title: "请先停用该租户",
+        content: `租户【${record.name}】仍在运营中。请先在「调整生命周期」里改为「已禁用」，再执行删除。`,
+      });
+      return;
+    }
     Modal.confirm({
       title: "确认删除",
-      content: `确定要删除租户【${record.name}】吗？删除后数据将无法恢复。`,
+      content: `确定要删除租户【${record.name}】吗？为软删除：数据会保留并标记删除（可联系平台恢复），不会立即物理清除。`,
       onOk: async () => {
         try {
           await TenantsAPI.deleteTenant(record.id);
-          Toast.success("删除成功");
+          Toast.success("已删除（软删除）");
           tableRef.current?.reload();
         } catch (error: any) {
           Toast.error(error.message || "删除失败");

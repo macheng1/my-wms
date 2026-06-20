@@ -28,6 +28,7 @@ export default function PlatformMenusPage() {
         loading={loading}
         dataSource={dataSource}
         pagination={false}
+        scroll={{ x: "max-content" }}
         columns={[
           { title: "权限名称", dataIndex: "name" },
           { title: "菜单码", dataIndex: "code" },
