@@ -23,8 +23,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning：忽略浏览器插件（如 Trancy 翻译插件注入的 trancy-version）
+    // 在 html/body 上加属性导致的 hydration 不匹配警告，不影响功能
+    <html lang="en" suppressHydrationWarning>
       <body
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}

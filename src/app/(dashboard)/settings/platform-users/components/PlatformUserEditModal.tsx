@@ -121,7 +121,7 @@ export default function PlatformUserEditModal({
           <Form.Input
             field="password"
             label="初始密码"
-            type="password"
+            mode="password"
             placeholder="请输入初始密码，至少6位"
             rules={[
               { required: true, message: "请输入初始密码" },
@@ -133,7 +133,7 @@ export default function PlatformUserEditModal({
           <Form.Input
             field="password"
             label="新密码"
-            type="password"
+            mode="password"
             placeholder="不填则不修改密码"
             rules={[{ min: 6, message: "密码至少6位" }]}
           />

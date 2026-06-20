@@ -104,8 +104,19 @@ const ProDataTable = forwardRef(
       ...restProps
     } = props;
 
-    // 默认按内容宽度排版：列不被拉伸（如无宽度的"操作"列自适应按钮宽度），溢出时横向滚动、fixed 列正常
-    const tableScroll = scroll ?? { x: "max-content" };
+    // 测量表格容器宽度，用于 scroll.x = max(列宽之和, 容器宽)：
+    // 窄了=容器宽（撑满+列分摊），宽了=列总和（横向滚动），且 scroll.x 始终有值 → fixed 列生效
+    const tableWrapRef = useRef<HTMLDivElement | null>(null);
+    const [containerWidth, setContainerWidth] = useState(0);
+    useEffect(() => {
+      const el = tableWrapRef.current;
+      if (!el) return;
+      const update = () => setContainerWidth(el.clientWidth);
+      update();
+      const ro = new ResizeObserver(update);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
 
     const [dataSource, setDataSource] = useState<T[]>([]);
     const [loading, setLoading] = useState(false);
@@ -228,6 +239,7 @@ const ProDataTable = forwardRef(
               <Form.Select
                 {...commonProps}
                 showClear
+                filter
                 placeholder={`请选择${col.title}`}
                 optionList={fieldProps.optionList}
               />
@@ -235,7 +247,7 @@ const ProDataTable = forwardRef(
           }
           // 兼容 valueEnum 静态选项
           return (
-            <Form.Select {...commonProps} showClear placeholder={`请选择${col.title}`}>
+            <Form.Select {...commonProps} showClear filter placeholder={`请选择${col.title}`}>
               {col.valueEnum &&
                 Object.entries(col.valueEnum).map(([key, val]) => (
                   <Select.Option key={key} value={key}>
@@ -337,8 +349,21 @@ const ProDataTable = forwardRef(
       [columns]
     );
 
+    // scroll.x = max(列宽之和, 容器宽)；调用方显式传了 scroll 则以其为准
+    const DEFAULT_COL_WIDTH = 150;
+    const sumColumnWidth = React.useMemo(
+      () =>
+        processedColumns.reduce(
+          (sum, col) => sum + (Number((col as { width?: number }).width) || DEFAULT_COL_WIDTH),
+          rowSelection ? 60 : 0,
+        ),
+      [processedColumns, rowSelection],
+    );
+    const tableScroll =
+      scroll ?? { x: Math.max(sumColumnWidth, containerWidth || sumColumnWidth) };
+
     return (
-      <Card bordered={false} bodyStyle={{ padding: 0 }}>
+      <Card className="pro-data-table" bordered={false} bodyStyle={{ padding: 0 }}>
         {/* 搜索区域 */}
         {search && columns.some((c) => !c.hideInSearch) && (
           <div style={{ padding: "24px 24px 0 24px" }}>
@@ -420,6 +445,7 @@ const ProDataTable = forwardRef(
             </Space>
           </div>
 
+          <div ref={tableWrapRef}>
           <Table
             {...restProps}
             scroll={tableScroll}
@@ -452,6 +478,7 @@ const ProDataTable = forwardRef(
             defaultExpandAllRows={tree ? defaultExpandAllRows : undefined}
             expandAllRows={tree ? expandAllRows ?? defaultExpandAllRows : undefined}
           />
+          </div>
         </div>
       </Card>
     );

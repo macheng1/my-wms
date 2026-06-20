@@ -8,6 +8,7 @@ import {
   Toast,
   Space,
   Tag,
+  TextArea,
 } from "@douyinfe/semi-ui-19";
 import {
   IconTickCircle,
@@ -28,6 +29,14 @@ import TenantDetailModal from "./components/TenantDetailModal";
 import TenantMenuModal from "./components/TenantMenuModal";
 import { useBtnAuth } from "@/hooks/useBtnAuth";
 import { useDictOptions } from "@/hooks/useDictOptions";
+import { getIndustryByCode } from "@/constants/industryCodes";
+import {
+  TENANT_LIFECYCLE_MAP,
+  TENANT_SOURCE_MAP,
+  TENANT_SOURCE_OPTIONS,
+  TENANT_LIFECYCLE_TRANSITIONS,
+  type TenantLifecycleStatus,
+} from "@/constants/tenant";
 
 type TenantAction = {
   key: string;
@@ -56,25 +65,9 @@ export default function TenantListPage() {
   const [menuModalVisible, setMenuModalVisible] = useState(false);
   const [currentTenant, setCurrentTenant] = useState<any>(null);
 
-  const lifecycleMap: Record<
-    string,
-    { text: string; color: "green" | "orange" | "red" | "grey" | "blue" }
-  > = {
-    pending: { text: "待审核", color: "orange" },
-    active: { text: "运营中", color: "green" },
-    rejected: { text: "已驳回", color: "red" },
-    disabled: { text: "已禁用", color: "grey" },
-    expired: { text: "已到期", color: "blue" },
-  };
-  const sourceMap: Record<
-    string,
-    { text: string; color: "blue" | "green" | "grey" | "orange" }
-  > = {
-    platform: { text: "平台后台", color: "blue" },
-    miniapp: { text: "小程序", color: "green" },
-    import: { text: "导入", color: "grey" },
-    api: { text: "开放接口", color: "orange" },
-  };
+  // 生命周期/来源等常量统一在 @/constants/tenant 维护
+  const lifecycleMap = TENANT_LIFECYCLE_MAP;
+  const sourceMap = TENANT_SOURCE_MAP;
 
   const getTenantActions = (record: any): TenantAction[] => {
     const actions: TenantAction[] = [
@@ -102,32 +95,54 @@ export default function TenantListPage() {
       );
     }
 
-    if (hasBtnAuth("platform:tenant:status")) {
-      actions.push({
-        key: "lifecycle",
-        label: "生命周期",
-        onClick: () => handleLifecycle(record),
-      });
-    }
+    const status = (record.lifecycleStatus ||
+      (record.isApproved === 1 ? "active" : "pending")) as TenantLifecycleStatus;
+    // 可执行动作由「合法跃迁」常量驱动，与后端状态机单一真相
+    const allowed = TENANT_LIFECYCLE_TRANSITIONS[status] || [];
+    const canTo = (target: TenantLifecycleStatus) => allowed.includes(target);
 
+    // 审核类（待审核 / 已驳回 → 运营中；待审核 → 已驳回）
     if (hasBtnAuth("platform:tenant:approve")) {
-      if (record.isApproved !== 1) {
+      if (canTo("active") && (status === "pending" || status === "rejected")) {
         actions.push({
           key: "approve",
-          label: "通过",
+          label: status === "rejected" ? "重新通过" : "通过",
           icon: <IconTickCircle />,
           type: "primary",
           onClick: () => handleApprove(record),
         });
       }
+      if (canTo("rejected")) {
+        actions.push({
+          key: "reject",
+          label: "驳回",
+          icon: <IconClose />,
+          type: "warning",
+          onClick: () => handleReject(record),
+        });
+      }
+    }
 
-      actions.push({
-        key: "reject",
-        label: "驳回",
-        icon: <IconClose />,
-        type: "warning",
-        onClick: () => handleReject(record),
-      });
+    // 启停类（运营中 → 已禁用；已禁用 / 已到期 → 运营中）
+    if (hasBtnAuth("platform:tenant:status")) {
+      if (canTo("disabled")) {
+        actions.push({
+          key: "disable",
+          label: "停用",
+          icon: <IconClose />,
+          type: "warning",
+          onClick: () => handleDisable(record),
+        });
+      }
+      if (canTo("active") && (status === "disabled" || status === "expired")) {
+        actions.push({
+          key: "enable",
+          label: "启用",
+          icon: <IconTickCircle />,
+          type: "primary",
+          onClick: () => handleEnable(record),
+        });
+      }
     }
 
     if (hasBtnAuth("platform:tenant:delete")) {
@@ -218,12 +233,7 @@ export default function TenantListPage() {
         api: { text: "开放接口", color: "orange" },
       },
       fieldProps: {
-        optionList: [
-          { label: "平台后台", value: "platform" },
-          { label: "小程序", value: "miniapp" },
-          { label: "导入", value: "import" },
-          { label: "开放接口", value: "api" },
-        ],
+        optionList: TENANT_SOURCE_OPTIONS,
       },
       render: (_, record) => {
         const source = sourceMap[record.tenantSource || "platform"];
@@ -237,13 +247,16 @@ export default function TenantListPage() {
       hideInSearch: true,
       width: 180,
       render: (_, record) => {
-        // 优先使用后端返回的 industryName，否则根据 industryCode 解析
+        // 优先用后端返回的 industryName；否则按 industryCode 解析：
+        // 后端字典 → GB/T 标准常量(注册用的同一套) → 原始代码兜底
         if (record.industryName && record.industryName !== "未分类") {
           return record.industryName;
         }
         if (record.industryCode) {
           return (
-            industryNameMap.get(record.industryCode) || record.industryCode
+            industryNameMap.get(record.industryCode) ||
+            getIndustryByCode(record.industryCode)?.name ||
+            record.industryCode
           );
         }
         return "-";
@@ -269,7 +282,7 @@ export default function TenantListPage() {
       render: (text) => text || "-",
     },
     {
-      title: "生命周期",
+      title: "状态",
       dataIndex: "lifecycleStatus",
       valueType: "select",
       width: 100,
@@ -288,21 +301,6 @@ export default function TenantListPage() {
           ];
         return <Tag color={config.color}>{config.text}</Tag>;
       },
-    },
-    {
-      title: "启用状态",
-      dataIndex: "isActive",
-      valueType: "select",
-      width: 100,
-      valueEnum: {
-        1: { text: "启用", color: "green" },
-        0: { text: "禁用", color: "grey" },
-      },
-      render: (_, record) => (
-        <Tag color={record.isActive === 1 ? "green" : "grey"}>
-          {record.isActive === 1 ? "启用" : "禁用"}
-        </Tag>
-      ),
     },
     {
       title: "官网地址",
@@ -337,6 +335,7 @@ export default function TenantListPage() {
       dataIndex: "option",
       hideInSearch: true,
       fixed: "right",
+      width: 350,
       render: (_, record) => renderTenantActions(record),
     },
   ];
@@ -358,39 +357,56 @@ export default function TenantListPage() {
     setMenuModalVisible(true);
   };
 
-  const handleLifecycle = (record: any) => {
+  // 统一的生命周期变更：后端会按 lifecycleStatus 同步 isActive/isApproved
+  const changeLifecycle = async (
+    record: any,
+    lifecycleStatus: "pending" | "active" | "rejected" | "disabled" | "expired",
+    opts?: { auditRemark?: string; disabledReason?: string; successMsg?: string },
+  ) => {
+    try {
+      await AdminPlatformAPI.updateTenantLifecycle(record.id, {
+        lifecycleStatus,
+        ...(opts?.auditRemark ? { auditRemark: opts.auditRemark } : {}),
+        ...(opts?.disabledReason ? { disabledReason: opts.disabledReason } : {}),
+      });
+      Toast.success(opts?.successMsg || "操作成功");
+      tableRef.current?.reload();
+    } catch (error: any) {
+      Toast.error(error.message || "操作失败");
+    }
+  };
+
+  // 停用（运营中 → 已禁用）：管理员将无法登录
+  const handleDisable = (record: any) => {
+    const reasonRef = { current: "" };
     Modal.confirm({
-      title: `调整租户「${record.name}」生命周期`,
+      title: `确认停用租户「${record.name}」`,
       content: (
         <div style={{ paddingTop: 8 }}>
-          <div style={{ marginBottom: 8 }}>选择后会直接影响租户登录状态。</div>
-          <select
-            id="tenant-lifecycle-select"
-            defaultValue={
-              record.lifecycleStatus ||
-              (record.isApproved === 1 ? "active" : "pending")
-            }
-            style={{ width: "100%", height: 32 }}
-          >
-            <option value="pending">待审核</option>
-            <option value="active">运营中</option>
-            <option value="rejected">已驳回</option>
-            <option value="disabled">已禁用</option>
-            <option value="expired">已到期</option>
-          </select>
+          <div style={{ marginBottom: 8 }}>
+            停用后，该租户管理员将无法登录系统；可随时重新启用。
+          </div>
+          <TextArea
+            autosize={{ minRows: 2 }}
+            placeholder="停用原因（选填，便于追溯）"
+            onChange={(v) => (reasonRef.current = v)}
+          />
         </div>
       ),
-      onOk: async () => {
-        const select = document.getElementById(
-          "tenant-lifecycle-select",
-        ) as HTMLSelectElement | null;
-        const lifecycleStatus = select?.value as any;
-        await AdminPlatformAPI.updateTenantLifecycle(record.id, {
-          lifecycleStatus,
-        });
-        Toast.success("生命周期已更新");
-        tableRef.current?.reload();
-      },
+      onOk: () =>
+        changeLifecycle(record, "disabled", {
+          disabledReason: reasonRef.current.trim() || undefined,
+          successMsg: "已停用",
+        }),
+    });
+  };
+
+  // 启用（已禁用 / 已到期 → 运营中）
+  const handleEnable = (record: any) => {
+    Modal.confirm({
+      title: `确认启用租户「${record.name}」`,
+      content: "启用后，该租户管理员可以正常登录系统。",
+      onOk: () => changeLifecycle(record, "active", { successMsg: "已启用" }),
     });
   };
 
@@ -401,7 +417,7 @@ export default function TenantListPage() {
     if (isRunning) {
       Modal.warning({
         title: "请先停用该租户",
-        content: `租户【${record.name}】仍在运营中。请先在「调整生命周期」里改为「已禁用」，再执行删除。`,
+        content: `租户【${record.name}】仍在运营中。请先点「停用」，再执行删除。`,
       });
       return;
     }
@@ -420,7 +436,8 @@ export default function TenantListPage() {
     });
   };
 
-  const handleApprove = async (record: any) => {
+  // 审核通过（待审核 / 已驳回 → 运营中）
+  const handleApprove = (record: any) => {
     Modal.confirm({
       title: "确认审核通过",
       content: (
@@ -433,40 +450,28 @@ export default function TenantListPage() {
           </div>
         </div>
       ),
-      onOk: async () => {
-        try {
-          await AdminPlatformAPI.updateTenantLifecycle(record.id, {
-            lifecycleStatus: "active",
-            auditRemark: "审核通过",
-          });
-          Toast.success("审核通过");
-          tableRef.current?.reload();
-        } catch (error: any) {
-          Toast.error(error.message || "审核失败");
-        }
-      },
+      onOk: () =>
+        changeLifecycle(record, "active", {
+          auditRemark: "审核通过",
+          successMsg: "已通过",
+        }),
     });
   };
 
-  const handleReject = async (record: any) => {
+  // 驳回（仅待审核申请 → 已驳回）
+  const handleReject = (record: any) => {
+    const reasonRef = { current: "" };
     Modal.confirm({
-      title: "确认驳回并禁用",
+      title: "确认驳回入驻申请",
       content: (
         <div style={{ paddingTop: 8 }}>
           <div style={{ marginBottom: 8 }}>
-            驳回后，租户【{record.name}】将被禁用，租户管理员无法登录。
+            驳回后，租户【{record.name}】的入驻申请未通过，管理员无法登录。
           </div>
-          <textarea
-            id="tenant-reject-remark"
+          <TextArea
+            autosize={{ minRows: 3 }}
             placeholder="请输入驳回原因，会随邮件发送给租户"
-            style={{
-              width: "100%",
-              minHeight: 86,
-              padding: 8,
-              resize: "vertical",
-              border: "1px solid var(--semi-color-border)",
-              borderRadius: 4,
-            }}
+            onChange={(v) => (reasonRef.current = v)}
           />
           <div style={{ marginTop: 8, color: "var(--semi-color-text-2)" }}>
             {record.email
@@ -475,22 +480,11 @@ export default function TenantListPage() {
           </div>
         </div>
       ),
-      onOk: async () => {
-        try {
-          const textarea = document.getElementById(
-            "tenant-reject-remark",
-          ) as HTMLTextAreaElement | null;
-          const auditRemark = textarea?.value?.trim() || "入驻申请未通过审核";
-          await AdminPlatformAPI.updateTenantLifecycle(record.id, {
-            lifecycleStatus: "rejected",
-            auditRemark,
-          });
-          Toast.success("已驳回");
-          tableRef.current?.reload();
-        } catch (error: any) {
-          Toast.error(error.message || "驳回失败");
-        }
-      },
+      onOk: () =>
+        changeLifecycle(record, "rejected", {
+          auditRemark: reasonRef.current.trim() || "入驻申请未通过审核",
+          successMsg: "已驳回",
+        }),
     });
   };
 

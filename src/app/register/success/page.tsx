@@ -95,7 +95,9 @@ export default function RegisterSuccessPage() {
           <Title heading={2} style={{ marginBottom: 8 }}>
             入驻申请提交成功
           </Title>
-          <Text type="secondary">企业空间已创建完成，审核通过后可使用以下信息登录</Text>
+          <Text type="secondary">
+            企业空间已创建，正在等待平台审核，审核通过后即可登录
+          </Text>
         </div>
 
         <Banner
@@ -103,6 +105,7 @@ export default function RegisterSuccessPage() {
           type="info"
           bordered
           title="请妥善保管以下登录凭证（建议截图保存）"
+          description="审核结果将通过邮件通知您，通过后用以下凭证登录。密码为您注册时设置的密码。"
           className="mb-6"
         />
 
@@ -125,7 +128,16 @@ export default function RegisterSuccessPage() {
             },
             {
               key: "管理员账号",
-              value: info.username || info.adminUser || "-",
+              value: (() => {
+                const account = info.username || info.adminUser || "-";
+                return account === "-" ? (
+                  account
+                ) : (
+                  <Text strong copyable={{ onCopy: () => handleCopy(account) }}>
+                    {account}
+                  </Text>
+                );
+              })(),
             },
           ]}
         />
@@ -142,11 +154,11 @@ export default function RegisterSuccessPage() {
               router.push("/login");
             }}
           >
-            立即前往登录
+            返回登录页
           </Button>
 
           <Text type="tertiary" size="small" className="text-center">
-            如有疑问，请联系平台技术支持
+            审核通过后即可用上述凭证登录；如有疑问请联系平台技术支持
           </Text>
         </div>
       </Card>

@@ -56,7 +56,7 @@ export default function MiniappCategoriesPage() {
       title: "分类",
       dataIndex: "name",
       hideInSearch: true,
-      width: 320,
+      // width: 320,
       render: (_, record) => (
         <Space>
           <Avatar shape="square" size="small" src={record.iconUrl || undefined}>
@@ -70,7 +70,7 @@ export default function MiniappCategoriesPage() {
       title: "操作",
       dataIndex: "option",
       hideInSearch: true,
-      width: 180,
+      // width: 180,
       fixed: "right",
       render: (_, record) => (
         <Space>

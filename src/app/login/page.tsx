@@ -163,7 +163,7 @@ export default function LoginPage() {
             <Form.Input
               field="password"
               label="密码"
-              type="password"
+              mode="password"
               placeholder="输入密码"
               prefix={<IconLock className="text-slate-400" />}
               size="large"

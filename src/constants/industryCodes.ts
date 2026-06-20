@@ -170,3 +170,22 @@ export function getIndustryTypes(): string[] {
   const types = new Set(Object.values(INDUSTRY_CODE_MAP).map((item) => item.type));
   return Array.from(types);
 }
+
+/** 级联选择树：大类(type) → 具体行业(code)。叶子 value 即标准 GB/T 行业代码 */
+export function getIndustryCascaderTree(): Array<{
+  label: string;
+  value: string;
+  children: Array<{ label: string; value: string }>;
+}> {
+  const groups = new Map<
+    string,
+    { label: string; value: string; children: Array<{ label: string; value: string }> }
+  >();
+  for (const item of Object.values(INDUSTRY_CODE_MAP)) {
+    if (!groups.has(item.type)) {
+      groups.set(item.type, { label: item.type, value: item.type, children: [] });
+    }
+    groups.get(item.type)!.children.push({ label: item.name, value: item.code });
+  }
+  return Array.from(groups.values());
+}

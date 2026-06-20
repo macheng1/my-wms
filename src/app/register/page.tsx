@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useDictOptions } from "@/hooks/useDictOptions";
+import {
+  getIndustryCascaderTree,
+  getIndustryByCode,
+} from "@/constants/industryCodes";
+
+// 行业级联树（静态数据，组件外构建一次）
+const INDUSTRY_TREE = getIndustryCascaderTree();
 import {
   Form,
   Button,
@@ -87,15 +93,17 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const industry = industryOptions.find(
-        (option) => option.value === values.industryCode
-      );
+      // Cascader 的值是路径数组，取叶子作为标准行业代码
+      const industryCode = Array.isArray(values.industryCode)
+        ? values.industryCode[values.industryCode.length - 1]
+        : values.industryCode;
+      const industry = getIndustryByCode(industryCode);
       // 1. 发起注册请求并接收返回数据
       const res = await AuthAPI.register({
         name: values.name,
-        industryCode: values.industryCode,
-        industryName: industry?.label,
-        industryType: industry?.label,
+        industryCode,
+        industryName: industry?.name,
+        industryType: industry?.type,
         contactPerson: values.contactPerson,
         contactPhone: values.contactPhone,
         email: values.email,
@@ -118,9 +126,6 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-  // 动态获取行业字典
-  const industryOptions = useDictOptions("INDUSTRY");
-
   // 组件卸载时清除计时器，防止内存泄漏
   useEffect(() => {
     return () => {
@@ -145,18 +150,15 @@ export default function RegisterPage() {
         <Button
           theme="borderless"
           icon={<IconArrowLeft />}
-          onClick={() => router.back()}
+          onClick={() => router.push("/login")}
           style={{ marginBottom: 16 }}
         >
           返回登录
         </Button>
 
         <div className="mb-8">
-          <Title heading={3} style={{ fontWeight: 700 }}>
-            新工厂入驻
-          </Title>
           <Text type="tertiary">
-            请完善企业及管理员信息，开启引出棒智能仓储数字化管理
+            请完善企业及管理员信息，开启智能仓储数字化管理
           </Text>
         </div>
 
@@ -166,7 +168,10 @@ export default function RegisterPage() {
           labelPosition="top"
         >
           {/* 区块一：企业身份信息 */}
-          <div className="flex items-center gap-2 mb-4 text-blue-600 font-bold">
+          <div
+            className="flex items-center gap-2 mb-4 font-bold"
+            style={{ color: "var(--semi-color-primary)" }}
+          >
             <IconHome /> <span>企业身份信息</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -176,13 +181,13 @@ export default function RegisterPage() {
               placeholder="请输入工商登记全称"
               rules={[{ required: true, message: "企业名称不能为空" }]}
             />
-            <Form.Select
+            <Form.Cascader
               field="industryCode"
               label="所属行业"
-              placeholder="请选择"
+              placeholder="请选择（大类 → 具体行业）"
               style={{ width: "100%" }}
-              filter
-              optionList={industryOptions} // 直接透传 {label, value} 格式
+              filterTreeNode
+              treeData={INDUSTRY_TREE}
               rules={[{ required: true, message: "请选择所属行业" }]}
             />
           </div>
@@ -190,7 +195,10 @@ export default function RegisterPage() {
           <Divider style={{ margin: "24px 0" }} />
 
           {/* 区块二：联系人与短信验证 */}
-          <div className="flex items-center gap-2 mb-4 text-blue-600 font-bold">
+          <div
+            className="flex items-center gap-2 mb-4 font-bold"
+            style={{ color: "var(--semi-color-primary)" }}
+          >
             <IconUser /> <span>商务联系信息</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -234,14 +242,20 @@ export default function RegisterPage() {
               field="smsCode"
               label="短信验证码"
               placeholder="6位验证码"
-              rules={[{ required: true, message: "验证码不能为空" }]}
+              rules={[
+                { required: true, message: "验证码不能为空" },
+                { pattern: /^\d{6}$/, message: "请输入6位数字验证码" },
+              ]}
             />
           </div>
 
           <Divider style={{ margin: "24px 0" }} />
 
           {/* 区块三：管理员设置 */}
-          <div className="flex items-center gap-2 mb-4 text-blue-600 font-bold">
+          <div
+            className="flex items-center gap-2 mb-4 font-bold"
+            style={{ color: "var(--semi-color-primary)" }}
+          >
             <IconShield /> <span>初始管理员设置</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -257,7 +271,7 @@ export default function RegisterPage() {
             <Form.Input
               field="adminPass"
               label="初始密码"
-              type="password"
+              mode="password"
               rules={[
                 { required: true, message: "必填" },
                 { min: 6, message: "至少6位" },
@@ -266,8 +280,15 @@ export default function RegisterPage() {
             <Form.Input
               field="confirmPass"
               label="确认密码"
-              type="password"
-              rules={[{ required: true, message: "请确认密码" }]}
+              mode="password"
+              rules={[
+                { required: true, message: "请确认密码" },
+                {
+                  validator: (_rule: unknown, value: string) =>
+                    !value || value === formApi.current?.getValue("adminPass"),
+                  message: "两次输入的密码不一致",
+                },
+              ]}
             />
           </div>
 
@@ -284,7 +305,6 @@ export default function RegisterPage() {
                 borderRadius: "8px",
                 fontWeight: 600,
                 fontSize: "16px",
-                background: "linear-gradient(to right, #2563eb, #4f46e5)",
               }}
             >
               提交入驻申请

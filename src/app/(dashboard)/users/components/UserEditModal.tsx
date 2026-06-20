@@ -100,7 +100,7 @@ export default function UserEditModal({
           <Form.Input
             field="password"
             label="密码"
-            type="password"
+            mode="password"
             placeholder="请输入密码，至少6位"
             rules={[
               { required: true, message: "请输入密码" },
