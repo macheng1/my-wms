@@ -90,29 +90,13 @@ export default function PlatformUsersPage() {
       ? "全部部门"
       : findDeptLabel(deptTreeData, selectedDeptKey) || "已选部门";
 
-  const loadPlatformUsers = useCallback(async (params: any) => {
-    if (!selectedDeptId) {
-      return AdminPlatformAPI.getUsers(params);
-    }
-
-    const res = await AdminPlatformAPI.getUsers({
-      ...params,
-      deptId: selectedDeptId,
-    });
-    const list = res.data?.list || [];
-    const filteredList = list.filter(
-      (user) => String(user.deptId || "") === String(selectedDeptId),
-    );
-
-    return {
-      ...res,
-      data: {
-        ...(res.data || {}),
-        list: filteredList,
-        total: filteredList.length,
-      },
-    };
-  }, [selectedDeptId]);
+  const loadPlatformUsers = useCallback(
+    async (params: any) =>
+      AdminPlatformAPI.getUsers(
+        selectedDeptId ? { ...params, deptId: selectedDeptId } : params,
+      ),
+    [selectedDeptId],
+  );
 
   useEffect(() => {
     if (!mountedRef.current) {
