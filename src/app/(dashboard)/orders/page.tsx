@@ -63,6 +63,11 @@ const nextStatusMap: Record<OrderType, Partial<Record<OrderStatus, OrderStatus[]
       OrderStatus.OUT_OF_STOCK,
       OrderStatus.CANCELLED,
     ],
+    [OrderStatus.PENDING_REVIEW]: [
+      OrderStatus.CONFIRMED,
+      OrderStatus.REJECTED,
+      OrderStatus.CANCELLED,
+    ],
     [OrderStatus.CONFIRMED]: [
       OrderStatus.PROCESSING,
       OrderStatus.STOCK_LOCKED,
@@ -73,6 +78,10 @@ const nextStatusMap: Record<OrderType, Partial<Record<OrderStatus, OrderStatus[]
     [OrderStatus.PROCESSING]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
     [OrderStatus.STOCK_LOCKED]: [OrderStatus.PENDING_SHIPMENT, OrderStatus.CANCELLED],
     [OrderStatus.OUT_OF_STOCK]: [OrderStatus.PENDING_SCHEDULE, OrderStatus.CANCELLED],
+    [OrderStatus.PENDING_SCHEDULE]: [OrderStatus.SCHEDULED, OrderStatus.CANCELLED],
+    [OrderStatus.SCHEDULED]: [OrderStatus.PRODUCING, OrderStatus.CANCELLED],
+    [OrderStatus.PRODUCING]: [OrderStatus.PRODUCED, OrderStatus.CANCELLED],
+    [OrderStatus.PRODUCED]: [OrderStatus.PENDING_SHIPMENT, OrderStatus.CANCELLED],
     [OrderStatus.PENDING_SHIPMENT]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
     [OrderStatus.SHIPPED]: [OrderStatus.COMPLETED],
   },

@@ -101,18 +101,42 @@ export default function OutboundPage() {
       ),
     },
     {
-      title: "变动后库存",
+      title: "库存变化",
       dataIndex: "afterQty",
       valueType: "digit",
       hideInSearch: true,
-      render: (text: number, record: any) =>
-        record.afterQtyDisplay || `${text} ${record.unitSymbol || record.unitName || ""}`,
+      // 变动前用灰色，变动后用强调色（减少=红、增加=绿），一眼看出本次净减/净增
+      render: (text: number, record: any) => {
+        // 缺少结构化字段时回退到整串显示
+        if (!record.beforeQtyDisplay || !record.afterQtyDisplay) {
+          return (
+            record.stockChangeDisplay ||
+            record.afterQtyDisplay ||
+            `${text} ${record.unitSymbol || record.unitName || ""}`
+          );
+        }
+        const before = Number(record.beforeQty);
+        const after = Number(record.afterQty);
+        const afterType =
+          after > before ? "success" : after < before ? "danger" : "tertiary";
+        return (
+          <span>
+            <Text type="tertiary">{record.beforeQtyDisplay}</Text>
+            <Text type="tertiary" style={{ margin: "0 4px" }}>
+              →
+            </Text>
+            <Text strong type={afterType}>
+              {record.afterQtyDisplay}
+            </Text>
+          </span>
+        );
+      },
     },
     {
       title: "单据号",
       dataIndex: "orderNo",
       valueType: "text",
-      hideInSearch: true,
+      fieldProps: { placeholder: "请输入单据号" },
     },
     {
       title: "库位",
@@ -129,13 +153,20 @@ export default function OutboundPage() {
       render: (text: string) => text || "-",
     },
     {
-      title: "时间",
+      title: "出库时间",
       dataIndex: "createdAt",
       valueType: "dateTime",
       hideInSearch: true,
       width: 180,
       render: (text: string) =>
         text ? dayjs(text).format("YYYY-MM-DD HH:mm:ss") : "-",
+    },
+    {
+      // 仅用于搜索栏的出库时间范围筛选，不在表格中显示
+      title: "出库时间",
+      dataIndex: "dateRange",
+      valueType: "dateRange",
+      hideInTable: true,
     },
   ];
 
@@ -145,12 +176,23 @@ export default function OutboundPage() {
     setModalVisible(true);
   };
 
+  // 把搜索栏的「时间范围」(Date 数组) 规整成含整日的 startDate/endDate 再请求
+  const loadOutboundLogs = (params: any) => {
+    const { dateRange, ...rest } = params || {};
+    const [start, end] = Array.isArray(dateRange) ? dateRange : [];
+    return OutboundApi.getOutboundLogs({
+      ...rest,
+      startDate: start ? dayjs(start).startOf("day").format("YYYY-MM-DD HH:mm:ss") : undefined,
+      endDate: end ? dayjs(end).endOf("day").format("YYYY-MM-DD HH:mm:ss") : undefined,
+    });
+  };
+
   return (
     <div style={{ padding: "4px" }}>
       <ProDataTable
         ref={tableRef}
         title="出库管理"
-        api={OutboundApi.getOutboundLogs}
+        api={loadOutboundLogs}
         columns={columns}
         toolBarRender={() => (
           <Space>

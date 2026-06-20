@@ -9,7 +9,11 @@ export type TagColor =
   | "red"
   | "grey"
   | "blue"
-  | "purple";
+  | "purple"
+  | "cyan"
+  | "lime"
+  | "pink"
+  | "teal";
 
 /** 状态映射的统一形态：key → 文案 + 标签色 */
 export type LabelColorMap<K extends string> = Record<

@@ -15,22 +15,14 @@ import {
 import { IconPlus, IconDelete } from "@douyinfe/semi-icons";
 import { FormApi } from "@douyinfe/semi-ui-19/lib/es/form";
 import InboundApi from "@/api/inbound";
-import { InboundType, IInboundItem } from "@/api/inbound/types";
+import { IInboundItem } from "@/api/inbound/types";
 import UnitApi from "@/api/unit";
 import ProductApi from "@/api/product";
 import LocationApi from "@/api/location";
 import { useUserStore } from "@/store/useUserStore";
+import { INBOUND_TYPE_OPTIONS } from "@/constants/inventory";
 
 const { Text } = Typography;
-
-// 入库类型选项
-const INBOUND_TYPE_OPTIONS = [
-  { label: "采购入库", value: InboundType.PURCHASE },
-  { label: "退货入库", value: InboundType.RETURN },
-  { label: "调拨入库", value: InboundType.TRANSFER },
-  { label: "生产入库", value: InboundType.PRODUCTION },
-  { label: "盘盈", value: InboundType.ADJUSTMENT_IN },
-];
 
 interface InboundModalProps {
   visible: boolean;
@@ -50,9 +42,12 @@ export default function InboundModal({
   const [unitOptions, setUnitOptions] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
   const [locationOptions, setLocationOptions] = useState<any[]>([]);
-  const [selectedSku, setSelectedSku] = useState<string>();
-  const [selectedUnitCode, setSelectedUnitCode] = useState<string>();
-  const [selectedQuantity, setSelectedQuantity] = useState<number>(0);
+  // 单笔表单的实时值（由 Form onValueChange 驱动，仅用于「折合库存」预览与单位选项）
+  const [formValues, setFormValues] = useState<{
+    sku?: string;
+    unitCode?: string;
+    quantity?: number;
+  }>({});
   const [conversionMap, setConversionMap] = useState<Record<string, any[]>>({});
   const [items, setItems] = useState<IInboundItem[]>([
     { sku: "", quantity: 0, locationId: "" },
@@ -79,9 +74,7 @@ export default function InboundModal({
   // 关闭时重置
   const handleClose = () => {
     formApi?.reset();
-    setSelectedSku(undefined);
-    setSelectedUnitCode(undefined);
-    setSelectedQuantity(0);
+    setFormValues({});
     setItems([{ sku: "", quantity: 0, locationId: "" }]);
     onClose();
   };
@@ -110,24 +103,32 @@ export default function InboundModal({
     setItems(newItems);
   };
 
-  // 更新产品行
+  // 更新产品行（不可变更新，避免直接修改原 state 对象引用）
   const handleUpdateItem = (
     index: number,
     field: keyof IInboundItem,
     value: any,
   ) => {
-    const newItems = [...items];
-    newItems[index][field] = value;
+    // 副作用（加载换算关系）放在纯更新函数之外
     if (field === "sku") {
       const selectedProduct = productOptions.find((item) => item.value === value);
-      newItems[index].unitCode = selectedProduct?.unitCode || undefined;
       loadConversions(selectedProduct?.unitCode);
     }
-    if (field === "unitCode" && !value) {
-      const selectedProduct = productOptions.find((item) => item.value === newItems[index].sku);
-      newItems[index].unitCode = selectedProduct?.unitCode || undefined;
-    }
-    setItems(newItems);
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const next = { ...item, [field]: value };
+        if (field === "sku") {
+          const selectedProduct = productOptions.find((it) => it.value === value);
+          next.unitCode = selectedProduct?.unitCode || undefined;
+        }
+        if (field === "unitCode" && !value) {
+          const selectedProduct = productOptions.find((it) => it.value === next.sku);
+          next.unitCode = selectedProduct?.unitCode || undefined;
+        }
+        return next;
+      }),
+    );
   };
 
   const getProduct = (sku: string) =>
@@ -198,7 +199,7 @@ export default function InboundModal({
       setLoading(true);
 
       // 获取当前用户 ID，用于通知
-      const notifyUserIds = userInfo?.id ? [userInfo.id] : [];
+      const notifyUserIds: string[] = userInfo?.id ? [String(userInfo.id)] : [];
 
       if (type === "single") {
         await InboundApi.inbound({
@@ -207,7 +208,7 @@ export default function InboundModal({
           remark: values.remark,
           sku: values.sku,
           quantity: values.quantity,
-          unitCode: values.unitCode || selectedUnitCode || getProductUnitCode(values.sku),
+          unitCode: values.unitCode || getProductUnitCode(values.sku),
           locationId: values.locationId,
           notifyUserIds, // 通知当前用户
         });
@@ -349,6 +350,7 @@ export default function InboundModal({
           placeholder="请选择入库类型"
           optionList={INBOUND_TYPE_OPTIONS}
           rules={[{ required: true, message: "请选择入库类型" }]}
+          style={{ width: "100%" }}
         />
         <Form.Input
           field="orderNo"
@@ -367,12 +369,14 @@ export default function InboundModal({
                 optionList={productOptions}
                 rules={[{ required: true, message: "请选择产品" }]}
                 showClear
+                filter
+                style={{ width: "100%" }}
                 onChange={(value) => {
                   const sku = value as string | undefined;
                   const unitCode = sku ? getProductUnitCode(sku) : undefined;
-                  setSelectedSku(sku);
-                  setSelectedUnitCode(unitCode);
+                  // 选产品后默认带出库存主单位，并加载其换算关系
                   formApi?.setValue("unitCode", unitCode);
+                  setFormValues((prev) => ({ ...prev, sku, unitCode }));
                   loadConversions(unitCode);
                 }}
               />
@@ -380,22 +384,34 @@ export default function InboundModal({
                 field="quantity"
                 label="数量"
                 placeholder="请输入数量"
-                rules={[{ required: true, message: "请输入数量" }]}
+                rules={[
+                  { required: true, message: "请输入数量" },
+                  {
+                    validator: (_rule: unknown, value: number) => value > 0,
+                    message: "数量必须大于 0",
+                  },
+                ]}
                 min={0}
-                onChange={(value) => setSelectedQuantity(Number(value || 0))}
+                style={{ width: "100%" }}
+                onChange={(value) =>
+                  setFormValues((prev) => ({ ...prev, quantity: Number(value || 0) }))
+                }
               />
               <Form.Select
                 field="unitCode"
                 label="入库单位"
                 placeholder="请选择入库单位"
-                optionList={getConvertibleUnitOptions(selectedSku || "")}
+                optionList={getConvertibleUnitOptions(formValues.sku || "")}
                 rules={[{ required: true, message: "请选择入库单位" }]}
-                disabled={!selectedSku}
-                onChange={(value) => setSelectedUnitCode(value as string | undefined)}
+                disabled={!formValues.sku}
+                style={{ width: "100%" }}
+                onChange={(value) =>
+                  setFormValues((prev) => ({ ...prev, unitCode: value as string | undefined }))
+                }
               />
               <div style={{ marginLeft: 100, marginBottom: 16 }}>
                 <Text type="tertiary">
-                  折合库存：{renderConvertedText(selectedQuantity, selectedUnitCode, selectedSku || "")}
+                  折合库存：{renderConvertedText(Number(formValues.quantity || 0), formValues.unitCode, formValues.sku || "")}
                 </Text>
               </div>
               <Form.Select
@@ -406,6 +422,7 @@ export default function InboundModal({
                 rules={[{ required: true, message: "请选择库位" }]}
                 showClear
                 filter
+                style={{ width: "100%" }}
               />
             </>
           ) : (

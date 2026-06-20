@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Button, Space, Tag, Typography, TagColor } from "@douyinfe/semi-ui-19";
+import { Button, Space, Tag, Typography, TagColor, Toast } from "@douyinfe/semi-ui-19";
 import ProDataTable, {
   ProColumnType,
   ProDataTableRef,
@@ -32,6 +32,7 @@ const TRANSACTION_TYPE_OPTIONS = [
 export default function TransactionsPage() {
   const tableRef = useRef<ProDataTableRef>(null);
   const [productOptions, setProductOptions] = useState<any[]>([]);
+  const [exporting, setExporting] = useState(false);
 
   // 加载产品选项
   useEffect(() => {
@@ -120,13 +121,27 @@ export default function TransactionsPage() {
       dataIndex: "quantity",
       valueType: "digit",
       hideInSearch: true,
+      // 主值按方向上色（入库绿/出库红），折算量（库存单位）用灰色，与入库/出库页一致
       render: (text: number, record: any) => {
         const isInbound = record.typeDirection == "INBOUND";
         const unitText = record.unitSymbol || record.unitName || "";
+        const main =
+          record.quantityDisplay || `${isInbound ? "+" : "-"}${text} ${unitText}`;
+        // 操作单位与库存主单位不同时（quantityWithStockDisplay 带括号）才展示折算量
+        const hasConversion =
+          record.quantityWithStockDisplay &&
+          record.quantityWithStockDisplay !== record.quantityDisplay;
         return (
-          <Text strong style={{ color: isInbound ? "green" : "red" }}>
-            {record.quantityDisplay || `${isInbound ? "+" : "-"}${text} ${unitText}`}
-          </Text>
+          <span>
+            <Text strong type={isInbound ? "success" : "danger"}>
+              {main}
+            </Text>
+            {hasConversion && record.stockQuantityDisplay && (
+              <Text type="tertiary" style={{ marginLeft: 4 }}>
+                ({record.stockQuantityDisplay})
+              </Text>
+            )}
+          </span>
         );
       },
     },
@@ -135,22 +150,36 @@ export default function TransactionsPage() {
       dataIndex: "beforeQty",
       valueType: "digit",
       hideInSearch: true,
-      render: (text: number, record: any) =>
-        record.beforeQtyDisplay || `${text} ${record.unitSymbol || record.unitName || ""}`,
+      // 变动前是起始值，用灰色弱化，与库存变化列的「变动前」配色一致
+      render: (text: number, record: any) => (
+        <Text type="tertiary">
+          {record.beforeQtyDisplay || `${text} ${record.unitSymbol || record.unitName || ""}`}
+        </Text>
+      ),
     },
     {
       title: "变动后",
       dataIndex: "afterQty",
       valueType: "digit",
       hideInSearch: true,
-      render: (text: number, record: any) =>
-        record.afterQtyDisplay || `${text} ${record.unitSymbol || record.unitName || ""}`,
+      // 变动后按方向上色（增加=绿、减少=红、不变=灰）
+      render: (text: number, record: any) => {
+        const before = Number(record.beforeQty);
+        const after = Number(record.afterQty);
+        const afterType =
+          after > before ? "success" : after < before ? "danger" : "tertiary";
+        return (
+          <Text strong type={afterType}>
+            {record.afterQtyDisplay || `${text} ${record.unitSymbol || record.unitName || ""}`}
+          </Text>
+        );
+      },
     },
     {
       title: "单据号",
       dataIndex: "orderNo",
       valueType: "text",
-      hideInSearch: true,
+      fieldProps: { placeholder: "请输入单据号" },
     },
     {
       title: "库位",
@@ -167,7 +196,7 @@ export default function TransactionsPage() {
       render: (text: string) => text || "-",
     },
     {
-      title: "交易时间",
+      title: "变动时间",
       dataIndex: "createdAt",
       valueType: "dateTime",
       hideInSearch: true,
@@ -175,24 +204,55 @@ export default function TransactionsPage() {
       render: (text: string) =>
         text ? dayjs(text).format("YYYY-MM-DD HH:mm:ss") : "-",
     },
+    {
+      // 仅用于搜索栏的变动时间范围筛选，不在表格中显示
+      title: "变动时间",
+      dataIndex: "dateRange",
+      valueType: "dateRange",
+      hideInTable: true,
+    },
   ];
+
+  // 把搜索栏的「时间范围」(Date 数组) 规整成含整日的 startDate/endDate
+  const normalizeParams = (params: any) => {
+    const { dateRange, ...rest } = params || {};
+    const [start, end] = Array.isArray(dateRange) ? dateRange : [];
+    return {
+      ...rest,
+      startDate: start ? dayjs(start).startOf("day").format("YYYY-MM-DD HH:mm:ss") : undefined,
+      endDate: end ? dayjs(end).endOf("day").format("YYYY-MM-DD HH:mm:ss") : undefined,
+    };
+  };
+
+  // 列表请求：套用日期规整
+  const loadTransactions = (params: any) =>
+    TransactionApi.getTransactions(normalizeParams(params));
+
+  // 导出当前筛选下的流水（不分页，后端导出全部命中记录）
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const params = tableRef.current?.getQueryParams() || {};
+      await TransactionApi.exportTransactions(normalizeParams(params));
+      Toast.success("导出成功");
+    } catch (e) {
+      console.error("导出失败:", e);
+      Toast.error("导出失败，请稍后重试");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div style={{ padding: "4px" }}>
       <ProDataTable
         ref={tableRef}
         title="库存流水"
-        api={TransactionApi.getTransactions}
+        api={loadTransactions}
         columns={columns}
         toolBarRender={() => (
           <Space>
-            <Button
-              theme="solid"
-              onClick={() => {
-                // 导出功能
-                console.log("导出流水");
-              }}
-            >
+            <Button theme="solid" loading={exporting} onClick={handleExport}>
               导出Excel
             </Button>
           </Space>

@@ -9,20 +9,11 @@ import ProDataTable, {
   ProDataTableRef,
 } from "@/components/ProDataTable";
 import InboundApi from "@/api/inbound";
-import { InboundType } from "@/api/inbound/types";
 import InboundModal from "./components/InboundModal";
 import ProductApi from "@/api/product";
+import { INBOUND_TYPE_MAP, INBOUND_TYPE_OPTIONS } from "@/constants/inventory";
 
 const { Text } = Typography;
-
-// 入库类型选项
-const INBOUND_TYPE_OPTIONS = [
-  { label: "采购入库", value: InboundType.PURCHASE },
-  { label: "退货入库", value: InboundType.RETURN },
-  { label: "调拨入库", value: InboundType.TRANSFER },
-  { label: "生产入库", value: InboundType.PRODUCTION },
-  { label: "盘盈", value: InboundType.ADJUSTMENT_IN },
-];
 
 export default function InboundPage() {
   const tableRef = useRef<ProDataTableRef>(null);
@@ -37,27 +28,6 @@ export default function InboundPage() {
     });
   }, []);
 
-  // 交易类型映射
-  const typeMap: Record<string, string> = {
-    [InboundType.PURCHASE]: "采购入库",
-    [InboundType.RETURN]: "退货入库",
-    [InboundType.TRANSFER]: "调拨入库",
-    [InboundType.PRODUCTION]: "生产入库",
-    [InboundType.ADJUSTMENT_IN]: "盘盈",
-  };
-
-  // 获取类型标签颜色
-  const getTypeColor = (type: string) => {
-    const colorMap: Record<string, string> = {
-      [InboundType.PURCHASE]: "green",
-      [InboundType.RETURN]: "blue",
-      [InboundType.TRANSFER]: "cyan",
-      [InboundType.PRODUCTION]: "purple",
-      [InboundType.ADJUSTMENT_IN]: "orange",
-    };
-    return colorMap[type] || "default";
-  };
-
   // 列定义
   const columns: ProColumnType<any>[] = [
     {
@@ -69,7 +39,9 @@ export default function InboundPage() {
         return acc;
       }, {} as any),
       render: (type: string) => (
-        <Tag color={getTypeColor(type)}>{typeMap[type] || type}</Tag>
+        <Tag color={INBOUND_TYPE_MAP[type as keyof typeof INBOUND_TYPE_MAP]?.color}>
+          {INBOUND_TYPE_MAP[type as keyof typeof INBOUND_TYPE_MAP]?.text || type}
+        </Tag>
       ),
     },
     {
@@ -94,25 +66,66 @@ export default function InboundPage() {
       dataIndex: "quantity",
       valueType: "digit",
       hideInSearch: true,
-      render: (text: number, record: any) => (
-        <Text strong style={{ color: "green" }}>
-          {record.quantityDisplay || `+${text} ${record.unitSymbol || record.unitName || ""}`}
-        </Text>
-      ),
+      // 主值（操作单位）用绿色加粗，折算量（库存单位）用次要灰色，分清「录入的」和「换算的」
+      render: (text: number, record: any) => {
+        const main =
+          record.quantityDisplay ||
+          `+${text} ${record.unitSymbol || record.unitName || ""}`;
+        // 操作单位与库存主单位不同时（quantityWithStockDisplay 带括号）才展示折算量
+        const hasConversion =
+          record.quantityWithStockDisplay &&
+          record.quantityWithStockDisplay !== record.quantityDisplay;
+        return (
+          <span>
+            <Text strong type="success">
+              {main}
+            </Text>
+            {hasConversion && record.stockQuantityDisplay && (
+              <Text type="tertiary" style={{ marginLeft: 4 }}>
+                ({record.stockQuantityDisplay})
+              </Text>
+            )}
+          </span>
+        );
+      },
     },
     {
-      title: "变动后库存",
+      title: "库存变化",
       dataIndex: "afterQty",
       valueType: "digit",
       hideInSearch: true,
-      render: (text: number, record: any) =>
-        record.afterQtyDisplay || `${text} ${record.unitSymbol || record.unitName || ""}`,
+      // 变动前用灰色，变动后用强调色（增加=绿、减少=红），一眼看出本次净增/净减
+      render: (text: number, record: any) => {
+        // 缺少结构化字段时回退到整串显示
+        if (!record.beforeQtyDisplay || !record.afterQtyDisplay) {
+          return (
+            record.stockChangeDisplay ||
+            record.afterQtyDisplay ||
+            `${text} ${record.unitSymbol || record.unitName || ""}`
+          );
+        }
+        const before = Number(record.beforeQty);
+        const after = Number(record.afterQty);
+        const afterType =
+          after > before ? "success" : after < before ? "danger" : "tertiary";
+        return (
+          <span>
+            <Text type="tertiary">{record.beforeQtyDisplay}</Text>
+            <Text type="tertiary" style={{ margin: "0 4px" }}>
+              →
+            </Text>
+            <Text strong type={afterType}>
+              {record.afterQtyDisplay}
+            </Text>
+          </span>
+        );
+      },
     },
     {
       title: "单据号",
       dataIndex: "orderNo",
       valueType: "text",
-      hideInSearch: true,
+      fieldProps: { placeholder: "请输入单据号" },
     },
     {
       title: "库位",
@@ -129,13 +142,20 @@ export default function InboundPage() {
       render: (text: string) => text || "-",
     },
     {
-      title: "创建时间",
+      title: "入库时间",
       dataIndex: "createdAt",
       valueType: "dateTime",
       hideInSearch: true,
       width: 180,
       render: (text: string) =>
         text ? dayjs(text).format("YYYY-MM-DD HH:mm:ss") : "-",
+    },
+    {
+      // 仅用于搜索栏的入库时间范围筛选，不在表格中显示
+      title: "入库时间",
+      dataIndex: "dateRange",
+      valueType: "dateRange",
+      hideInTable: true,
     },
   ];
 
@@ -145,12 +165,23 @@ export default function InboundPage() {
     setModalVisible(true);
   };
 
+  // 把搜索栏的「时间范围」(Date 数组) 规整成含整日的 startDate/endDate 再请求
+  const loadInboundLogs = (params: any) => {
+    const { dateRange, ...rest } = params || {};
+    const [start, end] = Array.isArray(dateRange) ? dateRange : [];
+    return InboundApi.getInboundLogs({
+      ...rest,
+      startDate: start ? dayjs(start).startOf("day").format("YYYY-MM-DD HH:mm:ss") : undefined,
+      endDate: end ? dayjs(end).endOf("day").format("YYYY-MM-DD HH:mm:ss") : undefined,
+    });
+  };
+
   return (
     <div style={{ padding: "4px" }}>
       <ProDataTable
         ref={tableRef}
         title="入库管理"
-        api={InboundApi.getInboundLogs}
+        api={loadInboundLogs}
         columns={columns}
         toolBarRender={() => (
           <Space>

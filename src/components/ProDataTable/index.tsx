@@ -19,7 +19,6 @@ import {
   Divider,
   Tag,
   Typography,
-  DatePicker,
   InputNumber,
   Select,
 } from "@douyinfe/semi-ui-19";
@@ -80,6 +79,8 @@ export interface ProDataTableProps<T = any>
 export interface ProDataTableRef {
   reload: (resetPage?: boolean) => void; // 刷新，可选择是否重置到第一页
   reset: () => void; // 重置表单并刷新
+  // 获取当前搜索栏的查询参数（已格式化），用于导出等需要复用当前筛选的场景
+  getQueryParams: () => Record<string, any>;
 }
 
 // 使用泛型组件定义
@@ -209,6 +210,11 @@ const ProDataTable = forwardRef(
         formRef.current?.reset();
         loadData(1);
       },
+      // 返回当前搜索栏的查询参数（与 loadData 取值口径一致），供导出等复用当前筛选
+      getQueryParams: () => {
+        const formValues = formRef.current?.getValues() || {};
+        return formatParams({ ...initialValues, ...formValues });
+      },
     }));
 
     // 首次挂载加载数据
@@ -258,7 +264,7 @@ const ProDataTable = forwardRef(
           );
         case "date":
           return (
-            <DatePicker
+            <Form.DatePicker
               {...commonProps}
               placeholder={`请选择${col.title}`}
               type="date"
@@ -266,15 +272,15 @@ const ProDataTable = forwardRef(
           );
         case "dateRange":
           return (
-            <DatePicker
+            <Form.DatePicker
               {...commonProps}
-              placeholder={`请选择${col.title}`}
+              placeholder={["开始日期", "结束日期"]}
               type="dateRange"
             />
           );
         case "dateTime":
           return (
-            <DatePicker
+            <Form.DatePicker
               {...commonProps}
               placeholder={`请选择${col.title}`}
               type="dateTime"
@@ -282,9 +288,9 @@ const ProDataTable = forwardRef(
           );
         case "dateTimeRange":
           return (
-            <DatePicker
+            <Form.DatePicker
               {...commonProps}
-              placeholder={`请选择${col.title}`}
+              placeholder={["开始时间", "结束时间"]}
               type="dateTimeRange"
             />
           );
@@ -377,24 +383,28 @@ const ProDataTable = forwardRef(
                 gutter={[16, 16]}
                 type="flex"
                 align="bottom"
-                style={{ width: "100%" }}
+                style={{ width: "100%", flexWrap: "wrap" }}
               >
                 {/* 搜索项自动换行，按钮组固定最右 */}
                 {columns
                   .filter((c) => !c.hideInSearch && c.dataIndex)
-                  .map((col, idx) => (
-                    <Col
-                      key={col.dataIndex || idx}
-                      style={{
-                        minWidth: 200,
-                        maxWidth: 320,
-                        flex: "1 1 240px",
-                        marginBottom: 8,
-                      }}
-                    >
-                      {renderSearchField(col)}
-                    </Col>
-                  ))}
+                  .map((col, idx) => {
+                    // 范围选择器更宽，需更大的列宽，否则左侧 label 会被挤掉
+                    const isRange = col.valueType?.includes("Range");
+                    return (
+                      <Col
+                        key={col.dataIndex || idx}
+                        style={{
+                          minWidth: isRange ? 360 : 200,
+                          maxWidth: isRange ? 460 : 320,
+                          flex: isRange ? "1 1 380px" : "1 1 240px",
+                          marginBottom: 8,
+                        }}
+                      >
+                        {renderSearchField(col)}
+                      </Col>
+                    );
+                  })}
 
                 <Col style={{ marginLeft: "auto", textAlign: "right" }}>
                   <Form.Slot>
