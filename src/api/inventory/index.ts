@@ -60,6 +60,16 @@ const InventoryApi = {
     request.get<IAvailableOutboundProduct[]>("inventory/available-for-outbound", {
       params,
     }),
+
+  /**
+   * 删除一条手工入库/出库流水（纠错用）
+   * 后端会在事务内反向回滚库存（主表+库位）后软删该流水，
+   * 仅支持手工入库、出库流水。
+   */
+  deleteTransaction: (id: string) =>
+    request.delete<{ sku: string; reversedQty: number; afterQty: number }>(
+      `inventory/transactions/${id}`,
+    ),
 };
 
 export default InventoryApi;

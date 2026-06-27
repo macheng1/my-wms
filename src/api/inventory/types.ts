@@ -94,4 +94,6 @@ export interface IQueryInventory {
   location?: string;
   isLowStock?: boolean;
   stockStatus?: "OUT_OF_STOCK" | "LOW_STOCK" | "IN_STOCK";
+  // 是否只查绑定过库位的产品，默认 true；传 false 查全部
+  onlyLocationBound?: boolean;
 }

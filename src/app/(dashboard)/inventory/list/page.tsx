@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Tag, Button, Space, Typography, TagColor } from "@douyinfe/semi-ui-19";
+import { Tag, Button, Space, Typography, TagColor, Switch } from "@douyinfe/semi-ui-19";
 import { IconEdit } from "@douyinfe/semi-icons";
 import ProDataTable, {
   ProColumnType,
   ProDataTableRef,
 } from "@/components/ProDataTable";
 import InventoryApi from "@/api/inventory";
+import { IQueryInventory } from "@/api/inventory/types";
 import AdjustModal from "./components/AdjustModal";
 
 const { Text } = Typography;
@@ -16,6 +17,17 @@ export default function InventoryListPage() {
   const tableRef = React.useRef<ProDataTableRef>(null);
   const [adjustVisible, setAdjustVisible] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<any>(null);
+  // 是否显示全部（含未绑定库位的产品）；默认只显示绑定过库位的产品
+  const [showAll, setShowAll] = useState(false);
+  // 用 ref 给 api 取最新值，避免 ProDataTable 缓存的 api 闭包拿到旧 state
+  const showAllRef = React.useRef(showAll);
+
+  // 包一层：默认 onlyLocationBound=true，仅在「显示全部」时传 false
+  const fetchList = (params: IQueryInventory) =>
+    InventoryApi.getInventoryPage({
+      ...params,
+      onlyLocationBound: showAllRef.current ? false : undefined,
+    });
 
   // 库存状态渲染
   const renderStockStatus = (record: any) => {
@@ -168,10 +180,22 @@ export default function InventoryListPage() {
       <ProDataTable
         ref={tableRef}
         title="库存查询"
-        api={InventoryApi.getInventoryPage}
+        api={fetchList}
         columns={columns}
         toolBarRender={() => (
-          <Space>
+          <Space align="center">
+            <Space spacing={4} align="center">
+              <Text type="tertiary">显示全部</Text>
+              <Switch
+                size="small"
+                checked={showAll}
+                onChange={(v) => {
+                  showAllRef.current = v;
+                  setShowAll(v);
+                  tableRef.current?.reload();
+                }}
+              />
+            </Space>
             <Button
               theme="solid"
               onClick={() => {

@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Button, Space, Tag, Typography } from "@douyinfe/semi-ui-19";
-import { IconPlus } from "@douyinfe/semi-icons";
+import { Button, Space, Tag, Typography, Modal, Toast } from "@douyinfe/semi-ui-19";
+import { IconPlus, IconDelete } from "@douyinfe/semi-icons";
 import dayjs from "dayjs";
 import ProDataTable, {
   ProColumnType,
   ProDataTableRef,
 } from "@/components/ProDataTable";
 import OutboundApi from "@/api/outbound";
+import InventoryApi from "@/api/inventory";
 import { OutboundType } from "@/api/outbound/types";
 import OutboundModal from "./components/OutboundModal";
 import ProductApi from "@/api/product";
@@ -189,7 +190,49 @@ export default function OutboundPage() {
       valueType: "dateRange",
       hideInTable: true,
     },
+    {
+      title: "操作",
+      dataIndex: "option",
+      hideInSearch: true,
+      fixed: "right",
+      width: 90,
+      render: (_: any, record: any) => {
+        // 仅手工出库流水可删；盘亏(ADJUSTMENT_OUT)等不允许直接删
+        const deletable = String(record.transactionType || "").startsWith("OUTBOUND_");
+        if (!deletable) return "-";
+        return (
+          <Button
+            icon={<IconDelete />}
+            theme="light"
+            type="danger"
+            size="small"
+            onClick={() => handleDelete(record)}
+          >
+            删除
+          </Button>
+        );
+      },
+    },
   ];
+
+  // 删除出库流水：纠错用，后端会反向回滚库存（把出掉的货补回去）
+  const handleDelete = (record: any) => {
+    Modal.confirm({
+      title: "确定删除这条出库记录吗？",
+      content:
+        "删除后系统会自动把出库的数量补回库存（含库位），并保留审计痕迹。若库位已禁用等导致无法回滚，将删除失败。",
+      okType: "danger",
+      onOk: async () => {
+        try {
+          await InventoryApi.deleteTransaction(record.id);
+          Toast.success("删除成功，库存已回滚");
+          tableRef.current?.reload();
+        } catch {
+          // 错误信息由请求拦截器统一 Toast 提示
+        }
+      },
+    });
+  };
 
   // 打开出库弹窗
   const handleOpenModal = (type: "single" | "batch") => {
