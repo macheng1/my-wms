@@ -11,7 +11,7 @@ import {
   Timeline,
   Toast,
 } from "@douyinfe/semi-ui-19";
-import { IconDelete, IconPlus } from "@douyinfe/semi-icons";
+import { IconPlus } from "@douyinfe/semi-icons";
 import ProDataTable, {
   ProColumnType,
   ProDataTableRef,
@@ -72,9 +72,7 @@ const nextStatusMap: Record<OrderType, Partial<Record<OrderStatus, OrderStatus[]
     ],
     [OrderStatus.CONFIRMED]: [
       OrderStatus.PROCESSING,
-      OrderStatus.STOCK_LOCKED,
       OrderStatus.PENDING_SHIPMENT,
-      OrderStatus.OUT_OF_STOCK,
       OrderStatus.CANCELLED,
     ],
     [OrderStatus.PROCESSING]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
