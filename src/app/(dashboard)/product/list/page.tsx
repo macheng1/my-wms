@@ -2,16 +2,12 @@
 
 import React, { useState, useRef, useMemo } from "react";
 import dayjs from "dayjs";
-import JsBarcode from "jsbarcode";
 import {
   Button,
   Space,
   Modal,
   Toast,
   Switch,
-  Table,
-  Tag,
-  Typography,
 } from "@douyinfe/semi-ui-19";
 import { IconPlus, IconEdit2, IconDelete, IconEyeOpened } from "@douyinfe/semi-icons";
 import ProductApi from "@/api/product";
@@ -21,52 +17,9 @@ import ProDataTable, {
   ProDataTableRef,
 } from "@/components/ProDataTable";
 import ProductEditModal from "./components/ProductEditModal";
+import ProductSkuViewModal from "./components/ProductSkuViewModal";
 import ImportModal from "@/components/ImportModal";
 import CommonImage from "@/components/CommonImage";
-
-function BarcodeCell({ value }: { value?: string | null }) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const barcode = value?.trim();
-
-  React.useEffect(() => {
-    if (!barcode || !svgRef.current) return;
-    try {
-      JsBarcode(svgRef.current, barcode, {
-        format: "CODE128",
-        width: 1,
-        height: 30,
-        margin: 0,
-        displayValue: false,
-      });
-    } catch (error) {
-      console.warn("条形码渲染失败:", error);
-    }
-  }, [barcode]);
-
-  if (!barcode) return "-";
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <svg
-        ref={svgRef}
-        style={{
-          width: 132,
-          height: 30,
-          background: "#fff",
-          borderRadius: 2,
-        }}
-      />
-      <Typography.Text
-        code
-        copyable
-        ellipsis={{ showTooltip: true }}
-        style={{ maxWidth: 140, fontSize: 12 }}
-      >
-        {barcode}
-      </Typography.Text>
-    </div>
-  );
-}
 
 export default function ProductListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
@@ -130,123 +83,6 @@ export default function ProductListPage() {
       },
     });
   };
-
-  const getSpecLabel = React.useCallback((key: string, record: any) => {
-    const attrs = record?.category?.attributes || [];
-    const attr = attrs.find((item: any) => item.code === key || item.name === key);
-    return attr?.name || key;
-  }, []);
-
-  const getSpecUnit = React.useCallback((key: string, record: any) => {
-    const attrs = record?.category?.attributes || [];
-    const attr = attrs.find((item: any) => item.code === key || item.name === key);
-    return attr?.unit || "";
-  }, []);
-
-  const getOrderedSpecEntries = React.useCallback((specs: Record<string, any>, record: any) => {
-    const attrs = [...(record?.category?.attributes || [])].sort((a: any, b: any) =>
-      String(a.code || a.name || "").localeCompare(String(b.code || b.name || ""), "zh-Hans-CN", { numeric: true }),
-    );
-    const hasValue = (key: string) => specs[key] !== undefined && specs[key] !== null && specs[key] !== "";
-    const usedKeys = new Set<string>();
-    const ordered = attrs.flatMap((attr: any) => {
-      const key = [attr.code, attr.name].find((candidate) => candidate && hasValue(candidate));
-      if (!key) return [];
-      usedKeys.add(key);
-      return [[key, specs[key]] as [string, any]];
-    });
-    const extras = Object.keys(specs)
-      .filter((key) => !usedKeys.has(key) && hasValue(key))
-      .sort((a, b) => a.localeCompare(b, "zh-Hans-CN", { numeric: true }))
-      .map((key) => [key, specs[key]] as [string, any]);
-    return [...ordered, ...extras];
-  }, []);
-
-  // 规格展示
-  const renderSpecs = React.useCallback((specs: any, record: any) => {
-    if (!specs || typeof specs !== "object") return "-";
-    const text = getOrderedSpecEntries(specs, record)
-      .map(([key, value]) => `${getSpecLabel(key, record)}:${value}${getSpecUnit(key, record)}`)
-      .join(" / ");
-    return text || "-";
-  }, [getOrderedSpecEntries, getSpecLabel, getSpecUnit]);
-
-  const getSkuName = React.useCallback((sku: any, record: any) => {
-    const specText = renderSpecs(sku?.specs, record);
-    return specText && specText !== "-"
-      ? `${record.name}（${specText}）`
-      : `${record.name}-${sku?.skuCode || "SKU"}`;
-  }, [renderSpecs]);
-
-  const skuDetailColumns = useMemo(
-    () => [
-      {
-        title: "SKU图片",
-        dataIndex: "images",
-        width: 90,
-        render: (images: string[]) => <CommonImage src={images} size={56} alt="sku" />,
-      },
-      {
-        title: "SKU名称",
-        dataIndex: "skuName",
-        width: 260,
-        render: (_: any, sku: any) => (
-          <Typography.Text ellipsis={{ showTooltip: true }}>
-            {getSkuName(sku, skuModalProduct)}
-          </Typography.Text>
-        ),
-      },
-      {
-        title: "SKU编码",
-        dataIndex: "skuCode",
-        width: 150,
-        render: (value: string) => (
-          <Typography.Text code copyable ellipsis={{ showTooltip: true }}>
-            {value || "-"}
-          </Typography.Text>
-        ),
-      },
-      {
-        title: "条形码",
-        dataIndex: "barcode",
-        width: 180,
-        render: (value: string, sku: any) => <BarcodeCell value={value || sku.skuCode} />,
-      },
-      {
-        title: "规格",
-        dataIndex: "specs",
-        width: 360,
-        render: (specs: any) => (
-          <Typography.Text ellipsis={{ showTooltip: true }}>
-            {renderSpecs(specs, skuModalProduct)}
-          </Typography.Text>
-        ),
-      },
-      {
-        title: "库存单位",
-        dataIndex: "unitName",
-        width: 100,
-        render: (_: any, sku: any) => sku.unitSymbol || sku.unitName || "-",
-      },
-      {
-        title: "安全库存",
-        dataIndex: "safetyStock",
-        width: 100,
-        render: (value: number) => value ?? 0,
-      },
-      {
-        title: "状态",
-        dataIndex: "isActive",
-        width: 90,
-        render: (value: 1 | 0) => (
-          <Tag color={value === 1 ? "green" : "grey"}>
-            {value === 1 ? "启用" : "禁用"}
-          </Tag>
-        ),
-      },
-    ],
-    [getSkuName, renderSpecs, skuModalProduct],
-  );
 
   // 下载模板
   async function handleDownloadTemplate(categoryCode?: string) {
@@ -391,23 +227,11 @@ export default function ProductListPage() {
         />
       )}
 
-      <Modal
-        title={`SKU明细${skuModalProduct?.name ? ` - ${skuModalProduct.name}` : ""}`}
+      <ProductSkuViewModal
         visible={!!skuModalProduct}
-        onCancel={() => setSkuModalProduct(null)}
-        footer={null}
-        width={1120}
-      >
-        <Table
-          rowKey="id"
-          columns={skuDetailColumns}
-          dataSource={skuModalProduct?.skus || []}
-          pagination={false}
-          size="small"
-          scroll={{ x: 1280 }}
-          empty="暂无SKU"
-        />
-      </Modal>
+        product={skuModalProduct}
+        onClose={() => setSkuModalProduct(null)}
+      />
 
       <ImportModal
         visible={importModalVisible}
