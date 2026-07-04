@@ -147,7 +147,9 @@ export default function ProductSkuViewModal({
       title={`SKU明细${product?.name ? ` - ${product.name}` : ""}`}
       visible={visible}
       onCancel={onClose}
-      footer={null}
+      onOk={onClose}
+      okText="确定"
+      cancelButtonProps={{ style: { display: "none" } }}
       width={1120}
     >
       <Table
