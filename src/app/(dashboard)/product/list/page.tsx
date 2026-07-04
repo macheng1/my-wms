@@ -9,9 +9,11 @@ import {
   Modal,
   Toast,
   Switch,
+  Table,
+  Tag,
   Typography,
 } from "@douyinfe/semi-ui-19";
-import { IconPlus, IconEdit2, IconDelete } from "@douyinfe/semi-icons";
+import { IconPlus, IconEdit2, IconDelete, IconEyeOpened } from "@douyinfe/semi-icons";
 import ProductApi from "@/api/product";
 import CategoryApi from "@/api/category";
 import ProDataTable, {
@@ -70,6 +72,7 @@ export default function ProductListPage() {
   const tableRef = useRef<ProDataTableRef>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>(null);
+  const [skuModalProduct, setSkuModalProduct] = useState<any>(null);
   const [categoryOptions, setCategoryOptions] = useState<any>([]);
   const [categoryTemplateOptions, setCategoryTemplateOptions] = useState<any>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
@@ -168,7 +171,82 @@ export default function ProductListPage() {
     return text || "-";
   }, [getOrderedSpecEntries, getSpecLabel, getSpecUnit]);
 
-  const getDefaultSku = React.useCallback((record: any) => record?.skus?.[0] || null, []);
+  const getSkuName = React.useCallback((sku: any, record: any) => {
+    const specText = renderSpecs(sku?.specs, record);
+    return specText && specText !== "-"
+      ? `${record.name}（${specText}）`
+      : `${record.name}-${sku?.skuCode || "SKU"}`;
+  }, [renderSpecs]);
+
+  const skuDetailColumns = useMemo(
+    () => [
+      {
+        title: "SKU图片",
+        dataIndex: "images",
+        width: 90,
+        render: (images: string[]) => <CommonImage src={images} size={56} alt="sku" />,
+      },
+      {
+        title: "SKU名称",
+        dataIndex: "skuName",
+        width: 260,
+        render: (_: any, sku: any) => (
+          <Typography.Text ellipsis={{ showTooltip: true }}>
+            {getSkuName(sku, skuModalProduct)}
+          </Typography.Text>
+        ),
+      },
+      {
+        title: "SKU编码",
+        dataIndex: "skuCode",
+        width: 150,
+        render: (value: string) => (
+          <Typography.Text code copyable ellipsis={{ showTooltip: true }}>
+            {value || "-"}
+          </Typography.Text>
+        ),
+      },
+      {
+        title: "条形码",
+        dataIndex: "barcode",
+        width: 180,
+        render: (value: string, sku: any) => <BarcodeCell value={value || sku.skuCode} />,
+      },
+      {
+        title: "规格",
+        dataIndex: "specs",
+        width: 360,
+        render: (specs: any) => (
+          <Typography.Text ellipsis={{ showTooltip: true }}>
+            {renderSpecs(specs, skuModalProduct)}
+          </Typography.Text>
+        ),
+      },
+      {
+        title: "库存单位",
+        dataIndex: "unitName",
+        width: 100,
+        render: (_: any, sku: any) => sku.unitSymbol || sku.unitName || "-",
+      },
+      {
+        title: "安全库存",
+        dataIndex: "safetyStock",
+        width: 100,
+        render: (value: number) => value ?? 0,
+      },
+      {
+        title: "状态",
+        dataIndex: "isActive",
+        width: 90,
+        render: (value: 1 | 0) => (
+          <Tag color={value === 1 ? "green" : "grey"}>
+            {value === 1 ? "启用" : "禁用"}
+          </Tag>
+        ),
+      },
+    ],
+    [getSkuName, renderSpecs, skuModalProduct],
+  );
 
   // 下载模板
   async function handleDownloadTemplate(categoryCode?: string) {
@@ -192,28 +270,6 @@ export default function ProductListPage() {
           <CommonImage src={imgs} size={48} alt="product" />,
       },
       {
-        title: "产品系列编码",
-        dataIndex: "code",
-        valueType: "text",
-      },
-      {
-        title: "默认SKU编码",
-        dataIndex: "skuCode",
-        hideInSearch: true,
-        render: (_: any, record: any) => getDefaultSku(record)?.skuCode || "-",
-      },
-      {
-        title: "默认SKU条码",
-        dataIndex: "barcode",
-        valueType: "text",
-        width: 180,
-        render: (value: string, record: any) => {
-          const defaultSku = getDefaultSku(record);
-          const barcode = defaultSku?.barcode || value || record.code;
-          return <BarcodeCell value={barcode} />;
-        },
-      },
-      {
         title: "产品名称",
         dataIndex: "name",
         valueType: "text",
@@ -226,12 +282,6 @@ export default function ProductListPage() {
           optionList: categoryOptions,
         },
         render: (_: any, record: any) => record.category?.name || "-",
-      },
-      {
-        title: "SKU规格",
-        dataIndex: "specs",
-        hideInSearch: true,
-        render: (_: any, record: any) => renderSpecs(getDefaultSku(record)?.specs || record.specs, record),
       },
       {
         title: "SKU数",
@@ -270,6 +320,13 @@ export default function ProductListPage() {
         render: (_: any, record: any) => (
           <Space>
             <Button
+              icon={<IconEyeOpened />}
+              theme="light"
+              onClick={() => setSkuModalProduct(record)}
+            >
+              查看SKU
+            </Button>
+            <Button
               icon={<IconEdit2 />}
               theme="light"
               onClick={() => {
@@ -291,7 +348,7 @@ export default function ProductListPage() {
         ),
       },
     ],
-    [categoryOptions, getDefaultSku, renderSpecs],
+    [categoryOptions],
   );
 
   return (
@@ -333,6 +390,24 @@ export default function ProductListPage() {
           }}
         />
       )}
+
+      <Modal
+        title={`SKU明细${skuModalProduct?.name ? ` - ${skuModalProduct.name}` : ""}`}
+        visible={!!skuModalProduct}
+        onCancel={() => setSkuModalProduct(null)}
+        footer={null}
+        width={1120}
+      >
+        <Table
+          rowKey="id"
+          columns={skuDetailColumns}
+          dataSource={skuModalProduct?.skus || []}
+          pagination={false}
+          size="small"
+          scroll={{ x: 1280 }}
+          empty="暂无SKU"
+        />
+      </Modal>
 
       <ImportModal
         visible={importModalVisible}
