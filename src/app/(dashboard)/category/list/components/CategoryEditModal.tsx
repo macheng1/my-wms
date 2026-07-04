@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Modal, Form, Button, Toast } from "@douyinfe/semi-ui-19";
+import { Modal, Form, Button, Toast, Space, Typography } from "@douyinfe/semi-ui-19";
+import { IconArrowUp, IconArrowDown } from "@douyinfe/semi-icons";
 import AttributeAPI from "@/api/attributes";
 import CategoryApi from "@/api/category";
 import { ICategorySave } from "@/api/category/types";
+
+const { Text } = Typography;
 
 export default function CategoryEditModal({
   visible,
@@ -12,6 +15,7 @@ export default function CategoryEditModal({
 }) {
   const [formApi, setFormApi] = useState<any>(null);
   const [attributes, setAttributes] = useState<any>([]);
+  const [selectedAttributeIds, setSelectedAttributeIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   // 拉取属性列表
@@ -35,7 +39,9 @@ export default function CategoryEditModal({
         CategoryApi.getCategoryDetail(data.id)
           .then((res) => {
             formApi.reset();
-            formApi.setValues(res.data || {});
+            const detail = res.data || {};
+            formApi.setValues(detail);
+            setSelectedAttributeIds(detail.attributeIds || []);
           })
           .catch(() => Toast.error("获取详情失败"))
           .finally(() => setLoading(false));
@@ -43,6 +49,7 @@ export default function CategoryEditModal({
         // 新增时重置
         formApi.reset();
         formApi.setValues({ isActive: 1, attributeIds: [], ...data });
+        setSelectedAttributeIds(data?.attributeIds || []);
       }
     }
   }, [visible, data, formApi]);
@@ -50,10 +57,11 @@ export default function CategoryEditModal({
   const handleSubmit = async (values: ICategorySave) => {
     setLoading(true);
     try {
+      const payload = { ...values, attributeIds: selectedAttributeIds };
       if (data?.id) {
-        await CategoryApi.updateCategory({ ...values, id: data.id });
+        await CategoryApi.updateCategory({ ...payload, id: data.id });
       } else {
-        await CategoryApi.saveCategory(values);
+        await CategoryApi.saveCategory(payload);
       }
       Toast.success("保存成功");
       onSuccess?.();
@@ -63,6 +71,19 @@ export default function CategoryEditModal({
       setLoading(false);
     }
   };
+
+  const moveSelectedAttribute = (index: number, offset: -1 | 1) => {
+    const nextIndex = index + offset;
+    if (nextIndex < 0 || nextIndex >= selectedAttributeIds.length) return;
+    const next = [...selectedAttributeIds];
+    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    setSelectedAttributeIds(next);
+    formApi?.setValue("attributeIds", next);
+  };
+
+  const selectedAttributes = selectedAttributeIds
+    .map((id) => attributes.find((item) => item.value === id))
+    .filter(Boolean);
 
   return (
     <Modal
@@ -112,7 +133,44 @@ export default function CategoryEditModal({
           multiple
           placeholder="可多选，支持动态扩展"
           style={{ width: "100%" }}
+          onChange={(value) => setSelectedAttributeIds(Array.isArray(value) ? value : [])}
         />
+        {selectedAttributes.length > 0 && (
+          <Form.Slot label="显示顺序">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {selectedAttributes.map((attr, index) => (
+                <div
+                  key={attr.value}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 12px",
+                    border: "1px solid var(--semi-color-border)",
+                    borderRadius: 6,
+                    background: "var(--semi-color-fill-0)",
+                  }}
+                >
+                  <Text>{index + 1}. {attr.label}</Text>
+                  <Space spacing={4}>
+                    <Button
+                      icon={<IconArrowUp />}
+                      theme="borderless"
+                      disabled={index === 0}
+                      onClick={() => moveSelectedAttribute(index, -1)}
+                    />
+                    <Button
+                      icon={<IconArrowDown />}
+                      theme="borderless"
+                      disabled={index === selectedAttributes.length - 1}
+                      onClick={() => moveSelectedAttribute(index, 1)}
+                    />
+                  </Space>
+                </div>
+              ))}
+            </div>
+          </Form.Slot>
+        )}
         <Form.Slot>
           <div
             style={{

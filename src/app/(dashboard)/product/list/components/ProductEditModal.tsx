@@ -49,14 +49,7 @@ const getAttrKey = (attr: any) => attr.code || attr.name;
 const getAttrLabel = (attr: any) =>
   attr.unit ? `${attr.name}（${attr.unit}）` : attr.name;
 
-const sortAttributes = (attrs: any[]) =>
-  [...attrs].sort((a, b) =>
-    String(a.code || a.name || "").localeCompare(
-      String(b.code || b.name || ""),
-      "zh-Hans-CN",
-      { numeric: true },
-    ),
-  );
+const sortAttributes = (attrs: any[]) => [...attrs];
 
 const normalizeSkuSpecs = (specs: Record<string, any> = {}, attrs: any[]) => {
   const normalized = { ...specs };
