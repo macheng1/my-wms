@@ -29,8 +29,6 @@ const { Text } = Typography;
 type SkuFormItem = {
   clientId: string;
   id?: string;
-  skuCode?: string;
-  barcode?: string;
   unitId?: string;
   specs: Record<string, any>;
   safetyStock: number;
@@ -172,8 +170,6 @@ export default function ProductEditModal({
           ? skuList.map((sku: IProductSku) => ({
               clientId: sku.id,
               id: sku.id,
-              skuCode: sku.skuCode,
-              barcode: sku.barcode || "",
               unitId: sku.unitId ? String(sku.unitId) : undefined,
               specs: normalizeSkuSpecs(sku.specs || {}, attrs),
               safetyStock: sku.safetyStock || 0,
@@ -258,31 +254,9 @@ export default function ProductEditModal({
       render: (_: any, __: SkuFormItem, index: number) => index + 1,
     },
     {
-      title: "SKU编码",
-      width: 180,
-      fixed: "left" as const,
-      render: (_: any, sku: SkuFormItem) => (
-        <Input
-          value={sku.skuCode}
-          placeholder="不填自动生成"
-          onChange={(value) => updateSku(sku.clientId, { skuCode: value })}
-        />
-      ),
-    },
-    {
-      title: "条形码",
-      width: 180,
-      render: (_: any, sku: SkuFormItem) => (
-        <Input
-          value={sku.barcode}
-          placeholder="默认等于SKU编码"
-          onChange={(value) => updateSku(sku.clientId, { barcode: value })}
-        />
-      ),
-    },
-    {
       title: "库存单位",
       width: 160,
+      fixed: "left" as const,
       render: (_: any, sku: SkuFormItem) => (
         <Select
           value={sku.unitId}
@@ -412,8 +386,6 @@ export default function ProductEditModal({
           const payload = {
             id: sku.id,
             productId: product.id,
-            skuCode: sku.skuCode?.trim() || undefined,
-            barcode: sku.barcode?.trim() || undefined,
             unitId: sku.unitId!,
             specs: sku.specs || {},
             safetyStock: sku.safetyStock || 0,
@@ -504,7 +476,7 @@ export default function ProductEditModal({
                 dataSource={skus}
                 pagination={false}
                 size="small"
-                scroll={{ x: 760 + dynamicAttributes.length * 170 }}
+                scroll={{ x: 400 + dynamicAttributes.length * 170 }}
               />
             </div>
           </Spin>
