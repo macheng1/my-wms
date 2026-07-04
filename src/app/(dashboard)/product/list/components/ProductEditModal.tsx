@@ -3,15 +3,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
-  Card,
   Form,
   Input,
   InputNumber,
   Modal,
   Select,
-  Space,
   Spin,
   Switch,
+  Table,
   Toast,
   Typography,
 } from "@douyinfe/semi-ui-19";
@@ -251,6 +250,132 @@ export default function ProductEditModal({
     return true;
   };
 
+  const skuColumns = [
+    {
+      title: "序号",
+      width: 64,
+      fixed: "left" as const,
+      render: (_: any, __: SkuFormItem, index: number) => index + 1,
+    },
+    {
+      title: "SKU编码",
+      width: 180,
+      fixed: "left" as const,
+      render: (_: any, sku: SkuFormItem) => (
+        <Input
+          value={sku.skuCode}
+          placeholder="不填自动生成"
+          onChange={(value) => updateSku(sku.clientId, { skuCode: value })}
+        />
+      ),
+    },
+    {
+      title: "条形码",
+      width: 180,
+      render: (_: any, sku: SkuFormItem) => (
+        <Input
+          value={sku.barcode}
+          placeholder="默认等于SKU编码"
+          onChange={(value) => updateSku(sku.clientId, { barcode: value })}
+        />
+      ),
+    },
+    {
+      title: "库存单位",
+      width: 160,
+      render: (_: any, sku: SkuFormItem) => (
+        <Select
+          value={sku.unitId}
+          placeholder="请选择"
+          optionList={unitOptions}
+          filter
+          style={{ width: "100%" }}
+          onChange={(value) => updateSku(sku.clientId, { unitId: String(value || "") })}
+        />
+      ),
+    },
+    ...dynamicAttributes.map((attr) => {
+      const key = getAttrKey(attr);
+      return {
+        title: getAttrLabel(attr),
+        width: 170,
+        render: (_: any, sku: SkuFormItem) => {
+          const commonProps = {
+            value: sku.specs?.[key],
+            placeholder: attr.type === "select" ? "请选择" : `请输入${attr.name}`,
+            style: { width: "100%" },
+          };
+
+          if (attr.type === "select") {
+            return (
+              <Select
+                {...commonProps}
+                optionList={attr.options?.map((option: any) => ({
+                  label: option.value || option.name || option,
+                  value: option.value || option.id || option,
+                }))}
+                onChange={(value) => updateSkuSpec(sku.clientId, key, value)}
+              />
+            );
+          }
+
+          if (attr.type === "number") {
+            return (
+              <InputNumber
+                {...commonProps}
+                onChange={(value) => updateSkuSpec(sku.clientId, key, value)}
+              />
+            );
+          }
+
+          return (
+            <Input
+              {...commonProps}
+              onChange={(value) => updateSkuSpec(sku.clientId, key, value)}
+            />
+          );
+        },
+      };
+    }),
+    {
+      title: "安全库存",
+      width: 130,
+      render: (_: any, sku: SkuFormItem) => (
+        <InputNumber
+          value={sku.safetyStock}
+          min={0}
+          precision={0}
+          placeholder="0"
+          style={{ width: "100%" }}
+          onChange={(value) => updateSku(sku.clientId, { safetyStock: Number(value || 0) })}
+        />
+      ),
+    },
+    {
+      title: "启用",
+      width: 90,
+      render: (_: any, sku: SkuFormItem) => (
+        <Switch
+          checked={sku.isActive}
+          onChange={(checked) => updateSku(sku.clientId, { isActive: checked })}
+        />
+      ),
+    },
+    {
+      title: "操作",
+      width: 88,
+      fixed: "right" as const,
+      render: (_: any, sku: SkuFormItem) => (
+        <Button
+          icon={<IconDelete />}
+          type="danger"
+          theme="borderless"
+          onClick={() => removeSku(sku)}
+        />
+      ),
+    },
+  ];
+
   const handleOk = async () => {
     if (!formApi) return;
     if (!validateSkus()) return;
@@ -314,7 +439,7 @@ export default function ProductEditModal({
       onCancel={handleClose}
       onOk={handleOk}
       confirmLoading={loading}
-      width={880}
+      width={1120}
       keepDOM
     >
       <Form
@@ -372,126 +497,15 @@ export default function ProductEditModal({
           </div>
 
           <Spin spinning={attrLoading}>
-            <div style={{ marginLeft: 120, display: "flex", flexDirection: "column", gap: 12 }}>
-              {skus.map((sku, index) => (
-                <Card
-                  key={sku.clientId}
-                  title={`SKU ${index + 1}`}
-                  headerExtraContent={
-                    <Button
-                      icon={<IconDelete />}
-                      type="danger"
-                      theme="borderless"
-                      onClick={() => removeSku(sku)}
-                    />
-                  }
-                  bodyStyle={{ padding: 16 }}
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      gap: 12,
-                    }}
-                  >
-                    <Input
-                      value={sku.skuCode}
-                      placeholder="SKU编码，不填则自动生成"
-                      prefix="编码"
-                      onChange={(value) => updateSku(sku.clientId, { skuCode: value })}
-                    />
-                    <Input
-                      value={sku.barcode}
-                      placeholder="条形码，不填默认等于SKU编码"
-                      prefix="条码"
-                      onChange={(value) => updateSku(sku.clientId, { barcode: value })}
-                    />
-                    <Select
-                      value={sku.unitId}
-                      placeholder="请选择库存单位"
-                      optionList={unitOptions}
-                      filter
-                      style={{ width: "100%" }}
-                      prefix="单位"
-                      onChange={(value) => updateSku(sku.clientId, { unitId: String(value || "") })}
-                    />
-                    <InputNumber
-                      value={sku.safetyStock}
-                      min={0}
-                      precision={0}
-                      placeholder="安全库存"
-                      style={{ width: "100%" }}
-                      prefix="安全库存"
-                      onChange={(value) => updateSku(sku.clientId, { safetyStock: Number(value || 0) })}
-                    />
-                  </div>
-
-                  {dynamicAttributes.length > 0 && (
-                    <div
-                      style={{
-                        marginTop: 12,
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                        gap: 12,
-                      }}
-                    >
-                      {dynamicAttributes.map((attr) => {
-                        const key = getAttrKey(attr);
-                        const commonProps = {
-                          value: sku.specs?.[key],
-                          placeholder: `请输入${attr.name}`,
-                          style: { width: "100%" },
-                        };
-
-                        if (attr.type === "select") {
-                          return (
-                            <Select
-                              key={attr.id || key}
-                              {...commonProps}
-                              prefix={getAttrLabel(attr)}
-                              optionList={attr.options?.map((option: any) => ({
-                                label: option.value || option.name || option,
-                                value: option.value || option.id || option,
-                              }))}
-                              onChange={(value) => updateSkuSpec(sku.clientId, key, value)}
-                            />
-                          );
-                        }
-
-                        if (attr.type === "number") {
-                          return (
-                            <InputNumber
-                              key={attr.id || key}
-                              {...commonProps}
-                              prefix={getAttrLabel(attr)}
-                              onChange={(value) => updateSkuSpec(sku.clientId, key, value)}
-                            />
-                          );
-                        }
-
-                        return (
-                          <Input
-                            key={attr.id || key}
-                            {...commonProps}
-                            prefix={getAttrLabel(attr)}
-                            onChange={(value) => updateSkuSpec(sku.clientId, key, value)}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  <div style={{ marginTop: 12 }}>
-                    <Space>
-                      <Text type="secondary">启用状态</Text>
-                      <Switch
-                        checked={sku.isActive}
-                        onChange={(checked) => updateSku(sku.clientId, { isActive: checked })}
-                      />
-                    </Space>
-                  </div>
-                </Card>
-              ))}
+            <div style={{ marginLeft: 120 }}>
+              <Table
+                rowKey="clientId"
+                columns={skuColumns}
+                dataSource={skus}
+                pagination={false}
+                size="small"
+                scroll={{ x: 760 + dynamicAttributes.length * 170 }}
+              />
             </div>
           </Spin>
         </Section>
