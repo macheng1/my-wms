@@ -457,7 +457,6 @@ export default function ProductEditModal({
         <Section text="SKU规格配置">
           <div
             style={{
-              marginLeft: 120,
               marginBottom: 12,
               display: "flex",
               justifyContent: "space-between",
@@ -472,7 +471,7 @@ export default function ProductEditModal({
           </div>
 
           <Spin spinning={attrLoading}>
-            <div style={{ marginLeft: 120 }}>
+            <div style={{ width: "100%" }}>
               <Table
                 rowKey="clientId"
                 columns={skuColumns}
