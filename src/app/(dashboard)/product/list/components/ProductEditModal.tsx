@@ -450,13 +450,11 @@ export default function ProductEditModal({
           />
         </Section>
 
-        <Section text="产品图片">
-          <UploadImage field="images" label="产品图" max={3} uploadPath="product" />
-        </Section>
-
         <Section text="SKU规格配置">
+          <UploadImage field="images" label="产品图" max={3} uploadPath="product" />
           <div
             style={{
+              marginTop: 12,
               marginBottom: 12,
               display: "flex",
               justifyContent: "space-between",
