@@ -9,6 +9,9 @@ import CommonApi from "@/api/common";
 
 const { Text } = Typography;
 
+const getUploadFileInstance = (file: any): File | undefined =>
+  file?.fileInstance || file?.originFileObj || file?.originFile || file;
+
 export const RawUploadImage = ({
   value = [],
   onChange,
@@ -35,7 +38,11 @@ export const RawUploadImage = ({
   }: any) => {
     try {
       onProgress({ percent: 30 });
-      const res = await CommonApi.uploadFiles(file.fileInstance as File, {
+      const fileInstance = getUploadFileInstance(file);
+      if (!(fileInstance instanceof File)) {
+        throw new Error("请选择有效图片文件");
+      }
+      const res = await CommonApi.uploadFiles(fileInstance, {
         url: uploadUrl,
         fieldName: uploadFieldName,
         path: uploadPath,

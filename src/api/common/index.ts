@@ -23,6 +23,10 @@ const ALLOWED_UPLOAD_EXTENSIONS = new Set([
 ]);
 
 const validateUploadFiles = (files: File[]) => {
+  if (!files.length || files.some((file) => !(file instanceof File))) {
+    throw new Error("请选择有效文件");
+  }
+
   if (files.length > MAX_UPLOAD_FILE_COUNT) {
     throw new Error("单次最多上传 6 个文件");
   }
@@ -75,7 +79,9 @@ const CommonApi = {
     Object.entries(options?.extraData || {}).forEach(([key, value]) => {
       formData.append(key, value);
     });
-    return request.post(options?.url || "upload/fileList", formData);
+    return request.post(options?.url || "upload/fileList", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
   },
   sendSMS: (params: { phone: string }) => {
     return request.get("/send/sendSMS", { params });
