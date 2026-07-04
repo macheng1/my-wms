@@ -1,4 +1,4 @@
-import request from "@/utils/request";
+import request, { getDownload } from "@/utils/request";
 import {
   OrderFlowLog,
   OrderRecord,
@@ -6,6 +6,12 @@ import {
   QueryOrder,
   SaveOrder,
 } from "./types";
+
+const orderExportFileName = () => {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `order-list-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xlsx`;
+};
 
 const OrderApi = {
   getOrderPage: (params: QueryOrder) =>
@@ -36,6 +42,9 @@ const OrderApi = {
   getOrderLogs: (id: string) => request.get<OrderFlowLog[]>(`orders/${id}/logs`),
 
   deleteOrder: (id: string) => request.delete(`orders/${id}`),
+
+  exportOrderItems: (params: QueryOrder) =>
+    getDownload("orders/export", params, orderExportFileName()),
 };
 
 export default OrderApi;

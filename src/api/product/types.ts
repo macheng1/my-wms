@@ -109,6 +109,7 @@ export interface IProductSelectOption {
   /** 产品名称 */
   name: string;
   productName: string;
+  skuName?: string;
   /** 产品编码/SKU */
   code: string;
   skuCode: string;
@@ -128,6 +129,8 @@ export interface IProductSku {
   skuId?: string;
   productId: string;
   productName?: string | null;
+  skuName?: string | null;
+  name?: string | null;
   skuCode: string;
   sku?: string;
   barcode?: string | null;
@@ -147,6 +150,7 @@ export interface ISaveProductSku {
   id?: string;
   productId: string;
   skuCode?: string;
+  skuName?: string;
   barcode?: string;
   unitId: string;
   specs: Record<string, any>;

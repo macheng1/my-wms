@@ -2,6 +2,7 @@ export enum OrderSource {
   MINIAPP = "MINIAPP",
   WEBSITE = "WEBSITE",
   ADMIN = "ADMIN",
+  MOBILE_MANUAL = "MOBILE_MANUAL",
 }
 
 export enum OrderType {
@@ -32,9 +33,18 @@ export interface OrderItem {
   productId?: string | null;
   skuId?: string | null;
   productName: string;
+  skuName?: string | null;
   sku?: string | null;
   barcode?: string | null;
   specs?: Record<string, any> | null;
+  specList?: Array<{
+    key: string;
+    label: string;
+    value: any;
+    unit?: string;
+    sort?: number;
+    text?: string;
+  }>;
   quantity: number;
   unitName?: string | null;
   price: number;
@@ -92,9 +102,14 @@ export interface SaveOrder {
   remark?: string;
   expectedDeliveryDate?: string;
   items?: Array<{
-    skuId: string;
+    id?: string;
+    skuId?: string;
+    productName?: string;
     quantity: number;
     price?: number;
+    unitCode?: string;
+    unitName?: string;
+    specs?: Record<string, any>;
     customRequirement?: string;
   }>;
 }

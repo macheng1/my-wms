@@ -29,6 +29,7 @@ const { Text } = Typography;
 type SkuFormItem = {
   clientId: string;
   id?: string;
+  skuName?: string;
   unitId?: string;
   specs: Record<string, any>;
   images: any[];
@@ -183,6 +184,7 @@ export default function ProductEditModal({
           ? skuList.map((sku: IProductSku) => ({
               clientId: sku.id,
               id: sku.id,
+              skuName: sku.skuName || sku.name || sku.productName || "",
               unitId: sku.unitId ? String(sku.unitId) : undefined,
               specs: normalizeSkuSpecs(sku.specs || {}, attrs),
               images: toUploadFileList(sku.images || []),
@@ -279,6 +281,18 @@ export default function ProductEditModal({
           filter
           style={{ width: "100%" }}
           onChange={(value) => updateSku(sku.clientId, { unitId: String(value || "") })}
+        />
+      ),
+    },
+    {
+      title: "SKU名称",
+      width: 190,
+      fixed: "left" as const,
+      render: (_: any, sku: SkuFormItem) => (
+        <Input
+          value={sku.skuName}
+          placeholder="默认使用产品名称"
+          onChange={(value) => updateSku(sku.clientId, { skuName: value })}
         />
       ),
     },
@@ -392,7 +406,6 @@ export default function ProductEditModal({
 
       const productPayload = {
         name: values.name,
-        code: values.code,
         categoryId: values.categoryId,
         description: values.description,
         images: coverImages,
@@ -411,6 +424,7 @@ export default function ProductEditModal({
           const payload = {
             id: sku.id,
             productId: product.id,
+            skuName: sku.skuName?.trim() || values.name,
             unitId: sku.unitId!,
             specs: sku.specs || {},
             images: skuImageUrlLists[index] || [],
@@ -452,11 +466,6 @@ export default function ProductEditModal({
             </Text>
           </div>
           <Form.Input
-            field="code"
-            label="产品系列编码"
-            placeholder="不填则自动生成产品系列编码"
-          />
-          <Form.Input
             field="name"
             label="产品名称"
             placeholder="请输入产品名称"
@@ -497,7 +506,7 @@ export default function ProductEditModal({
                 dataSource={skus}
                 pagination={false}
                 size="small"
-                scroll={{ x: 520 + dynamicAttributes.length * 170 }}
+                scroll={{ x: 710 + dynamicAttributes.length * 170 }}
               />
             </div>
           </Spin>

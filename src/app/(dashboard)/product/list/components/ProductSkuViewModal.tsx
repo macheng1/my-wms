@@ -91,7 +91,7 @@ export default function ProductSkuViewModal({
         width: 220,
         render: (_: any, sku: any) => (
           <Typography.Text ellipsis={{ showTooltip: true }}>
-            {sku.productName || product?.name || "-"}
+            {sku.skuName || sku.name || sku.productName || product?.name || "-"}
           </Typography.Text>
         ),
       },

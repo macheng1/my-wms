@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
 import {
   Button,
@@ -11,14 +11,18 @@ import {
   Timeline,
   Toast,
 } from "@douyinfe/semi-ui-19";
-import { IconPlus } from "@douyinfe/semi-icons";
+import { IconDownload, IconPlus } from "@douyinfe/semi-icons";
 import ProDataTable, {
   ProColumnType,
   ProDataTableRef,
 } from "@/components/ProDataTable";
 import OrderApi from "@/api/orders";
+import ProductApi from "@/api/product";
+import CategoryApi from "@/api/category";
 import { printOrder } from "@/utils/printOrder";
 import { useUserStore } from "@/store/useUserStore";
+import OrderDetailModal from "./components/OrderDetailModal";
+import OrderEditModal from "./components/OrderEditModal";
 import {
   OrderFlowLog,
   OrderRecord,
@@ -32,6 +36,7 @@ const sourceMap: Record<OrderSource, { text: string; color: string }> = {
   [OrderSource.MINIAPP]: { text: "小程序", color: "blue" },
   [OrderSource.WEBSITE]: { text: "官网", color: "green" },
   [OrderSource.ADMIN]: { text: "后台", color: "grey" },
+  [OrderSource.MOBILE_MANUAL]: { text: "手机录入", color: "purple" },
 };
 
 const typeMap: Record<OrderType, { text: string; color: string }> = {
@@ -140,17 +145,25 @@ const dangerStatuses = new Set<OrderStatus>([
 export default function OrdersPage() {
   const tableRef = useRef<ProDataTableRef>(null);
   const [editVisible, setEditVisible] = useState(false);
+  const [detailVisible, setDetailVisible] = useState(false);
   const [flowVisible, setFlowVisible] = useState(false);
   const [logsVisible, setLogsVisible] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<OrderRecord | null>(null);
   const [flowLoading, setFlowLoading] = useState(false);
   const [logs, setLogs] = useState<OrderFlowLog[]>([]);
+  const [productOptions, setProductOptions] = useState<any[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
   const tenantName = useUserStore((s) => s.userInfo?.tenantName);
   const { hasBtnAuth } = useBtnAuth();
   const canCreate = hasBtnAuth("tenant:order:create");
   const canUpdate = hasBtnAuth("tenant:order:update");
   const canDelete = hasBtnAuth("tenant:order:delete");
   const canFlow = hasBtnAuth("tenant:order:flow");
+
+  useEffect(() => {
+    ProductApi.getProductSelect().then((res) => setProductOptions(res.data || []));
+    CategoryApi.getCategorySelect({ isActive: 1 }).then((res) => setCategoryOptions(res.data || []));
+  }, []);
 
   const columns: ProColumnType<OrderRecord>[] = [
     {
@@ -200,6 +213,16 @@ export default function OrdersPage() {
       render: (value: number) => `¥${Number(value || 0).toFixed(2)}`,
     },
     {
+      title: "订购数量",
+      dataIndex: "orderQuantity",
+      hideInSearch: true,
+      render: (_: unknown, record) => {
+        const total = (record.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+        const unit = record.items?.[0]?.unitName || "";
+        return total > 0 ? `${total}${unit ? ` ${unit}` : ""}` : "-";
+      },
+    },
+    {
       title: "期望交期",
       dataIndex: "expectedDeliveryDate",
       hideInSearch: true,
@@ -215,7 +238,7 @@ export default function OrdersPage() {
       title: "操作",
       dataIndex: "action",
       hideInSearch: true,
-      width: 360,
+      width: 420,
       fixed: "right",
       render: (_: unknown, record) => {
         const nextStatuses = getNextStatuses(record);
@@ -223,6 +246,15 @@ export default function OrdersPage() {
         <Space wrap>
           <Button theme="borderless" onClick={() => openLogs(record)}>
             日志
+          </Button>
+          <Button
+            theme="borderless"
+            onClick={() => {
+              setCurrentOrder(record);
+              setDetailVisible(true);
+            }}
+          >
+            订单明细
           </Button>
           <Button theme="borderless" onClick={() => handlePrint(record)}>
             打印
@@ -323,13 +355,53 @@ export default function OrdersPage() {
     });
   }
 
-  async function handleSave(values: any) {
-    const payload = {
-      ...values,
-      expectedDeliveryDate: values.expectedDeliveryDate
-        ? dayjs(values.expectedDeliveryDate).format("YYYY-MM-DD")
-        : undefined,
-    };
+  async function handleSave(values: any, categoryAttrs: any[]) {
+    const quantity = Number(values.quantity || 0);
+    if (quantity <= 0) {
+      Toast.error("订购数量必须大于 0");
+      return;
+    }
+    const payload: any = currentOrder?.id
+      ? {
+          items: [
+            {
+              id: currentOrder.items?.[0]?.id,
+              quantity,
+            },
+          ],
+        }
+      : {
+          source: values.source,
+          orderType: values.orderType,
+          customerName: values.customerName,
+          customerPhone: values.customerPhone,
+          customerEmail: values.customerEmail,
+          customerAddress: values.customerAddress,
+          totalAmount: values.totalAmount,
+          remark: values.remark,
+          expectedDeliveryDate: values.expectedDeliveryDate
+            ? dayjs(values.expectedDeliveryDate).format("YYYY-MM-DD")
+            : undefined,
+          items:
+            values.orderType === OrderType.STANDARD
+              ? [
+                  {
+                    skuId: values.skuId,
+                    quantity,
+                  },
+                ]
+              : [
+                  {
+                    productName: values.productName,
+                    quantity,
+                    specs: Object.fromEntries(
+                      categoryAttrs
+                        .map((attr) => [attr.code, values[`spec_${attr.code}`]])
+                        .filter(([, value]) => value !== undefined && value !== ""),
+                    ),
+                  },
+                ],
+        };
     if (currentOrder?.id) {
       await OrderApi.updateOrder(currentOrder.id, payload);
     } else {
@@ -377,6 +449,10 @@ export default function OrdersPage() {
     tableRef.current?.reload();
   }
 
+  async function handleExport() {
+    await OrderApi.exportOrderItems(tableRef.current?.getQueryParams() || {});
+  }
+
   function handleQuickFlow(order: OrderRecord, status: OrderStatus) {
     if (needFlowFormStatuses.has(status)) {
       setCurrentOrder(order);
@@ -407,69 +483,40 @@ export default function OrdersPage() {
         api={OrderApi.getOrderPage}
         columns={columns}
         toolBarRender={() => (
-          <Button icon={<IconPlus />} theme="solid" disabled={!canCreate} onClick={openCreate}>
-            新增订购单
-          </Button>
+          <Space>
+            <Button icon={<IconDownload />} onClick={handleExport}>
+              导出Excel
+            </Button>
+            <Button icon={<IconPlus />} theme="solid" disabled={!canCreate} onClick={openCreate}>
+              新增订购单
+            </Button>
+          </Space>
         )}
       />
 
-      <Modal
-        title={currentOrder ? "编辑订购单" : "新增订购单"}
-        visible={editVisible}
-        onCancel={() => setEditVisible(false)}
-        footer={null}
-        width={620}
-      >
-        <Form
-          labelPosition="left"
-          labelWidth={100}
-          initValues={
-            currentOrder
-              ? {
-                  ...currentOrder,
-                  expectedDeliveryDate: currentOrder.expectedDeliveryDate
-                    ? new Date(currentOrder.expectedDeliveryDate)
-                    : undefined,
-                }
-              : {
-                  source: OrderSource.ADMIN,
-                  orderType: OrderType.STANDARD,
-                }
-          }
+      {editVisible && (
+        <OrderEditModal
+          visible={editVisible}
+          currentOrder={currentOrder}
+          productOptions={productOptions}
+          categoryOptions={categoryOptions}
+          sourceMap={sourceMap}
+          typeMap={typeMap}
+          onClose={() => setEditVisible(false)}
           onSubmit={handleSave}
-        >
-          <Form.Input field="orderNumber" label="订单号" placeholder="不填则自动生成" />
-          <Form.Select field="source" label="订单来源" style={{ width: "100%" }}>
-            {Object.entries(sourceMap).map(([value, item]) => (
-              <Form.Select.Option key={value} value={value}>
-                {item.text}
-              </Form.Select.Option>
-            ))}
-          </Form.Select>
-          <Form.Select field="orderType" label="订单类型" style={{ width: "100%" }}>
-            {Object.entries(typeMap).map(([value, item]) => (
-              <Form.Select.Option key={value} value={value}>
-                {item.text}
-              </Form.Select.Option>
-            ))}
-          </Form.Select>
-          <Form.Input field="customerName" label="客户名称" placeholder="请输入客户名称" />
-          <Form.Input field="customerPhone" label="联系电话" placeholder="请输入联系电话" />
-          <Form.Input field="customerEmail" label="邮箱" placeholder="请输入邮箱" />
-          <Form.Input field="customerAddress" label="地址" placeholder="请输入地址" />
-          <Form.InputNumber field="totalAmount" label="订单金额" min={0} style={{ width: "100%" }} />
-          <Form.DatePicker field="expectedDeliveryDate" label="期望交期" style={{ width: "100%" }} />
-          <Form.TextArea field="remark" label="备注" rows={3} />
-          <div style={{ textAlign: "right", marginTop: 24 }}>
-            <Space>
-              <Button onClick={() => setEditVisible(false)}>取消</Button>
-              <Button theme="solid" type="primary" htmlType="submit">
-                保存
-              </Button>
-            </Space>
-          </div>
-        </Form>
-      </Modal>
+        />
+      )}
+
+      {detailVisible && (
+        <OrderDetailModal
+          visible={detailVisible}
+          order={currentOrder}
+          sourceMap={sourceMap}
+          typeMap={typeMap}
+          statusMap={statusMap}
+          onClose={() => setDetailVisible(false)}
+        />
+      )}
 
       <Modal
         title={`订单流转${currentOrder ? `：${currentOrder.orderNumber}` : ""}`}

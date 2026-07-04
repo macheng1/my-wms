@@ -1,5 +1,6 @@
 import type { OrderRecord } from "@/api/orders/types";
 import dayjs from "dayjs";
+import { formatOrderSpecs } from "@/utils/orderSpecs";
 
 /** 打印时需要的中文文案（由调用方用现有映射解析后传入，工具本身不耦合枚举） */
 export interface OrderPrintLabels {
@@ -38,10 +39,15 @@ export function printOrder(order: OrderRecord, labels: OrderPrintLabels): void {
       (it, i) => `
         <tr>
           <td class="c">${i + 1}</td>
-          <td>${esc(it.productName)}${it.sku ? `<span class="muted"> / ${esc(it.sku)}</span>` : ""}</td>
+          <td>
+            ${esc(it.skuName || it.productName)}
+            ${it.sku ? `<span class="muted"> / ${esc(it.sku)}</span>` : ""}
+            ${it.specs ? `<div class="muted spec">${esc(formatOrderSpecs(it.specs))}</div>` : ""}
+          </td>
           <td class="r">${esc(it.quantity)}${it.unitName ? ` ${esc(it.unitName)}` : ""}</td>
-          <td class="r">${money(it.price)}</td>
-          <td class="r">${money(it.amount)}</td>
+          <!-- 单价/金额暂时不用，先隐藏，保留数据字段方便后续恢复。 -->
+          <!-- <td class="r">${money(it.price)}</td> -->
+          <!-- <td class="r">${money(it.amount)}</td> -->
         </tr>`,
     )
     .join("");
@@ -67,6 +73,7 @@ export function printOrder(order: OrderRecord, labels: OrderPrintLabels): void {
   td.c, th.c { text-align: center; width: 36px; }
   td.r, th.r { text-align: right; }
   .muted { color: #999; }
+  .spec { margin-top: 3px; font-size: 12px; line-height: 1.5; }
   .total { text-align: right; font-size: 15px; font-weight: 700; margin-top: 10px; }
   .remark { margin-top: 10px; white-space: pre-wrap; }
   .sign { display: flex; justify-content: space-between; margin-top: 36px; color: #555; }
@@ -100,16 +107,18 @@ export function printOrder(order: OrderRecord, labels: OrderPrintLabels): void {
         <th class="c">#</th>
         <th>产品 / SKU</th>
         <th class="r">数量</th>
-        <th class="r">单价</th>
-        <th class="r">金额</th>
+        <!-- 单价/金额暂时不用，先隐藏。 -->
+        <!-- <th class="r">单价</th> -->
+        <!-- <th class="r">金额</th> -->
       </tr>
     </thead>
     <tbody>
-      ${rows || `<tr><td colspan="5" class="c muted">无明细</td></tr>`}
+      ${rows || `<tr><td colspan="3" class="c muted">无明细</td></tr>`}
     </tbody>
   </table>
 
-  <div class="total">合计：¥ ${money(order.totalAmount)}</div>
+  <!-- 订单金额暂时不用，先隐藏。 -->
+  <!-- <div class="total">合计：¥ ${money(order.totalAmount)}</div> -->
   ${order.remark ? `<div class="remark"><span class="label">备注：</span>${esc(order.remark)}</div>` : ""}
 
   <div class="sign">
