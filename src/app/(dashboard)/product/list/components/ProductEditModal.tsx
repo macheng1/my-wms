@@ -17,6 +17,11 @@ const { Text } = Typography;
 const getAttrLabel = (attr: any) =>
   attr.unit ? `${attr.name}（${attr.unit}）` : attr.name;
 
+const sortAttributes = (attrs: any[]) =>
+  [...attrs].sort((a, b) =>
+    String(a.code || a.name || "").localeCompare(String(b.code || b.name || ""), "zh-Hans-CN", { numeric: true }),
+  );
+
 export default function ProductEditModal({
   visible,
   data,
@@ -51,19 +56,6 @@ export default function ProductEditModal({
     );
   }, []);
 
-  const loadUnits = useCallback(async () => {
-    const res = await UnitApi.getActiveUnits();
-    const list = res.data || [];
-    unitsRef.current = list;
-    setUnits(list);
-    setUnitOptions(
-      list.map((item: any) => ({
-        label: `${item.name}${item.symbol ? `（${item.symbol}）` : ""}`,
-        value: String(item.id),
-      }))
-    );
-  }, []);
-
   const loadUnitConversions = useCallback(async (unitId?: string, unitList?: IUnit[]) => {
     const sourceUnits = unitList || unitsRef.current;
     const unit = sourceUnits.find((item) => String(item.id) === String(unitId));
@@ -86,7 +78,7 @@ export default function ProductEditModal({
     setAttrLoading(true);
     try {
       const res = await CategoryApi.getCategoryDetail(categoryId);
-      const attrs = res.data?.attributes || [];
+      const attrs = sortAttributes(res.data?.attributes || []);
       setDynamicAttributes(attrs);
       return attrs;
     } finally {
@@ -135,7 +127,8 @@ export default function ProductEditModal({
 
           // 等待类目属性加载完成
           const attrs = await handleCategoryChange(categoryId);
-          const specs = product.specs || {};
+          const defaultSku = product.skus?.[0] || {};
+          const specs = defaultSku.specs || product.specs || {};
           const normalizedSpecs = { ...specs };
           (attrs || []).forEach((attr: any) => {
             const fieldKey = attr.code || attr.name;
@@ -158,10 +151,15 @@ export default function ProductEditModal({
           formApi.setValues({
             ...product,
             categoryId,
+            skuId: defaultSku.id,
+            skuCode: defaultSku.skuCode || product.code,
+            barcode: defaultSku.barcode || product.barcode,
+            unitId: defaultSku.unitId || product.unitId,
+            safetyStock: defaultSku.safetyStock ?? product.safetyStock ?? 0,
             dynamicAttrs: normalizedSpecs,
             images: formattedImages,
           });
-          setSelectedUnitId(String(product.unitId));
+          setSelectedUnitId(String(defaultSku.unitId || product.unitId || ""));
           setUnitChangeLockedReason(product.unitChangeLockedReason || null);
           setStockSummary(product.stockSummary || null);
           if (Array.isArray(product.conversionRules)) {
@@ -171,7 +169,7 @@ export default function ProductEditModal({
           }
         } else {
           // 新增模式：重置表单
-          formApi.setValues({ isActive: true, images: [] });
+          formApi.setValues({ isActive: true, images: [], safetyStock: 0 });
           setSelectedUnitId(undefined);
           setUnitConversions([]);
           setUnitChangeLockedReason(null);
@@ -179,7 +177,7 @@ export default function ProductEditModal({
         }
       })();
     }
-  }, [visible, data?.id, formApi, handleCategoryChange, loadCategories, loadUnitConversions]);
+  }, [visible, data, data?.id, formApi, handleCategoryChange, loadCategories, loadUnitConversions]);
 
   const selectedUnit = units.find((item) => String(item.id) === String(selectedUnitId));
   const unitByCode = new Map(units.map((item) => [item.code, item]));
@@ -209,20 +207,36 @@ export default function ProductEditModal({
         })
         .filter(Boolean); // 剔除上传失败或无效的项
 
-      const payload: any = {
-        ...values,
+      const productPayload: any = {
+        name: values.name,
+        code: values.code,
+        categoryId: values.categoryId,
+        description: values.description,
         images: imageUrls, // 💡 此时发给后端的将是真正的远程 URL 列表
-        specs: values.dynamicAttrs || {},
         isActive: values.isActive ? 1 : 0,
       };
-      delete payload.dynamicAttrs;
 
-      if (data?.id) await ProductApi.updateProduct({ ...payload, id: data.id });
-      else await ProductApi.saveProduct(payload);
+      const productRes = data?.id
+        ? await ProductApi.updateProduct({ ...productPayload, id: data.id })
+        : await ProductApi.saveProduct(productPayload);
+      const product = productRes.data;
+      const skuPayload = {
+        id: values.skuId,
+        productId: product.id,
+        skuCode: values.skuCode,
+        barcode: values.barcode,
+        unitId: values.unitId,
+        specs: values.dynamicAttrs || {},
+        safetyStock: values.safetyStock || 0,
+        isActive: values.isActive ? 1 as const : 0 as const,
+      };
+
+      if (skuPayload.id) await ProductApi.updateSku(skuPayload);
+      else await ProductApi.saveSku(skuPayload);
 
       Toast.success("操作成功");
       onSuccess();
-    } catch (errors) {
+    } catch {
       // 校验失败会自动在 UI 上显示错误，无需额外处理
     } finally {
       setLoading(false);
@@ -245,22 +259,22 @@ export default function ProductEditModal({
         labelWidth={120}
       >
         <Section text="基础信息">
-          <Form.Input
-            field="code"
-            label="SKU编码"
-            placeholder="自动生成"
-            disabled
-          />
-          <Form.Input
-            field="barcode"
-            label="条形码"
-            placeholder="新增时默认等于 SKU 编码"
-          />
+          <Form.Input field="code" label="产品编码" placeholder="不填则自动生成" />
           <Form.Input
             field="name"
             label="产品名称"
             placeholder="请输入产品名称"
             rules={[{ required: true, message: "必填" }]}
+          />
+          <Form.Input
+            field="skuCode"
+            label="SKU编码"
+            placeholder="不填则自动生成"
+          />
+          <Form.Input
+            field="barcode"
+            label="SKU条形码"
+            placeholder="不填则默认等于 SKU 编码"
           />
 
           <Form.Select
@@ -329,7 +343,7 @@ export default function ProductEditModal({
         </Section>
 
         {dynamicAttributes.length > 0 && (
-          <Section text="规格属性">
+          <Section text="SKU规格属性">
             <Spin spinning={attrLoading}>
               {dynamicAttributes.map((attr) =>
                 attr.type === "select" ? (
@@ -372,7 +386,7 @@ export default function ProductEditModal({
           <UploadImage field="images" label="产品图" max={3} uploadPath="product" />
         </Section>
 
-        <Section text="其他配置">
+        <Section text="SKU库存配置">
           <Form.InputNumber
             field="safetyStock"
             label="安全库存"
@@ -381,6 +395,9 @@ export default function ProductEditModal({
             precision={0}
             style={{ width: "100%" }}
           />
+        </Section>
+
+        <Section text="其他配置">
           <Form.TextArea field="description" label="产品描述" rows={2} />
           <Form.Switch field="isActive" label="启用状态" />
         </Section>

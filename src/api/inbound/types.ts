@@ -13,7 +13,9 @@ export enum InboundType {
  * 入库明细项
  */
 export interface IInboundItem {
-  sku: string;
+  /** 表单内部旧字段名，提交前会映射为 skuId */
+  sku?: string;
+  skuId: string;
   quantity: number;
   unitCode?: string;
   locationId?: string;
@@ -23,7 +25,7 @@ export interface IInboundItem {
  * 入库请求
  */
 export interface IInboundRequest {
-  sku?: string;
+  skuId?: string;
   quantity: number;
   unitCode?: string;
   orderNo?: string;
@@ -63,6 +65,7 @@ export interface IUnitInfo {
  * 入库响应
  */
 export interface IInboundResponse {
+  skuId: string;
   sku: string;
   productName: string;
   beforeQty: number;
@@ -80,6 +83,7 @@ export interface IInboundRecord {
   orderNo?: string;
   type: InboundType;
   sku: string;
+  skuId?: string;
   productName?: string;
   quantity: number;
   unitId: string;

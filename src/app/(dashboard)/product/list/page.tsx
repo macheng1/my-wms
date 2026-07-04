@@ -134,15 +134,41 @@ export default function ProductListPage() {
     return attr?.name || key;
   }, []);
 
+  const getSpecUnit = React.useCallback((key: string, record: any) => {
+    const attrs = record?.category?.attributes || [];
+    const attr = attrs.find((item: any) => item.code === key || item.name === key);
+    return attr?.unit || "";
+  }, []);
+
+  const getOrderedSpecEntries = React.useCallback((specs: Record<string, any>, record: any) => {
+    const attrs = [...(record?.category?.attributes || [])].sort((a: any, b: any) =>
+      String(a.code || a.name || "").localeCompare(String(b.code || b.name || ""), "zh-Hans-CN", { numeric: true }),
+    );
+    const hasValue = (key: string) => specs[key] !== undefined && specs[key] !== null && specs[key] !== "";
+    const usedKeys = new Set<string>();
+    const ordered = attrs.flatMap((attr: any) => {
+      const key = [attr.code, attr.name].find((candidate) => candidate && hasValue(candidate));
+      if (!key) return [];
+      usedKeys.add(key);
+      return [[key, specs[key]] as [string, any]];
+    });
+    const extras = Object.keys(specs)
+      .filter((key) => !usedKeys.has(key) && hasValue(key))
+      .sort((a, b) => a.localeCompare(b, "zh-Hans-CN", { numeric: true }))
+      .map((key) => [key, specs[key]] as [string, any]);
+    return [...ordered, ...extras];
+  }, []);
+
   // 规格展示
   const renderSpecs = React.useCallback((specs: any, record: any) => {
     if (!specs || typeof specs !== "object") return "-";
-    const text = Object.entries(specs)
-      .filter(([, value]) => value !== undefined && value !== null && value !== "")
-      .map(([key, value]) => `${getSpecLabel(key, record)}:${value}`)
+    const text = getOrderedSpecEntries(specs, record)
+      .map(([key, value]) => `${getSpecLabel(key, record)}:${value}${getSpecUnit(key, record)}`)
       .join(" / ");
     return text || "-";
-  }, [getSpecLabel]);
+  }, [getOrderedSpecEntries, getSpecLabel, getSpecUnit]);
+
+  const getDefaultSku = React.useCallback((record: any) => record?.skus?.[0] || null, []);
 
   // 下载模板
   async function handleDownloadTemplate(categoryCode?: string) {
@@ -166,9 +192,15 @@ export default function ProductListPage() {
           <CommonImage src={imgs} size={48} alt="product" />,
       },
       {
-        title: "SKU编码",
+        title: "产品编码",
         dataIndex: "code",
         valueType: "text",
+      },
+      {
+        title: "默认SKU",
+        dataIndex: "skuCode",
+        hideInSearch: true,
+        render: (_: any, record: any) => getDefaultSku(record)?.skuCode || "-",
       },
       {
         title: "条形码",
@@ -176,7 +208,8 @@ export default function ProductListPage() {
         valueType: "text",
         width: 180,
         render: (value: string, record: any) => {
-          const barcode = value || record.code;
+          const defaultSku = getDefaultSku(record);
+          const barcode = defaultSku?.barcode || value || record.code;
           return <BarcodeCell value={barcode} />;
         },
       },
@@ -195,10 +228,16 @@ export default function ProductListPage() {
         render: (_: any, record: any) => record.category?.name || "-",
       },
       {
-        title: "规格",
+        title: "SKU规格",
         dataIndex: "specs",
         hideInSearch: true,
-        render: (specs: any, record: any) => renderSpecs(specs, record),
+        render: (_: any, record: any) => renderSpecs(getDefaultSku(record)?.specs || record.specs, record),
+      },
+      {
+        title: "SKU数",
+        dataIndex: "skuCount",
+        hideInSearch: true,
+        render: (_: any, record: any) => record.skuCount ?? record.skus?.length ?? 0,
       },
       {
         title: "状态",
@@ -252,7 +291,7 @@ export default function ProductListPage() {
         ),
       },
     ],
-    [categoryOptions, renderSpecs],
+    [categoryOptions, getDefaultSku, renderSpecs],
   );
 
   return (

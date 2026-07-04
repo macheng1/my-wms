@@ -5,6 +5,8 @@ import {
   IQueryProduct,
   IProductSelectOption,
   IQueryProductSelect,
+  IProductSku,
+  ISaveProductSku,
 } from "./types";
 
 /**
@@ -43,6 +45,21 @@ const ProductApi = {
    */
   getProductByBarcode: (barcode: string) =>
     request.get<IProduct>(`products/barcode/${encodeURIComponent(barcode)}`),
+
+  getProductSkus: (productId: string) =>
+    request.get<IProductSku[]>(`products/${productId}/skus`),
+
+  getSkuDetail: (skuId: string) =>
+    request.get<IProductSku>(`products/skus/${skuId}`),
+
+  saveSku: (data: ISaveProductSku) =>
+    request.post<IProductSku>("products/skus/save", data),
+
+  updateSku: (data: ISaveProductSku) =>
+    request.post<IProductSku>("products/skus/update", data),
+
+  deleteSku: (id: string) =>
+    request.post("products/skus/delete", { id }),
 
   /**
    * 新增产品

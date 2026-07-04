@@ -64,7 +64,7 @@ export default function AdjustModal({
       }
 
       await InventoryApi.adjust({
-        sku: data.sku,
+        skuId: data.skuId,
         quantity: adjustQty,
         unitCode: data.unitCode,
         reason: values.reason,

@@ -4,8 +4,12 @@
 export interface IInventory {
   id: string;
   tenantId: string;
+  skuId: string;
+  productId: string;
   sku: string;
   productName: string;
+  barcode?: string;
+  specs?: Record<string, any>;
   quantity: number;
   quantityDisplay?: string;
   lockedQuantity?: number;
@@ -35,7 +39,7 @@ export interface IInventory {
  * 库存调整请求
  */
 export interface IAdjustRequest {
-  sku: string;
+  skuId: string;
   quantity: number; // 正数增加，负数减少
   unitCode?: string;
   reason: string; // 调整原因
@@ -47,6 +51,7 @@ export interface IAdjustRequest {
  * 库存调整响应
  */
 export interface IAdjustResponse {
+  skuId: string;
   sku: string;
   productName: string;
   beforeQty: number;
@@ -67,6 +72,7 @@ export interface IAdjustResponse {
 export interface IAvailableOutboundProduct {
   value: string;
   label: string;
+  skuId: string;
   sku: string;
   productName: string;
   quantity: number;

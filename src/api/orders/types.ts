@@ -29,8 +29,12 @@ export enum OrderStatus {
 
 export interface OrderItem {
   id: string;
+  productId?: string | null;
+  skuId?: string | null;
   productName: string;
   sku?: string | null;
+  barcode?: string | null;
+  specs?: Record<string, any> | null;
   quantity: number;
   unitName?: string | null;
   price: number;
@@ -87,6 +91,12 @@ export interface SaveOrder {
   totalAmount?: number;
   remark?: string;
   expectedDeliveryDate?: string;
+  items?: Array<{
+    skuId: string;
+    quantity: number;
+    price?: number;
+    customRequirement?: string;
+  }>;
 }
 
 export interface OrderFlowLog {

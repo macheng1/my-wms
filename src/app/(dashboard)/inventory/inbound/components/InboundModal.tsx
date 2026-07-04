@@ -50,7 +50,7 @@ export default function InboundModal({
   }>({});
   const [conversionMap, setConversionMap] = useState<Record<string, any[]>>({});
   const [items, setItems] = useState<IInboundItem[]>([
-    { sku: "", quantity: 0, locationId: "" },
+    { skuId: "", sku: "", quantity: 0, locationId: "" },
   ]);
 
   // 获取当前用户信息
@@ -75,13 +75,13 @@ export default function InboundModal({
   const handleClose = () => {
     formApi?.reset();
     setFormValues({});
-    setItems([{ sku: "", quantity: 0, locationId: "" }]);
+    setItems([{ skuId: "", sku: "", quantity: 0, locationId: "" }]);
     onClose();
   };
 
   // 添加产品行
   const handleAddItem = () => {
-    setItems([...items, { sku: "", quantity: 0, locationId: "" }]);
+    setItems([...items, { skuId: "", sku: "", quantity: 0, locationId: "" }]);
   };
 
   const loadConversions = async (toUnitCode?: string) => {
@@ -206,7 +206,7 @@ export default function InboundModal({
           type: values.type,
           orderNo: values.orderNo,
           remark: values.remark,
-          sku: values.sku,
+          skuId: values.sku,
           quantity: values.quantity,
           unitCode: values.unitCode || getProductUnitCode(values.sku),
           locationId: values.locationId,
@@ -224,7 +224,9 @@ export default function InboundModal({
           orderNo: values.orderNo,
           remark: values.remark,
           items: items.map((item) => ({
-            ...item,
+            skuId: item.sku || item.skuId,
+            quantity: item.quantity,
+            locationId: item.locationId,
             unitCode: item.unitCode || getProductUnitCode(item.sku),
           })),
           notifyUserIds, // 通知当前用户

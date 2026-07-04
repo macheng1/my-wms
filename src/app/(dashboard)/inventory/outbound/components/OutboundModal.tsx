@@ -59,7 +59,7 @@ export default function OutboundModal({
   const [singleLocationOptions, setSingleLocationOptions] = useState<LocationStockOption[]>([]);
   const [rowLocationOptions, setRowLocationOptions] = useState<Record<number, LocationStockOption[]>>({});
   const [items, setItems] = useState<IOutboundItemWithInfo[]>([
-    { sku: "", quantity: 0, locationId: "" },
+    { skuId: "", sku: "", quantity: 0, locationId: "" },
   ]);
   // 单笔出库选中的产品
   const [selectedProduct, setSelectedProduct] = useState<IAvailableOutboundProduct | null>(null);
@@ -86,7 +86,7 @@ export default function OutboundModal({
   // 关闭时重置
   const handleClose = () => {
     formApi?.reset();
-    setItems([{ sku: "", quantity: 0, locationId: "" }]);
+    setItems([{ skuId: "", sku: "", quantity: 0, locationId: "" }]);
     setSelectedProduct(null);
     setSingleLocationOptions([]);
     setRowLocationOptions({});
@@ -95,7 +95,7 @@ export default function OutboundModal({
 
   // 添加产品行
   const handleAddItem = () => {
-    setItems([...items, { sku: "", quantity: 0, locationId: "" }]);
+    setItems([...items, { skuId: "", sku: "", quantity: 0, locationId: "" }]);
   };
 
   // 删除产品行
@@ -165,7 +165,7 @@ export default function OutboundModal({
           type: values.type,
           orderNo: values.orderNo,
           remark: values.remark,
-          sku: values.sku,
+          skuId: values.sku,
           quantity: values.quantity,
           locationId: values.locationId,
           notifyUserIds, // 通知当前用户
@@ -176,7 +176,12 @@ export default function OutboundModal({
           type: values.type,
           orderNo: values.orderNo,
           remark: values.remark,
-          items: items as IOutboundItem[],
+          items: items.map((item) => ({
+            skuId: item.sku || item.skuId,
+            quantity: item.quantity,
+            unitCode: item.unitCode,
+            locationId: item.locationId,
+          })),
           notifyUserIds, // 通知当前用户
         });
         Toast.success("批量出库成功");

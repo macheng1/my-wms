@@ -7,10 +7,10 @@ export interface IProduct {
   name: string;
   /** 自动生成的 SKU 编码 */
   code: string;
-  /** 产品条形码，默认与 SKU 一致 */
+  /** 旧产品条形码；新流程使用 skus[].barcode */
   barcode?: string | null;
   categoryId: string;
-  unitId: string;
+  unitId?: string | null;
   unit?: string;
   unitCode?: string;
   unitName?: string;
@@ -39,7 +39,9 @@ export interface IProduct {
   /** * 动态规格数据 (MySQL JSON)
    * 结构如: { "ATTR_CZ": "304", "ATTR_ZJ": "1.5" }
    */
-  specs: Record<string, any>;
+  specs?: Record<string, any>;
+  skus?: IProductSku[];
+  skuCount?: number;
   /** 产品多图数组 (MySQL JSON) */
   images: string[];
   safetyStock: number;
@@ -67,10 +69,10 @@ export interface ISaveProduct {
   /** 如果不传，后端默认等于 SKU 编码 */
   barcode?: string;
   categoryId: string;
-  unitId: string;
+  unitId?: string;
   unit?: string;
-  /** 必填：需包含该类目绑定的所有属性值 */
-  specs: Record<string, any>;
+  /** 旧字段；新流程规格在 ProductSku 上维护 */
+  specs?: Record<string, any>;
   /** 图片 URL 数组 */
   images?: string[];
   safetyStock?: number;
@@ -98,21 +100,57 @@ export interface IQueryProduct {
 export interface IProductSelectOption {
   /** 显示文本，格式：产品名称 (SKU编码) */
   label: string;
-  /** 产品编码（SKU），用于提交 */
+  /** SKU ID，用于提交 */
   value: string;
+  skuId: string;
+  productId: string;
   /** 产品ID（UUID） */
   id: string;
   /** 产品名称 */
   name: string;
+  productName: string;
   /** 产品编码/SKU */
   code: string;
+  skuCode: string;
   /** 产品条形码 */
   barcode?: string | null;
+  specs?: Record<string, any>;
+  safetyStock?: number;
   /** 产品库存单位 */
   unitCode?: string | null;
   unitName?: string | null;
   unitSymbol?: string | null;
   unitCategory?: string | null;
+}
+
+export interface IProductSku {
+  id: string;
+  skuId?: string;
+  productId: string;
+  productName?: string | null;
+  skuCode: string;
+  sku?: string;
+  barcode?: string | null;
+  specs: Record<string, any>;
+  unitId: string;
+  unitCode?: string | null;
+  unitName?: string | null;
+  unitSymbol?: string | null;
+  safetyStock: number;
+  isActive: 1 | 0;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ISaveProductSku {
+  id?: string;
+  productId: string;
+  skuCode?: string;
+  barcode?: string;
+  unitId: string;
+  specs: Record<string, any>;
+  safetyStock?: number;
+  isActive?: 1 | 0;
 }
 
 /**

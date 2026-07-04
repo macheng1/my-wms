@@ -13,7 +13,9 @@ export enum OutboundType {
  * 出库明细项
  */
 export interface IOutboundItem {
-  sku: string;
+  /** 表单内部旧字段名，提交前会映射为 skuId */
+  sku?: string;
+  skuId: string;
   quantity: number;
   unitCode?: string;
   locationId?: string;
@@ -23,7 +25,7 @@ export interface IOutboundItem {
  * 出库请求
  */
 export interface IOutboundRequest {
-  sku?: string;
+  skuId?: string;
   quantity: number;
   unitCode?: string;
   orderNo?: string;
@@ -63,6 +65,7 @@ export interface IUnitInfo {
  * 出库响应
  */
 export interface IOutboundResponse {
+  skuId: string;
   sku: string;
   productName: string;
   beforeQty: number;
@@ -80,6 +83,7 @@ export interface IOutboundRecord {
   orderNo?: string;
   type: OutboundType;
   sku: string;
+  skuId?: string;
   productName?: string;
   quantity: number;
   unitId: string;
