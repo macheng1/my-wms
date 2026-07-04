@@ -20,6 +20,7 @@ export const RawUploadImage = ({
   uploadFieldName = "file",
   uploadExtraData,
   mediaType = "image",
+  size = 100,
 }: any) => {
   const accept =
     mediaType === "document"
@@ -69,8 +70,8 @@ export const RawUploadImage = ({
         {value.length < max && (
           <div
             style={{
-              width: 100,
-              height: 100,
+              width: size,
+              height: size,
               border: "1px dashed var(--semi-color-border)",
               borderRadius: "8px",
               display: "flex",

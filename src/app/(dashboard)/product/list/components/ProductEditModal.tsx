@@ -290,8 +290,8 @@ export default function ProductEditModal({
       ),
     },
     {
-      title: "图片",
-      width: 150,
+      title: "SKU图片",
+      width: 120,
       render: (_: any, sku: SkuFormItem) => (
         <RawUploadImage
           value={sku.images}
@@ -299,6 +299,7 @@ export default function ProductEditModal({
           prompt=""
           uploadText="上传"
           uploadPath="product/sku"
+          size={56}
           onChange={(images: any[]) => updateSku(sku.clientId, { images })}
         />
       ),
@@ -503,7 +504,7 @@ export default function ProductEditModal({
                 dataSource={skus}
                 pagination={false}
                 size="small"
-                scroll={{ x: 550 + dynamicAttributes.length * 170 }}
+                scroll={{ x: 520 + dynamicAttributes.length * 170 }}
               />
             </div>
           </Spin>
