@@ -192,18 +192,18 @@ export default function ProductListPage() {
           <CommonImage src={imgs} size={48} alt="product" />,
       },
       {
-        title: "产品编码",
+        title: "产品系列编码",
         dataIndex: "code",
         valueType: "text",
       },
       {
-        title: "默认SKU",
+        title: "默认SKU编码",
         dataIndex: "skuCode",
         hideInSearch: true,
         render: (_: any, record: any) => getDefaultSku(record)?.skuCode || "-",
       },
       {
-        title: "条形码",
+        title: "默认SKU条码",
         dataIndex: "barcode",
         valueType: "text",
         width: 180,

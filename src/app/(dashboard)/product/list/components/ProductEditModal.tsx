@@ -245,7 +245,7 @@ export default function ProductEditModal({
 
   return (
     <Modal
-      title={data?.id ? "编辑产品" : "新增产品"}
+      title={data?.id ? "编辑产品及默认SKU" : "新增产品及首个SKU"}
       visible={visible}
       onCancel={handleClose}
       onOk={handleOk} // ✅ 绑定新的 handleOk 函数
@@ -258,25 +258,19 @@ export default function ProductEditModal({
         labelPosition="left"
         labelWidth={120}
       >
-        <Section text="基础信息">
-          <Form.Input field="code" label="产品编码" placeholder="不填则自动生成" />
+        <Section text="产品基础信息">
+          <div style={{ marginLeft: 120, marginBottom: 12 }}>
+            <Text type="tertiary">
+              产品只是目录入口；规格、单位、条码、安全库存都维护在 SKU 上。
+            </Text>
+          </div>
+          <Form.Input field="code" label="产品系列编码" placeholder="不填则自动生成产品系列编码" />
           <Form.Input
             field="name"
             label="产品名称"
             placeholder="请输入产品名称"
             rules={[{ required: true, message: "必填" }]}
           />
-          <Form.Input
-            field="skuCode"
-            label="SKU编码"
-            placeholder="不填则自动生成"
-          />
-          <Form.Input
-            field="barcode"
-            label="SKU条形码"
-            placeholder="不填则默认等于 SKU 编码"
-          />
-
           <Form.Select
             field="categoryId"
             label="所属类目"
@@ -289,15 +283,33 @@ export default function ProductEditModal({
               await handleCategoryChange(v as string);
             }}
           />
+        </Section>
+
+        <Section text="首个SKU">
+          <div style={{ marginLeft: 120, marginBottom: 12 }}>
+            <Text type="tertiary">
+              首个 SKU 是实际可入库、可下单、可打印的规格组合，后续可以继续补充更多 SKU。
+            </Text>
+          </div>
+          <Form.Input
+            field="skuCode"
+            label="SKU编码"
+            placeholder="不填则自动生成 SKU 编码"
+          />
+          <Form.Input
+            field="barcode"
+            label="SKU条形码"
+            placeholder="不填则默认等于 SKU 编码"
+          />
           <Form.Select
             field="unitId"
-            label="库存主单位"
+            label="SKU库存单位"
             style={{ width: "100%" }}
             placeholder="请选择库存主单位"
             optionList={unitOptions}
             filter
             disabled={unitSelectDisabled}
-            rules={[{ required: true, message: "请选择库存主单位" }]}
+            rules={[{ required: true, message: "请选择SKU库存单位" }]}
             onChange={async (value) => {
               if (unitSelectDisabled) return;
               const unitId = String(value || "");
