@@ -1,26 +1,74 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Modal, Form, Toast, Spin, Space, Tag, Typography } from "@douyinfe/semi-ui-19";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Button,
+  Card,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Spin,
+  Switch,
+  Toast,
+  Typography,
+} from "@douyinfe/semi-ui-19";
+import { IconDelete, IconPlus } from "@douyinfe/semi-icons";
 import ProductApi from "@/api/product";
 import CategoryApi from "@/api/category";
 import UnitApi from "@/api/unit";
-import { IUnit, IUnitConversion } from "@/api/unit/types";
-
-// 💡 引入 FormApi 类型
+import { IUnit } from "@/api/unit/types";
+import { IProductSku } from "@/api/product/types";
 import { FormApi } from "@douyinfe/semi-ui-19/lib/es/form";
 import UploadImage from "@/components/UploadImage";
 
 const { Section } = Form;
 const { Text } = Typography;
 
+type SkuFormItem = {
+  clientId: string;
+  id?: string;
+  skuCode?: string;
+  barcode?: string;
+  unitId?: string;
+  specs: Record<string, any>;
+  safetyStock: number;
+  isActive: boolean;
+};
+
+const createSkuDraft = (): SkuFormItem => ({
+  clientId: `sku-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  specs: {},
+  safetyStock: 0,
+  isActive: true,
+});
+
+const getAttrKey = (attr: any) => attr.code || attr.name;
+
 const getAttrLabel = (attr: any) =>
   attr.unit ? `${attr.name}（${attr.unit}）` : attr.name;
 
 const sortAttributes = (attrs: any[]) =>
   [...attrs].sort((a, b) =>
-    String(a.code || a.name || "").localeCompare(String(b.code || b.name || ""), "zh-Hans-CN", { numeric: true }),
+    String(a.code || a.name || "").localeCompare(
+      String(b.code || b.name || ""),
+      "zh-Hans-CN",
+      { numeric: true },
+    ),
   );
+
+const normalizeSkuSpecs = (specs: Record<string, any> = {}, attrs: any[]) => {
+  const normalized = { ...specs };
+  attrs.forEach((attr) => {
+    const key = getAttrKey(attr);
+    if (normalized[key] === undefined && normalized[attr.name] !== undefined) {
+      normalized[key] = normalized[attr.name];
+    }
+  });
+  return normalized;
+};
 
 export default function ProductEditModal({
   visible,
@@ -29,52 +77,40 @@ export default function ProductEditModal({
   onSuccess,
 }: any) {
   const [loading, setLoading] = useState(false);
-  const [categoryOptions, setCategoryOptions] = useState<any>([]);
-  const [unitOptions, setUnitOptions] = useState<any>([]);
-  const [units, setUnits] = useState<IUnit[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
+  const [unitOptions, setUnitOptions] = useState<any[]>([]);
   const [formApi, setFormApi] = useState<FormApi | null>(null);
   const [dynamicAttributes, setDynamicAttributes] = useState<any[]>([]);
   const [attrLoading, setAttrLoading] = useState(false);
-  const [selectedUnitId, setSelectedUnitId] = useState<string>();
-  const [unitConversions, setUnitConversions] = useState<IUnitConversion[]>([]);
-  const [unitChangeLockedReason, setUnitChangeLockedReason] = useState<string | null>(null);
-  const [stockSummary, setStockSummary] = useState<any>(null);
-  const unitsRef = useRef<IUnit[]>([]);
+  const [skus, setSkus] = useState<SkuFormItem[]>([createSkuDraft()]);
+  const [deletedSkuIds, setDeletedSkuIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    unitsRef.current = units;
-  }, [units]);
-
-  // 加载类目列表
   const loadCategories = useCallback(async () => {
     const res = await CategoryApi.getCategoryPage({ page: 1, pageSize: 100 });
     setCategoryOptions(
       (res.data?.list || []).map((item: any) => ({
         label: item.name,
         value: String(item.id),
-      }))
+      })),
     );
   }, []);
 
-  const loadUnitConversions = useCallback(async (unitId?: string, unitList?: IUnit[]) => {
-    const sourceUnits = unitList || unitsRef.current;
-    const unit = sourceUnits.find((item) => String(item.id) === String(unitId));
-    if (!unit?.code) {
-      setUnitConversions([]);
-      return;
-    }
-
-    try {
-      const res = await UnitApi.getConversions(unit.code);
-      setUnitConversions(res.data || []);
-    } catch {
-      setUnitConversions([]);
-    }
+  const loadUnits = useCallback(async () => {
+    const res = await UnitApi.getActiveUnits();
+    setUnitOptions(
+      (res.data || []).map((item: IUnit) => ({
+        label: `${item.name}${item.symbol ? `（${item.symbol}）` : ""}`,
+        value: String(item.id),
+      })),
+    );
   }, []);
 
-  // 类目联动逻辑
-  const handleCategoryChange = useCallback(async (categoryId: string) => {
-    if (!categoryId) return setDynamicAttributes([]);
+  const handleCategoryChange = useCallback(async (categoryId?: string) => {
+    if (!categoryId) {
+      setDynamicAttributes([]);
+      return [];
+    }
+
     setAttrLoading(true);
     try {
       const res = await CategoryApi.getCategoryDetail(categoryId);
@@ -86,158 +122,186 @@ export default function ProductEditModal({
     }
   }, []);
 
-  // 关闭时清空数据
-  const handleClose = () => {
+  const resetModalState = useCallback(() => {
     formApi?.reset();
     setDynamicAttributes([]);
-    setSelectedUnitId(undefined);
-    setUnitConversions([]);
-    setUnitChangeLockedReason(null);
-    setStockSummary(null);
+    setSkus([createSkuDraft()]);
+    setDeletedSkuIds([]);
+  }, [formApi]);
+
+  const handleClose = () => {
+    resetModalState();
     onClose();
   };
 
-  // 数据回显与初始化
   useEffect(() => {
-    if (visible && formApi) {
-      (async () => {
-        // 先清空旧数据，避免切换商品时残留
-        setDynamicAttributes([]);
-        setUnitChangeLockedReason(null);
-        setStockSummary(null);
-        formApi.reset();
+    if (!visible || !formApi) return;
 
-        // 加载基础下拉
-        const [, unitRes] = await Promise.all([loadCategories(), UnitApi.getActiveUnits()]);
-        const unitList = unitRes.data || [];
-        unitsRef.current = unitList;
-        setUnits(unitList);
-        setUnitOptions(
-          unitList.map((item: any) => ({
-            label: `${item.name}${item.symbol ? `（${item.symbol}）` : ""}`,
-            value: String(item.id),
-          }))
-        );
+    (async () => {
+      resetModalState();
+      await Promise.all([loadCategories(), loadUnits()]);
 
-        if (data?.id) {
-          // 编辑模式：先加载产品详情，再加载对应类目的属性
-          const detail = await ProductApi.getProductDetail(data.id);
-          const product = detail.data || data;
-          const categoryId = String(product.categoryId);
+      if (!data?.id) {
+        formApi.setValues({ isActive: true, images: [] });
+        return;
+      }
 
-          // 等待类目属性加载完成
-          const attrs = await handleCategoryChange(categoryId);
-          const defaultSku = product.skus?.[0] || {};
-          const specs = defaultSku.specs || product.specs || {};
-          const normalizedSpecs = { ...specs };
-          (attrs || []).forEach((attr: any) => {
-            const fieldKey = attr.code || attr.name;
-            if (
-              normalizedSpecs[fieldKey] === undefined &&
-              specs[attr.name] !== undefined
-            ) {
-              normalizedSpecs[fieldKey] = specs[attr.name];
-            }
-          });
+      const detail = await ProductApi.getProductDetail(data.id);
+      const product = detail.data || data;
+      const categoryId = String(product.categoryId);
+      const attrs = await handleCategoryChange(categoryId);
+      const formattedImages = (product.images || []).map(
+        (url: string, index: number) => ({
+          uid: String(index),
+          status: "success",
+          url,
+        }),
+      );
 
-          // 属性加载完成后再设置表单值
-          const formattedImages = (product.images || []).map(
-            (url: string, index: number) => ({
-              uid: String(index),
-              status: "success",
-              url: url,
-            })
-          );
-          formApi.setValues({
-            ...product,
-            categoryId,
-            skuId: defaultSku.id,
-            skuCode: defaultSku.skuCode || product.code,
-            barcode: defaultSku.barcode || product.barcode,
-            unitId: defaultSku.unitId || product.unitId,
-            safetyStock: defaultSku.safetyStock ?? product.safetyStock ?? 0,
-            dynamicAttrs: normalizedSpecs,
-            images: formattedImages,
-          });
-          setSelectedUnitId(String(defaultSku.unitId || product.unitId || ""));
-          setUnitChangeLockedReason(product.unitChangeLockedReason || null);
-          setStockSummary(product.stockSummary || null);
-          if (Array.isArray(product.conversionRules)) {
-            setUnitConversions(product.conversionRules);
-          } else {
-            await loadUnitConversions(String(product.unitId), unitList);
-          }
-        } else {
-          // 新增模式：重置表单
-          formApi.setValues({ isActive: true, images: [], safetyStock: 0 });
-          setSelectedUnitId(undefined);
-          setUnitConversions([]);
-          setUnitChangeLockedReason(null);
-          setStockSummary(null);
-        }
-      })();
+      formApi.setValues({
+        code: product.code,
+        name: product.name,
+        categoryId,
+        description: product.description,
+        images: formattedImages,
+        isActive: product.isActive === 1,
+      });
+
+      const skuList = product.skus?.length ? product.skus : [];
+      setSkus(
+        skuList.length
+          ? skuList.map((sku: IProductSku) => ({
+              clientId: sku.id,
+              id: sku.id,
+              skuCode: sku.skuCode,
+              barcode: sku.barcode || "",
+              unitId: sku.unitId ? String(sku.unitId) : undefined,
+              specs: normalizeSkuSpecs(sku.specs || {}, attrs),
+              safetyStock: sku.safetyStock || 0,
+              isActive: sku.isActive === 1,
+            }))
+          : [createSkuDraft()],
+      );
+    })();
+  }, [
+    visible,
+    data,
+    data?.id,
+    formApi,
+    resetModalState,
+    loadCategories,
+    loadUnits,
+    handleCategoryChange,
+  ]);
+
+  const skuCountText = useMemo(
+    () => `${skus.length} 个 SKU`,
+    [skus.length],
+  );
+
+  const updateSku = (clientId: string, patch: Partial<SkuFormItem>) => {
+    setSkus((list) =>
+      list.map((item) =>
+        item.clientId === clientId ? { ...item, ...patch } : item,
+      ),
+    );
+  };
+
+  const updateSkuSpec = (clientId: string, key: string, value: any) => {
+    setSkus((list) =>
+      list.map((item) =>
+        item.clientId === clientId
+          ? { ...item, specs: { ...item.specs, [key]: value } }
+          : item,
+      ),
+    );
+  };
+
+  const addSku = () => {
+    setSkus((list) => [...list, createSkuDraft()]);
+  };
+
+  const removeSku = (sku: SkuFormItem) => {
+    if (skus.length <= 1) {
+      Toast.warning("至少保留一个 SKU");
+      return;
     }
-  }, [visible, data, data?.id, formApi, handleCategoryChange, loadCategories, loadUnitConversions]);
+    if (sku.id) {
+      setDeletedSkuIds((ids) => [...ids, sku.id!]);
+    }
+    setSkus((list) => list.filter((item) => item.clientId !== sku.clientId));
+  };
 
-  const selectedUnit = units.find((item) => String(item.id) === String(selectedUnitId));
-  const unitByCode = new Map(units.map((item) => [item.code, item]));
-  const unitSelectDisabled = Boolean(data?.id && unitChangeLockedReason);
-  const stockUnitText = stockSummary?.unitSymbol || stockSummary?.unitName || selectedUnit?.symbol || selectedUnit?.name || "";
+  const handleProductCategoryChange = async (value: any) => {
+    await handleCategoryChange(String(value || ""));
+    // 类目变化后规格模板也会变化，旧规格值不能继续混用。
+    setSkus((list) => list.map((item) => ({ ...item, specs: {} })));
+  };
 
-  /**
-   * 💡 核心优化：手动处理提交逻辑，绕过缺失的 submit() 方法
-   */
+  const validateSkus = () => {
+    if (!skus.length) {
+      Toast.error("请至少添加一个 SKU");
+      return false;
+    }
+    const missingUnitIndex = skus.findIndex((sku) => !sku.unitId);
+    if (missingUnitIndex >= 0) {
+      Toast.error(`请为 SKU ${missingUnitIndex + 1} 选择库存单位`);
+      return false;
+    }
+    return true;
+  };
+
   const handleOk = async () => {
     if (!formApi) return;
-    try {
-      // 使用 validate 获取表单最新值，这比直接调用 submit 更稳定
-      const values = await formApi.validate();
+    if (!validateSkus()) return;
 
+    try {
+      const values = await formApi.validate();
       setLoading(true);
 
-      /** ✅ 核心逻辑：数据清洗
-       * 将 FileItem 数组转换为后端需要的 URL 字符串数组
-       */
       const imageUrls = (values.images || [])
         .map((file: any) => {
-          // 如果是回显的旧图片，直接取 url 字段
           if (file.url && !file.response) return file.url;
-          // 如果是刚上传的新图片，必须从 response 提取服务器返回的真实 URL
           return file.response?.url;
         })
-        .filter(Boolean); // 剔除上传失败或无效的项
+        .filter(Boolean);
 
-      const productPayload: any = {
+      const productPayload = {
         name: values.name,
         code: values.code,
         categoryId: values.categoryId,
         description: values.description,
-        images: imageUrls, // 💡 此时发给后端的将是真正的远程 URL 列表
-        isActive: values.isActive ? 1 : 0,
+        images: imageUrls,
+        isActive: values.isActive ? (1 as const) : (0 as const),
       };
 
       const productRes = data?.id
         ? await ProductApi.updateProduct({ ...productPayload, id: data.id })
         : await ProductApi.saveProduct(productPayload);
       const product = productRes.data;
-      const skuPayload = {
-        id: values.skuId,
-        productId: product.id,
-        skuCode: values.skuCode,
-        barcode: values.barcode,
-        unitId: values.unitId,
-        specs: values.dynamicAttrs || {},
-        safetyStock: values.safetyStock || 0,
-        isActive: values.isActive ? 1 as const : 0 as const,
-      };
 
-      if (skuPayload.id) await ProductApi.updateSku(skuPayload);
-      else await ProductApi.saveSku(skuPayload);
+      // 产品是目录，SKU 才是库存和订单的真实业务对象；这里统一同步 SKU 列表。
+      await Promise.all([
+        ...deletedSkuIds.map((id) => ProductApi.deleteSku(id)),
+        ...skus.map((sku) => {
+          const payload = {
+            id: sku.id,
+            productId: product.id,
+            skuCode: sku.skuCode?.trim() || undefined,
+            barcode: sku.barcode?.trim() || undefined,
+            unitId: sku.unitId!,
+            specs: sku.specs || {},
+            safetyStock: sku.safetyStock || 0,
+            isActive: sku.isActive ? (1 as const) : (0 as const),
+          };
+          return sku.id ? ProductApi.updateSku(payload) : ProductApi.saveSku(payload);
+        }),
+      ]);
 
       Toast.success("操作成功");
       onSuccess();
     } catch {
-      // 校验失败会自动在 UI 上显示错误，无需额外处理
+      // 表单校验和接口错误会由全局请求层或 Semi 表单提示展示。
     } finally {
       setLoading(false);
     }
@@ -245,12 +309,12 @@ export default function ProductEditModal({
 
   return (
     <Modal
-      title={data?.id ? "编辑产品及默认SKU" : "新增产品及首个SKU"}
+      title={data?.id ? "编辑产品和SKU" : "新增产品和SKU"}
       visible={visible}
       onCancel={handleClose}
-      onOk={handleOk} // ✅ 绑定新的 handleOk 函数
+      onOk={handleOk}
       confirmLoading={loading}
-      width={700}
+      width={880}
       keepDOM
     >
       <Form
@@ -261,15 +325,19 @@ export default function ProductEditModal({
         <Section text="产品基础信息">
           <div style={{ marginLeft: 120, marginBottom: 12 }}>
             <Text type="tertiary">
-              产品只是目录入口；规格、单位、条码、安全库存都维护在 SKU 上。
+              产品是目录入口；规格、单位、条码、安全库存都维护在下方 SKU 中。
             </Text>
           </div>
-          <Form.Input field="code" label="产品系列编码" placeholder="不填则自动生成产品系列编码" />
+          <Form.Input
+            field="code"
+            label="产品系列编码"
+            placeholder="不填则自动生成产品系列编码"
+          />
           <Form.Input
             field="name"
             label="产品名称"
             placeholder="请输入产品名称"
-            rules={[{ required: true, message: "必填" }]}
+            rules={[{ required: true, message: "请输入产品名称" }]}
           />
           <Form.Select
             field="categoryId"
@@ -277,141 +345,160 @@ export default function ProductEditModal({
             style={{ width: "100%" }}
             placeholder="请选择类目"
             optionList={categoryOptions}
-            rules={[{ required: true }]}
-            onChange={async (v) => {
-              formApi?.setValue("dynamicAttrs", {});
-              await handleCategoryChange(v as string);
-            }}
+            rules={[{ required: true, message: "请选择类目" }]}
+            onChange={handleProductCategoryChange}
           />
         </Section>
-
-        <Section text="首个SKU">
-          <div style={{ marginLeft: 120, marginBottom: 12 }}>
-            <Text type="tertiary">
-              首个 SKU 是实际可入库、可下单、可打印的规格组合，后续可以继续补充更多 SKU。
-            </Text>
-          </div>
-          <Form.Input
-            field="skuCode"
-            label="SKU编码"
-            placeholder="不填则自动生成 SKU 编码"
-          />
-          <Form.Input
-            field="barcode"
-            label="SKU条形码"
-            placeholder="不填则默认等于 SKU 编码"
-          />
-          <Form.Select
-            field="unitId"
-            label="SKU库存单位"
-            style={{ width: "100%" }}
-            placeholder="请选择库存主单位"
-            optionList={unitOptions}
-            filter
-            disabled={unitSelectDisabled}
-            rules={[{ required: true, message: "请选择SKU库存单位" }]}
-            onChange={async (value) => {
-              if (unitSelectDisabled) return;
-              const unitId = String(value || "");
-              setSelectedUnitId(unitId);
-              await loadUnitConversions(unitId);
-            }}
-          />
-          {unitChangeLockedReason && (
-            <div style={{ marginLeft: 120, marginTop: -8, marginBottom: 12 }}>
-              <Text type="warning">{unitChangeLockedReason}</Text>
-              {stockSummary && (
-                <div style={{ marginTop: 4 }}>
-                  <Text type="tertiary">
-                    当前库存：{stockSummary.quantity || 0}{stockUnitText}
-                    ，锁定：{stockSummary.lockedQuantity || 0}{stockUnitText}
-                    ，可用：{stockSummary.availableQuantity || 0}{stockUnitText}
-                  </Text>
-                </div>
-              )}
-            </div>
-          )}
-          {selectedUnitId && (
-            <div style={{ marginLeft: 120, marginTop: -8, marginBottom: 12 }}>
-              {unitConversions.length > 0 ? (
-                <Space wrap>
-                  <Text type="secondary">已维护入库换算：</Text>
-                  {unitConversions.map((rule) => {
-                    const fromUnit = unitByCode.get(rule.fromUnitCode);
-                    return (
-                      <Tag key={rule.id || `${rule.fromUnitCode}-${rule.toUnitCode}`} color="blue">
-                        1{fromUnit?.symbol || fromUnit?.name || rule.fromUnitCode}={rule.ratio}{selectedUnit?.symbol || selectedUnit?.name || selectedUnit?.code}
-                      </Tag>
-                    );
-                  })}
-                </Space>
-              ) : (
-                <Text type="tertiary">
-                  该库存主单位暂无换算规则，入库时只能选择{selectedUnit?.name || "当前单位"}。
-                </Text>
-              )}
-            </div>
-          )}
-        </Section>
-
-        {dynamicAttributes.length > 0 && (
-          <Section text="SKU规格属性">
-            <Spin spinning={attrLoading}>
-              {dynamicAttributes.map((attr) =>
-                attr.type === "select" ? (
-                  <Form.Select
-                    key={attr.id}
-                    style={{ width: "100%" }}
-                    placeholder={`请选择${attr.name}`}
-                    field={`dynamicAttrs.${attr.code || attr.name}`}
-                    label={getAttrLabel(attr)}
-                    optionList={attr.options?.map((o: any) => ({
-                      label: o.value || o.name || o,
-                      value: o.value || o.id || o,
-                    }))}
-                  />
-                ) : attr.type === "number" ? (
-                  <Form.InputNumber
-                    style={{ width: "100%" }}
-                    key={attr.id}
-                    placeholder={`请输入${attr.name}`}
-                    field={`dynamicAttrs.${attr.code || attr.name}`}
-                    label={attr.name}
-                    suffix={attr.unit || null}
-                  />
-                ) : (
-                  <Form.Input
-                    style={{ width: "100%" }}
-                    key={attr.id}
-                    placeholder={`请输入${attr.name}`}
-                    field={`dynamicAttrs.${attr.code || attr.name}`}
-                    label={attr.name}
-                    addonAfter={attr.unit || null}
-                  />
-                )
-              )}
-            </Spin>
-          </Section>
-        )}
 
         <Section text="产品图片">
           <UploadImage field="images" label="产品图" max={3} uploadPath="product" />
         </Section>
 
-        <Section text="SKU库存配置">
-          <Form.InputNumber
-            field="safetyStock"
-            label="安全库存"
-            placeholder="请输入安全库存"
-            min={0}
-            precision={0}
-            style={{ width: "100%" }}
-          />
+        <Section text="SKU规格配置">
+          <div
+            style={{
+              marginLeft: 120,
+              marginBottom: 12,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <Text type="tertiary">{skuCountText}，每个 SKU 对应一个可入库、可下单、可打印的规格组合。</Text>
+            <Button icon={<IconPlus />} theme="solid" onClick={addSku}>
+              添加SKU
+            </Button>
+          </div>
+
+          <Spin spinning={attrLoading}>
+            <div style={{ marginLeft: 120, display: "flex", flexDirection: "column", gap: 12 }}>
+              {skus.map((sku, index) => (
+                <Card
+                  key={sku.clientId}
+                  title={`SKU ${index + 1}`}
+                  headerExtraContent={
+                    <Button
+                      icon={<IconDelete />}
+                      type="danger"
+                      theme="borderless"
+                      onClick={() => removeSku(sku)}
+                    />
+                  }
+                  bodyStyle={{ padding: 16 }}
+                >
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <Input
+                      value={sku.skuCode}
+                      placeholder="SKU编码，不填则自动生成"
+                      prefix="编码"
+                      onChange={(value) => updateSku(sku.clientId, { skuCode: value })}
+                    />
+                    <Input
+                      value={sku.barcode}
+                      placeholder="条形码，不填默认等于SKU编码"
+                      prefix="条码"
+                      onChange={(value) => updateSku(sku.clientId, { barcode: value })}
+                    />
+                    <Select
+                      value={sku.unitId}
+                      placeholder="请选择库存单位"
+                      optionList={unitOptions}
+                      filter
+                      style={{ width: "100%" }}
+                      prefix="单位"
+                      onChange={(value) => updateSku(sku.clientId, { unitId: String(value || "") })}
+                    />
+                    <InputNumber
+                      value={sku.safetyStock}
+                      min={0}
+                      precision={0}
+                      placeholder="安全库存"
+                      style={{ width: "100%" }}
+                      prefix="安全库存"
+                      onChange={(value) => updateSku(sku.clientId, { safetyStock: Number(value || 0) })}
+                    />
+                  </div>
+
+                  {dynamicAttributes.length > 0 && (
+                    <div
+                      style={{
+                        marginTop: 12,
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                        gap: 12,
+                      }}
+                    >
+                      {dynamicAttributes.map((attr) => {
+                        const key = getAttrKey(attr);
+                        const commonProps = {
+                          value: sku.specs?.[key],
+                          placeholder: `请输入${attr.name}`,
+                          style: { width: "100%" },
+                        };
+
+                        if (attr.type === "select") {
+                          return (
+                            <Select
+                              key={attr.id || key}
+                              {...commonProps}
+                              prefix={getAttrLabel(attr)}
+                              optionList={attr.options?.map((option: any) => ({
+                                label: option.value || option.name || option,
+                                value: option.value || option.id || option,
+                              }))}
+                              onChange={(value) => updateSkuSpec(sku.clientId, key, value)}
+                            />
+                          );
+                        }
+
+                        if (attr.type === "number") {
+                          return (
+                            <InputNumber
+                              key={attr.id || key}
+                              {...commonProps}
+                              prefix={getAttrLabel(attr)}
+                              onChange={(value) => updateSkuSpec(sku.clientId, key, value)}
+                            />
+                          );
+                        }
+
+                        return (
+                          <Input
+                            key={attr.id || key}
+                            {...commonProps}
+                            prefix={getAttrLabel(attr)}
+                            onChange={(value) => updateSkuSpec(sku.clientId, key, value)}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 12 }}>
+                    <Space>
+                      <Text type="secondary">启用状态</Text>
+                      <Switch
+                        checked={sku.isActive}
+                        onChange={(checked) => updateSku(sku.clientId, { isActive: checked })}
+                      />
+                    </Space>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </Spin>
         </Section>
 
         <Section text="其他配置">
           <Form.TextArea field="description" label="产品描述" rows={2} />
-          <Form.Switch field="isActive" label="启用状态" />
+          <Form.Switch field="isActive" label="产品启用" />
         </Section>
       </Form>
     </Modal>
