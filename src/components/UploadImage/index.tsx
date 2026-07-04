@@ -9,7 +9,7 @@ import CommonApi from "@/api/common";
 
 const { Text } = Typography;
 
-const UploadImage = ({
+export const RawUploadImage = ({
   value = [],
   onChange,
   max = 1,
@@ -95,4 +95,4 @@ const UploadImage = ({
 };
 
 // 💡 核心：使用 withField 包装，直接支持 field 属性，消灭 ts(2322)
-export default withField(UploadImage);
+export default withField(RawUploadImage);

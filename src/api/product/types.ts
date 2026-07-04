@@ -132,6 +132,7 @@ export interface IProductSku {
   sku?: string;
   barcode?: string | null;
   specs: Record<string, any>;
+  images?: string[];
   unitId: string;
   unitCode?: string | null;
   unitName?: string | null;
@@ -149,6 +150,7 @@ export interface ISaveProductSku {
   barcode?: string;
   unitId: string;
   specs: Record<string, any>;
+  images?: string[];
   safetyStock?: number;
   isActive?: 1 | 0;
 }

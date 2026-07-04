@@ -21,7 +21,7 @@ import UnitApi from "@/api/unit";
 import { IUnit } from "@/api/unit/types";
 import { IProductSku } from "@/api/product/types";
 import { FormApi } from "@douyinfe/semi-ui-19/lib/es/form";
-import UploadImage from "@/components/UploadImage";
+import { RawUploadImage } from "@/components/UploadImage";
 
 const { Section } = Form;
 const { Text } = Typography;
@@ -31,6 +31,7 @@ type SkuFormItem = {
   id?: string;
   unitId?: string;
   specs: Record<string, any>;
+  images: any[];
   safetyStock: number;
   isActive: boolean;
 };
@@ -38,6 +39,7 @@ type SkuFormItem = {
 const createSkuDraft = (): SkuFormItem => ({
   clientId: `sku-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   specs: {},
+  images: [],
   safetyStock: 0,
   isActive: true,
 });
@@ -66,6 +68,21 @@ const normalizeSkuSpecs = (specs: Record<string, any> = {}, attrs: any[]) => {
   });
   return normalized;
 };
+
+const toUploadFileList = (images: string[] = []) =>
+  images.map((url, index) => ({
+    uid: `${url}-${index}`,
+    status: "success",
+    url,
+  }));
+
+const toImageUrls = (files: any[] = []) =>
+  files
+    .map((file) => {
+      if (file.url && !file.response) return file.url;
+      return file.response?.url;
+    })
+    .filter(Boolean);
 
 export default function ProductEditModal({
   visible,
@@ -175,6 +192,7 @@ export default function ProductEditModal({
               id: sku.id,
               unitId: sku.unitId ? String(sku.unitId) : undefined,
               specs: normalizeSkuSpecs(sku.specs || {}, attrs),
+              images: toUploadFileList(sku.images || []),
               safetyStock: sku.safetyStock || 0,
               isActive: sku.isActive === 1,
             }))
@@ -271,6 +289,20 @@ export default function ProductEditModal({
         />
       ),
     },
+    {
+      title: "图片",
+      width: 150,
+      render: (_: any, sku: SkuFormItem) => (
+        <RawUploadImage
+          value={sku.images}
+          max={1}
+          prompt=""
+          uploadText="上传"
+          uploadPath="product/sku"
+          onChange={(images: any[]) => updateSku(sku.clientId, { images })}
+        />
+      ),
+    },
     ...dynamicAttributes.map((attr) => {
       const key = getAttrKey(attr);
       return {
@@ -361,19 +393,15 @@ export default function ProductEditModal({
       const values = await formApi.validate();
       setLoading(true);
 
-      const imageUrls = (values.images || [])
-        .map((file: any) => {
-          if (file.url && !file.response) return file.url;
-          return file.response?.url;
-        })
-        .filter(Boolean);
+      const skuImageUrlLists = skus.map((sku) => toImageUrls(sku.images));
+      const coverImages = skuImageUrlLists.find((images) => images.length > 0) || [];
 
       const productPayload = {
         name: values.name,
         code: values.code,
         categoryId: values.categoryId,
         description: values.description,
-        images: imageUrls,
+        images: coverImages,
         isActive: values.isActive ? (1 as const) : (0 as const),
       };
 
@@ -385,12 +413,13 @@ export default function ProductEditModal({
       // 产品是目录，SKU 才是库存和订单的真实业务对象；这里统一同步 SKU 列表。
       await Promise.all([
         ...deletedSkuIds.map((id) => ProductApi.deleteSku(id)),
-        ...skus.map((sku) => {
+        ...skus.map((sku, index) => {
           const payload = {
             id: sku.id,
             productId: product.id,
             unitId: sku.unitId!,
             specs: sku.specs || {},
+            images: skuImageUrlLists[index] || [],
             safetyStock: sku.safetyStock || 0,
             isActive: sku.isActive ? (1 as const) : (0 as const),
           };
@@ -451,10 +480,8 @@ export default function ProductEditModal({
         </Section>
 
         <Section text="SKU规格配置">
-          <UploadImage field="images" label="产品图" max={3} uploadPath="product" />
           <div
             style={{
-              marginTop: 12,
               marginBottom: 12,
               display: "flex",
               justifyContent: "space-between",
@@ -476,7 +503,7 @@ export default function ProductEditModal({
                 dataSource={skus}
                 pagination={false}
                 size="small"
-                scroll={{ x: 400 + dynamicAttributes.length * 170 }}
+                scroll={{ x: 550 + dynamicAttributes.length * 170 }}
               />
             </div>
           </Spin>
