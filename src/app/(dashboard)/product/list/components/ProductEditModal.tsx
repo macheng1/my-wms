@@ -146,7 +146,10 @@ export default function ProductEditModal({
       const detail = await ProductApi.getProductDetail(data.id);
       const product = detail.data || data;
       const categoryId = String(product.categoryId);
-      const attrs = await handleCategoryChange(categoryId);
+      const attrs = product.category?.attributes?.length
+        ? sortAttributes(product.category.attributes)
+        : await handleCategoryChange(categoryId);
+      setDynamicAttributes(attrs);
       const formattedImages = (product.images || []).map(
         (url: string, index: number) => ({
           uid: String(index),
