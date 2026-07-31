@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Form, Modal, Space } from "@douyinfe/semi-ui-19";
 import CategoryApi from "@/api/category";
 import {
@@ -37,6 +37,22 @@ export default function OrderEditModal({
   );
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [categoryAttrs, setCategoryAttrs] = useState<any[]>([]);
+
+  const categorySelectOptions = useMemo(
+    () =>
+      categoryOptions.map((item) => ({
+        label: item.label || item.name,
+        value: item.value || item.id,
+      })),
+    [categoryOptions],
+  );
+
+  useEffect(() => {
+    if (!visible) return;
+    setFormOrderType(currentOrder?.orderType || OrderType.STANDARD);
+    setSelectedCategoryId("");
+    setCategoryAttrs([]);
+  }, [visible, currentOrder]);
 
   async function handleCategoryChange(categoryId?: string) {
     if (!categoryId) {
@@ -142,24 +158,25 @@ export default function OrderEditModal({
                 <Form.Select
                   field="categoryId"
                   label="产品分类"
-                  placeholder="请选择分类"
+                  placeholder="可选；选择后可补充规格属性"
                   style={{ width: "100%" }}
-                  rules={[{ required: true, message: "请选择分类" }]}
-                >
-                  {categoryOptions.map((item) => (
-                    <Form.Select.Option key={item.id} value={item.id}>
-                      {item.name}
-                    </Form.Select.Option>
+                  optionList={categorySelectOptions}
+                />
+                <Form.TextArea
+                  field="customRequirement"
+                  label="需求说明"
+                  placeholder="请输入非标需求说明"
+                  rows={3}
+                />
+                {categoryAttrs.length > 0 &&
+                  categoryAttrs.map((attr) => (
+                    <Form.Input
+                      key={attr.code}
+                      field={`spec_${attr.code}`}
+                      label={attr.unit ? `${attr.name}(${attr.unit})` : attr.name}
+                      placeholder={`请输入${attr.name}（可选）`}
+                    />
                   ))}
-                </Form.Select>
-                {categoryAttrs.map((attr) => (
-                  <Form.Input
-                    key={attr.code}
-                    field={`spec_${attr.code}`}
-                    label={attr.unit ? `${attr.name}(${attr.unit})` : attr.name}
-                    placeholder={`请输入${attr.name}`}
-                  />
-                ))}
               </>
             )}
             <Form.InputNumber

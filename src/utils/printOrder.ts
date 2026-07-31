@@ -35,21 +35,24 @@ const date = (v?: string | null, fmt = "YYYY-MM-DD HH:mm"): string =>
 export function printOrder(order: OrderRecord, labels: OrderPrintLabels): void {
   const items = order.items ?? [];
   const rows = items
-    .map(
-      (it, i) => `
+    .map((it, i) => {
+      const isCustom = order.orderType === "CUSTOM" || !it.sku;
+      const specsText = formatOrderSpecs(it.specList, it.specs);
+      return `
         <tr>
           <td class="c">${i + 1}</td>
           <td>
             ${esc(it.skuName || it.productName)}
-            ${it.sku ? `<span class="muted"> / ${esc(it.sku)}</span>` : ""}
-            ${it.specs ? `<div class="muted spec">${esc(formatOrderSpecs(it.specs))}</div>` : ""}
+            ${!isCustom && it.sku ? `<span class="muted"> / ${esc(it.sku)}</span>` : ""}
+            ${specsText !== "-" ? `<div class="muted spec">${esc(specsText)}</div>` : ""}
+            ${it.customRequirement ? `<div class="muted spec">需求说明：${esc(it.customRequirement)}</div>` : ""}
           </td>
           <td class="r">${esc(it.quantity)}${it.unitName ? ` ${esc(it.unitName)}` : ""}</td>
           <!-- 单价/金额暂时不用，先隐藏，保留数据字段方便后续恢复。 -->
           <!-- <td class="r">${money(it.price)}</td> -->
           <!-- <td class="r">${money(it.amount)}</td> -->
-        </tr>`,
-    )
+        </tr>`;
+    })
     .join("");
 
   const html = `<!doctype html>
@@ -64,8 +67,9 @@ export function printOrder(order: OrderRecord, labels: OrderPrintLabels): void {
   .head { position: relative; text-align: center; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px; }
   .title { font-size: 22px; font-weight: 700; letter-spacing: 4px; }
   .tenant { position: absolute; right: 0; bottom: 8px; font-size: 12px; color: #888; }
-  .meta { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 12px 0; }
-  .meta div { min-width: 30%; }
+  .meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 24px; margin: 12px 0; }
+  .customer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 24px; margin: 12px 0; }
+  .full { grid-column: 1 / -1; }
   .label { color: #888; }
   table { width: 100%; border-collapse: collapse; margin-top: 8px; }
   th, td { border: 1px solid #d0d0d0; padding: 6px 8px; }
@@ -95,10 +99,10 @@ export function printOrder(order: OrderRecord, labels: OrderPrintLabels): void {
     <div><span class="label">期望交付：</span>${date(order.expectedDeliveryDate, "YYYY-MM-DD")}</div>
   </div>
 
-  <div class="meta">
+  <div class="customer">
     <div><span class="label">客户：</span>${esc(order.customerName || "—")}</div>
     <div><span class="label">电话：</span>${esc(order.customerPhone || "—")}</div>
-    <div style="min-width:100%"><span class="label">地址：</span>${esc(order.customerAddress || "—")}</div>
+    <div class="full"><span class="label">地址：</span>${esc(order.customerAddress || "—")}</div>
   </div>
 
   <table>

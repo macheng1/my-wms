@@ -63,8 +63,12 @@ export default function OrderDetailModal({
   }, [visible, order]);
 
   const current = detail || order;
+  const items = current?.items || [];
+  const hasSpecs = items.some((item) => formatOrderSpecs(item.specList, item.specs) !== "-");
+  const hasRequirement = items.some((item) => !!item.customRequirement);
   const columns = useMemo(
-    () => [
+    () => {
+      const baseColumns: any[] = [
       {
         title: "序号",
         width: 64,
@@ -109,21 +113,45 @@ export default function OrderDetailModal({
           </Typography.Text>
         ),
       },
-      {
-        title: "规格",
-        width: 360,
-        render: (_: unknown, item: OrderItem) => (
-          <Typography.Paragraph
-            style={{
-              margin: 0,
-              whiteSpace: "normal",
-              wordBreak: "break-word",
-            }}
-          >
-            {formatOrderSpecs(item.specList, item.specs)}
-          </Typography.Paragraph>
-        ),
-      },
+      ...(hasSpecs
+        ? [
+            {
+              title: "规格",
+              width: 360,
+              render: (_: unknown, item: OrderItem) => (
+                <Typography.Paragraph
+                  style={{
+                    margin: 0,
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {formatOrderSpecs(item.specList, item.specs)}
+                </Typography.Paragraph>
+              ),
+            },
+          ]
+        : []),
+      ...(hasRequirement
+        ? [
+            {
+              title: "需求说明",
+              dataIndex: "customRequirement",
+              width: 240,
+              render: (value: string) => (
+                <Typography.Paragraph
+                  style={{
+                    margin: 0,
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {value || "-"}
+                </Typography.Paragraph>
+              ),
+            },
+          ]
+        : []),
       {
         title: "数量",
         width: 100,
@@ -143,8 +171,10 @@ export default function OrderDetailModal({
       //   width: 100,
       //   render: (value: number) => `¥${Number(value || 0).toFixed(2)}`,
       // },
-    ],
-    [],
+      ];
+      return baseColumns;
+    },
+    [hasRequirement, hasSpecs],
   );
 
   return (
@@ -193,7 +223,7 @@ export default function OrderDetailModal({
           <Table
             rowKey="id"
             columns={columns}
-            dataSource={current.items || []}
+            dataSource={items}
             pagination={false}
             size="small"
             empty="暂无商品明细"

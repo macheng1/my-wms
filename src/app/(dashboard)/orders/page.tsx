@@ -361,6 +361,14 @@ export default function OrdersPage() {
       Toast.error("订购数量必须大于 0");
       return;
     }
+    const customSpecs =
+      categoryAttrs.length > 0
+        ? Object.fromEntries(
+            categoryAttrs
+              .map((attr) => [attr.code, values[`spec_${attr.code}`]])
+              .filter(([, value]) => value !== undefined && value !== ""),
+          )
+        : undefined;
     const payload: any = currentOrder?.id
       ? {
           items: [
@@ -394,11 +402,8 @@ export default function OrdersPage() {
                   {
                     productName: values.productName,
                     quantity,
-                    specs: Object.fromEntries(
-                      categoryAttrs
-                        .map((attr) => [attr.code, values[`spec_${attr.code}`]])
-                        .filter(([, value]) => value !== undefined && value !== ""),
-                    ),
+                    customRequirement: values.customRequirement,
+                    specs: customSpecs && Object.keys(customSpecs).length > 0 ? customSpecs : undefined,
                   },
                 ],
         };
